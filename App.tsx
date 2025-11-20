@@ -194,7 +194,7 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+        <div className="flex flex-col h-[100dvh] bg-slate-50 text-slate-900 font-sans antialiased">
             <Header 
                 toggleSidebar={toggleSidebar}
                 showToast={showToast}
