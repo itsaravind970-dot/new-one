@@ -5,6 +5,10 @@
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>bapkam.ai</title>
+    <script>
+      // Polyfill for process.env to prevent ReferenceError in browser environments
+      window.process = { env: {} };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
   <script type="importmap">
 {

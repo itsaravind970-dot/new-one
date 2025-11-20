@@ -2,14 +2,12 @@ import { GoogleGenAI, Modality, Content } from "@google/genai";
 import { GroundingSource, Engine, ChatMessage, ChatMessageRole } from "../types";
 import { getOpenRouterResponse } from './openRouterService';
 
-const API_KEY = process.env.API_KEY;
+// Safely access the API key, defaulting to an empty string if missing or if process is undefined.
+// This prevents the "White Screen of Death" on initial load.
+const API_KEY = (typeof process !== 'undefined' ? process.env?.API_KEY : '') || '';
 
-if (!API_KEY) {
-  // In a real app, you might show a more user-friendly error.
-  // For this example, we'll throw an error to fail fast.
-  throw new Error("API_KEY environment variable not set. Please set it in your environment.");
-}
-
+// Initialize the AI client. We do not block the app from loading if the key is missing.
+// Errors will occur gracefully only when the user attempts to send a message.
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const model = 'gemini-2.5-flash';
@@ -75,6 +73,11 @@ Your goal is to make the user feel like they are talking to a real person, not a
 
 export async function generateChatResponse(prompt: string, history: ChatMessage[]): Promise<{ text: string; modelSources: string[] }> {
   try {
+    if (!API_KEY) {
+        // This error is thrown ONLY when the user tries to chat, not on app load.
+        throw new Error("API Key is missing. Please check your environment configuration.");
+    }
+
     // 1. Classify prompt to determine the persona for the Gemini portion of the response.
     const engine = await classifyPrompt(prompt);
     const geminiSystemInstruction = getSystemInstruction(engine);
