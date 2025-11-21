@@ -27,38 +27,38 @@
     <!-- React Dependencies -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script>
+        // Suppress the Babel "production" warning to clean up the UI
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('in-browser Babel transformer')) return;
+            originalWarn.apply(console, args);
+        };
+    </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Environment Polyfill -->
-    <script>window.process = { env: { API_KEY: 'AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg' } };</script>
-
-    <!-- Google GenAI SDK Module -->
-    <script type="module">
-      import { GoogleGenAI } from "https://esm.sh/@google/genai@0.1.1";
-      window.GoogleGenAI = GoogleGenAI;
-      window.isGenAILoaded = true;
-      console.log("GenAI SDK Ready");
-    </script>
-
     <style>
-        /* Critical Mobile Fixes */
-        html, body { height: 100%; margin: 0; overflow: hidden; background-color: #f8fafc; }
-        #root { position: fixed; inset: 0; display: flex; flex-direction: column; }
+        /* Mobile App-like Layout Fixes */
+        html, body { height: 100%; margin: 0; overflow: hidden; background-color: #f8fafc; overscroll-behavior: none; }
+        #root { position: fixed; inset: 0; height: 100dvh; display: flex; flex-direction: column; z-index: 1; }
         
         /* Animations */
         @keyframes message-in {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-message { animation: message-in 0.3s ease-out forwards; }
+        .animate-message { animation: message-in 0.2s ease-out forwards; }
         
         /* Scrollbar Polish */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* Markdown-like styling for AI text */
+        
+        /* Mobile Tap Highlight Removal */
+        * { -webkit-tap-highlight-color: transparent; }
+        
         .prose p { margin-bottom: 0.5em; }
         .prose p:last-child { margin-bottom: 0; }
     </style>
@@ -79,155 +79,86 @@
     <script type="text/babel" data-presets="typescript,react">
       const { useState, useEffect, useRef, useCallback } = React;
 
-      // --- ICONS (Optimized) ---
+      // --- ICONS ---
       const Icon = ({ d, className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>;
-      const SendIcon = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+      const SendIcon = (p) => <Icon d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7" {...p} />;
       const MenuIcon = (p) => <Icon d="M3 12h18M3 6h18M3 18h18" {...p} />;
       const PlusIcon = (p) => <Icon d="M12 5v14M5 12h14" {...p} />;
-      const ImageIcon = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
       const UserIcon = (p) => <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" {...p}><circle cx="12" cy="7" r="4"/></Icon>;
       const RobotIcon = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>;
       const TrashIcon = (p) => <Icon d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...p} />;
-      const XIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
+      const LogInIcon = (p) => <Icon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" {...p} />;
 
-      // --- AI SERVICE (STREAMING) ---
-      const API_KEY = 'AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg';
-      
-      async function getAI() {
-         if (window.GoogleGenAI) return new window.GoogleGenAI({ apiKey: API_KEY });
-         // Fast polling
-         for(let i=0; i<50; i++) {
-             if (window.GoogleGenAI) return new window.GoogleGenAI({ apiKey: API_KEY });
-             await new Promise(r => setTimeout(r, 100));
-         }
-         throw new Error("Connection slow.");
-      }
+      // --- API CONFIGURATION ---
+      const API_KEY = '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'; 
+      const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+      const MODEL = 'google/gemini-2.0-flash-001';
 
-      // --- APP COMPONENTS ---
-      
+      // --- COMPONENTS ---
+
       const LoadingDots = () => (
-          <div className="flex space-x-1 h-6 items-center">
-              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+          <div className="flex space-x-1 h-6 items-center px-2">
+              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
           </div>
       );
 
       const ChatMessage = ({ msg }) => {
           const isUser = msg.role === 'user';
-          const isImg = msg.content?.startsWith('data:image');
-
           return (
-              <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'} animate-message`}>
-                  <div className={`flex max-w-[85%] md:max-w-[75%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-3`}>
-                      {/* Avatar */}
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isUser ? 'bg-red-600' : 'bg-indigo-600'} shadow-sm text-white`}>
+              <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'} animate-message`}>
+                  <div className={`flex max-w-[85%] md:max-w-[75%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-2`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isUser ? 'bg-red-600' : 'bg-indigo-600'} text-white shadow-sm`}>
                           {isUser ? <UserIcon className="w-5 h-5"/> : <RobotIcon className="w-5 h-5"/>}
                       </div>
                       
-                      {/* Bubble */}
-                      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-                          {/* Name */}
-                          <span className="text-[10px] font-bold text-slate-400 mb-1 px-1 uppercase tracking-wider">
-                              {isUser ? 'You' : 'Bapkam'}
-                          </span>
-                          
-                          {/* Content */}
-                          {isImg ? (
-                             <img src={msg.content} className="rounded-xl border border-slate-200 shadow-sm max-w-full" />
-                          ) : (
-                             <div className={`px-4 py-3 rounded-2xl shadow-sm text-[15px] leading-relaxed whitespace-pre-wrap prose ${
-                                 isUser 
-                                 ? 'bg-red-600 text-white rounded-tr-none' 
-                                 : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
-                             }`}>
-                                 {msg.content}
-                             </div>
-                          )}
+                      <div className={`px-4 py-2.5 rounded-2xl shadow-sm text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
+                          isUser 
+                          ? 'bg-red-600 text-white rounded-tr-none' 
+                          : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                      }`}>
+                          {msg.content}
                       </div>
                   </div>
               </div>
           );
       };
 
-      const Sidebar = ({ isOpen, onClose, onNewChat, sessions, onSelectSession, activeId }) => (
-          <>
-            {/* Backdrop */}
-            {isOpen && <div onClick={onClose} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"></div>}
-            
-            {/* Panel */}
-            <aside className={`fixed md:relative inset-y-0 left-0 w-[280px] bg-slate-900 text-slate-300 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 shadow-2xl`}>
-                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                    <div className="font-bold text-white tracking-tight text-lg flex items-center gap-2">
-                        <span className="text-red-500">●</span> bapkam.ai
-                    </div>
-                    <button onClick={onClose} className="md:hidden text-slate-400"><XIcon className="w-6 h-6"/></button>
-                </div>
-                
-                <div className="p-4">
-                    <button onClick={() => { onNewChat(); onClose(); }} className="w-full flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-medium transition-all shadow-lg shadow-red-900/20 active:scale-95">
-                        <PlusIcon className="w-5 h-5" /> New Chat
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-2 custom-scroll">
-                    <div className="px-2 py-2 text-xs font-bold text-slate-600 uppercase tracking-wider">History</div>
-                    {sessions.length === 0 && <div className="px-4 py-4 text-sm text-slate-600 italic text-center">No chats yet.</div>}
-                    <ul className="space-y-1">
-                        {sessions.map(s => (
-                            <li key={s.id}>
-                                <button onClick={() => { onSelectSession(s.id); onClose(); }} className={`w-full text-left px-3 py-3 rounded-lg text-sm truncate transition-colors flex items-center gap-3 ${activeId === s.id ? 'bg-slate-800 text-white font-medium' : 'hover:bg-slate-800/50 text-slate-400'}`}>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0"></span>
-                                    {s.title}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-                
-                <div className="p-4 border-t border-slate-800 text-xs text-slate-500 text-center">
-                    Fast • Intelligent • Human-like
-                </div>
-            </aside>
-          </>
-      );
-
       const App = () => {
           const [input, setInput] = useState('');
-          const [sessions, setSessions] = useState([]);
-          const [activeId, setActiveId] = useState(null);
+          const [sessions, setSessions] = useState([{ id: '1', title: 'New Chat', messages: [] }]);
+          const [activeId, setActiveId] = useState('1');
           const [isSidebarOpen, setIsSidebarOpen] = useState(false);
           const [isStreaming, setIsStreaming] = useState(false);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           
-          const chatContainerRef = useRef(null);
+          const chatRef = useRef(null);
+          const inputRef = useRef(null);
           
-          // Auto-scroll
+          const currentSession = sessions.find(s => s.id === activeId) || sessions[0];
+
           useEffect(() => {
-              if (chatContainerRef.current) {
-                  chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-              }
-          }, [sessions, activeId, isStreaming]); // trigger on stream updates
+              if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+          }, [currentSession.messages, isStreaming]);
 
-          const createSession = (initialMsg) => {
+          const createSession = () => {
               const id = Date.now().toString();
-              const newSession = { 
-                  id, 
-                  title: initialMsg.substring(0, 30) || "New Conversation", 
-                  messages: [] 
-              };
-              setSessions(prev => [newSession, ...prev]);
+              setSessions(prev => [{ id, title: 'New Chat', messages: [] }, ...prev]);
               setActiveId(id);
-              return id;
+              setIsSidebarOpen(false);
+              // Focus input slightly after render to ensure keyboard comes up on mobile if needed
+              setTimeout(() => inputRef.current?.focus(), 100);
           };
-
-          const updateLastMessage = (sessId, content) => {
-              setSessions(prev => prev.map(s => {
-                  if (s.id !== sessId) return s;
-                  const msgs = [...s.messages];
-                  msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content };
-                  return { ...s, messages: msgs };
-              }));
+          
+          const deleteSession = (e, id) => {
+             e.stopPropagation();
+             setSessions(prev => {
+                 const filtered = prev.filter(s => s.id !== id);
+                 if (filtered.length === 0) return [{ id: Date.now().toString(), title: 'New Chat', messages: [] }];
+                 return filtered;
+             });
+             if (activeId === id) setActiveId(sessions.find(s => s.id !== id)?.id || sessions[0].id);
           };
 
           const handleSend = async (e) => {
@@ -236,169 +167,181 @@
               
               const text = input.trim();
               setInput('');
-              
-              let currentId = activeId;
-              if (!currentId) currentId = createSession(text);
-              
-              // Add User Message
-              setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages, { role: 'user', content: text }] } : s));
-
-              // Image Generation Command
-              if (text.startsWith('/imagine ')) {
-                  setIsStreaming(true);
-                  // Add placeholder for image
-                  setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages, { role: 'model', content: 'Generating image...' }] } : s));
-                  
-                  try {
-                      const ai = await getAI();
-                      const response = await ai.models.generateContent({
-                          model: 'gemini-2.5-flash-image',
-                          contents: { parts: [{ text: text.substring(9) }] },
-                          config: { responseModalities: ['IMAGE'] },
-                      });
-                      // Find image
-                      const part = response.candidates[0]?.content?.parts?.find(p => p.inlineData);
-                      if (part) {
-                          const url = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                          updateLastMessage(currentId, url);
-                      } else {
-                          updateLastMessage(currentId, "Failed to generate image.");
-                      }
-                  } catch(e) {
-                      updateLastMessage(currentId, "Error: " + e.message);
-                  } finally {
-                      setIsStreaming(false);
-                  }
-                  return;
-              }
-
-              // Text Chat with STREAMING
               setIsStreaming(true);
+
+              // 1. Add User Message
+              const userMsg = { role: 'user', content: text };
+              let updatedSessions = sessions.map(s => 
+                  s.id === activeId 
+                  ? { ...s, messages: [...s.messages, userMsg], title: s.messages.length === 0 ? text.substring(0, 30) : s.title } 
+                  : s
+              );
+              setSessions(updatedSessions);
+
+              // 2. Prepare Context
+              const history = currentSession.messages.map(m => ({ role: m.role, content: m.content }));
+              history.push({ role: 'user', content: text });
+              const systemMsg = { role: 'system', content: "You are Bapkam, a fast, witty, and helpful AI assistant. Keep answers concise and engaging." };
               
-              // Add empty model message to stream into
-              setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages, { role: 'model', content: '' }] } : s));
-              
+              // 3. Add Empty Model Message for Streaming
+              updatedSessions = updatedSessions.map(s => 
+                  s.id === activeId ? { ...s, messages: [...s.messages, { role: 'assistant', content: '' }] } : s
+              );
+              setSessions(updatedSessions);
+
               try {
-                  const ai = await getAI();
-                  const currentSession = sessions.find(s => s.id === currentId);
-                  const history = currentSession ? currentSession.messages.map(m => ({
-                      role: m.role === 'user' ? 'user' : 'model',
-                      parts: [{ text: m.content }]
-                  })) : [];
-
-                  // System Instruction for personality
-                  const instruction = "You are Bapkam, a witty and fast AI assistant. Keep answers concise (under 3 sentences) unless asked for detail. Be friendly and human-like.";
-
-                  const chat = ai.chats.create({
-                      model: 'gemini-2.5-flash',
-                      config: { systemInstruction: instruction },
-                      history: history
+                  const response = await fetch(API_URL, {
+                      method: 'POST',
+                      headers: {
+                          'Authorization': `Bearer ${API_KEY}`,
+                          'Content-Type': 'application/json',
+                          'HTTP-Referer': window.location.href,
+                          'X-Title': 'bapkam.ai',
+                      },
+                      body: JSON.stringify({
+                          model: MODEL,
+                          messages: [systemMsg, ...history],
+                          stream: true
+                      })
                   });
 
-                  const result = await chat.sendMessageStream({ message: text });
-                  
-                  let fullText = "";
-                  for await (const chunk of result) {
-                      const chunkText = chunk.text;
-                      fullText += chunkText;
-                      updateLastMessage(currentId, fullText);
+                  if (!response.ok) throw new Error('Connection error');
+
+                  const reader = response.body.getReader();
+                  const decoder = new TextDecoder();
+                  let assistantText = '';
+
+                  while (true) {
+                      const { done, value } = await reader.read();
+                      if (done) break;
+                      
+                      const chunk = decoder.decode(value);
+                      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                      
+                      for (const line of lines) {
+                          if (line === 'data: [DONE]') break;
+                          if (line.startsWith('data: ')) {
+                              try {
+                                  const json = JSON.parse(line.slice(6));
+                                  const content = json.choices[0]?.delta?.content || '';
+                                  assistantText += content;
+                                  
+                                  setSessions(prev => prev.map(s => {
+                                      if (s.id !== activeId) return s;
+                                      const newMsgs = [...s.messages];
+                                      newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantText };
+                                      return { ...s, messages: newMsgs };
+                                  }));
+                              } catch (e) { /* ignore parse errors on chunks */ }
+                          }
+                      }
                   }
-              } catch (err) {
-                  console.error(err);
-                  updateLastMessage(currentId, "Error: Connection failed. Please try again.");
+              } catch (error) {
+                  console.error(error);
+                  setSessions(prev => prev.map(s => {
+                      if (s.id !== activeId) return s;
+                      const newMsgs = [...s.messages];
+                      newMsgs[newMsgs.length - 1] = { role: 'assistant', content: "I'm having trouble connecting right now. Please try again." };
+                      return { ...s, messages: newMsgs };
+                  }));
               } finally {
                   setIsStreaming(false);
               }
           };
 
-          // --- LOGIN SCREEN ---
           if (!isLoggedIn) {
               return (
-                  <div className="h-full w-full bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-                      <div className="w-24 h-24 bg-gradient-to-tr from-red-600 to-orange-500 rounded-[2rem] flex items-center justify-center shadow-xl mb-8 animate-message">
-                          <RobotIcon className="w-12 h-12 text-white" strokeWidth="1.5" />
+                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 text-center">
+                      <div className="w-24 h-24 bg-gradient-to-tr from-red-600 to-orange-500 rounded-3xl flex items-center justify-center shadow-xl mb-8 animate-message">
+                          <RobotIcon className="w-12 h-12 text-white" />
                       </div>
-                      <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">bapkam<span className="text-red-600">.ai</span></h1>
-                      <p className="text-slate-500 mb-8 max-w-xs mx-auto leading-relaxed">The fastest, smartest AI companion for your daily tasks.</p>
-                      <button onClick={() => setIsLoggedIn(true)} className="bg-slate-900 text-white px-8 py-4 rounded-full font-semibold shadow-lg shadow-slate-300 hover:scale-105 transition-transform active:scale-95 w-full max-w-xs flex items-center justify-center gap-3">
-                          Get Started <Icon d="M5 12h14M12 5l7 7-7 7" className="w-5 h-5"/>
+                      <h1 className="text-4xl font-bold text-slate-900 mb-3">bapkam.ai</h1>
+                      <p className="text-slate-500 mb-10 text-lg">Fast. Smart. Always ready.</p>
+                      <button onClick={() => setIsLoggedIn(true)} className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-xl font-semibold shadow-lg active:scale-95 transition-transform hover:bg-slate-800">
+                          <LogInIcon className="w-5 h-5"/>
+                          <span>Start Chatting</span>
                       </button>
                   </div>
               );
           }
 
-          // --- MAIN APP LAYOUT ---
-          const currentSession = sessions.find(s => s.id === activeId);
-          const messages = currentSession ? currentSession.messages : [];
-
           return (
-              <div className="flex h-full w-full bg-white text-slate-900 overflow-hidden">
+              <div className="flex h-full w-full bg-white overflow-hidden">
+                  {/* Sidebar Overlay */}
+                  <div onClick={() => setIsSidebarOpen(false)} className={`fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
+                  
                   {/* Sidebar */}
-                  <Sidebar 
-                      isOpen={isSidebarOpen} 
-                      onClose={() => setIsSidebarOpen(false)} 
-                      onNewChat={() => { setActiveId(null); setIsSidebarOpen(false); }}
-                      sessions={sessions}
-                      onSelectSession={setActiveId}
-                      activeId={activeId}
-                  />
+                  <aside className={`fixed md:relative inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 z-50 transform transition-transform duration-200 ease-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 shadow-xl md:shadow-none`}>
+                      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                          <span className="font-bold text-white text-lg tracking-wide">bapkam<span className="text-red-500">.ai</span></span>
+                          <button onClick={createSession} className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"><PlusIcon className="w-5 h-5"/></button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scroll">
+                          {sessions.map(s => (
+                              <div key={s.id} onClick={() => { setActiveId(s.id); setIsSidebarOpen(false); }} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${activeId === s.id ? 'bg-slate-800 text-white shadow-md' : 'hover:bg-slate-800/50'}`}>
+                                  <span className="truncate text-sm flex-1">{s.title}</span>
+                                  {sessions.length > 1 && <button onClick={(e) => deleteSession(e, s.id)} className="text-slate-500 hover:text-red-400 ml-2 p-1"><TrashIcon className="w-4 h-4"/></button>}
+                              </div>
+                          ))}
+                      </div>
+                      <div className="p-4 border-t border-slate-800 text-xs text-center text-slate-500 bg-slate-900">
+                          Powered by Gemini 2.0 Flash
+                      </div>
+                  </aside>
 
-                  {/* Main Content */}
-                  <main className="flex-1 flex flex-col h-full relative w-full">
+                  {/* Main Chat Area */}
+                  <main className="flex-1 flex flex-col h-full w-full relative bg-slate-50">
                       {/* Header */}
-                      <header className="h-16 border-b border-slate-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md z-10 flex-shrink-0">
-                          <div className="flex items-center gap-3">
+                      <header className="h-16 flex items-center justify-between px-4 border-b border-slate-200 bg-white/80 backdrop-blur z-10 shadow-sm">
+                          <div className="flex items-center gap-3 overflow-hidden">
                               <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full"><MenuIcon className="w-6 h-6"/></button>
-                              <h2 className="font-bold text-slate-800 truncate">{currentSession?.title || "New Conversation"}</h2>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-800 truncate">{currentSession.title}</span>
+                                <span className="text-[10px] text-green-600 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Online</span>
+                              </div>
                           </div>
-                          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500">
-                              <UserIcon className="w-5 h-5"/>
-                          </div>
+                          <button onClick={() => setIsLoggedIn(false)} className="text-sm font-medium text-slate-500 hover:text-red-600 transition-colors px-2 py-1">Logout</button>
                       </header>
 
-                      {/* Chat Area */}
-                      <div className="flex-1 overflow-y-auto bg-[#f8fafc] p-4 scroll-smooth" ref={chatContainerRef}>
-                          <div className="max-w-3xl mx-auto flex flex-col min-h-full">
-                              {messages.length === 0 ? (
-                                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 mt-10">
-                                      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4"><RobotIcon className="w-8 h-8 opacity-50"/></div>
-                                      <p className="font-medium">How can I help you today?</p>
+                      {/* Messages List */}
+                      <div className="flex-1 overflow-y-auto p-4 custom-scroll" ref={chatRef}>
+                          <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-start pb-4">
+                              {currentSession.messages.length === 0 ? (
+                                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60 mt-10">
+                                      <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                                        <RobotIcon className="w-8 h-8 text-slate-500"/>
+                                      </div>
+                                      <p className="text-sm">Start a conversation with Bapkam</p>
                                   </div>
                               ) : (
-                                  messages.map((m, i) => <ChatMessage key={i} msg={m} />)
+                                  currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} />)
                               )}
-                              {isStreaming && messages[messages.length-1]?.role === 'user' && (
-                                  <div className="flex w-full mb-6 justify-start animate-message">
-                                      <div className="flex gap-3">
-                                           <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0"><RobotIcon className="w-5 h-5 text-white"/></div>
-                                           <div className="px-4 py-3 bg-white rounded-2xl rounded-tl-none border border-slate-200 shadow-sm"><LoadingDots /></div>
-                                      </div>
-                                  </div>
+                              {isStreaming && currentSession.messages[currentSession.messages.length-1]?.role === 'user' && (
+                                   <div className="flex w-full mb-4 justify-start animate-message">
+                                       <div className="bg-white border border-slate-200 px-3 py-3 rounded-2xl rounded-tl-none shadow-sm">
+                                          <LoadingDots />
+                                       </div>
+                                   </div>
                               )}
-                              <div className="h-4"></div> {/* Spacer */}
                           </div>
                       </div>
 
                       {/* Input Area */}
-                      <div className="bg-white p-4 border-t border-slate-100 flex-shrink-0">
-                          <div className="max-w-3xl mx-auto relative">
-                              <form onSubmit={handleSend} className="relative flex items-center bg-slate-50 border border-slate-300 rounded-full focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all shadow-sm">
-                                  <button type="button" className="p-3 text-slate-400 hover:text-slate-600 transition-colors"><PlusIcon className="w-6 h-6"/></button>
-                                  <input 
-                                      value={input}
-                                      onChange={e => setInput(e.target.value)}
-                                      placeholder="Message Bapkam..."
-                                      className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 py-3.5"
-                                      disabled={isStreaming}
-                                  />
-                                  <button type="submit" disabled={!input.trim() || isStreaming} className="p-2 mr-1.5 bg-indigo-600 text-white rounded-full disabled:bg-slate-300 disabled:text-slate-100 hover:bg-indigo-700 transition-colors shadow-md">
-                                      <SendIcon className="w-5 h-5" />
-                                  </button>
-                              </form>
-                              <div className="text-center mt-2">
-                                  <p className="text-[10px] text-slate-400">Bapkam can make mistakes. Check important info.</p>
-                              </div>
-                          </div>
+                      <div className="p-3 bg-white border-t border-slate-200 pb-safe">
+                          <form onSubmit={handleSend} className="max-w-3xl mx-auto flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all border border-transparent focus-within:border-indigo-500 shadow-inner">
+                              <input 
+                                  ref={inputRef}
+                                  className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 text-base py-2 outline-none"
+                                  placeholder="Message Bapkam..."
+                                  value={input}
+                                  onChange={e => setInput(e.target.value)}
+                                  disabled={isStreaming}
+                                  autoComplete="off"
+                              />
+                              <button type="submit" disabled={!input.trim() || isStreaming} className="p-2 bg-indigo-600 text-white rounded-full disabled:opacity-50 disabled:bg-slate-300 hover:bg-indigo-700 transition-colors shadow-sm">
+                                  <SendIcon className="w-5 h-5" />
+                              </button>
+                          </form>
                       </div>
                   </main>
               </div>
