@@ -24,7 +24,7 @@
 
     <!-- 
       CRITICAL FIX: Load Google GenAI SDK via Module Script and expose to Window.
-      This avoids "SyntaxError: import declarations..." in the Babel script.
+      Using esm.sh with specific version to ensure stability.
     -->
     <script type="module">
       import { GoogleGenAI } from "https://esm.sh/@google/genai@0.1.1";
@@ -59,10 +59,10 @@
 <script type="importmap">
 {
   "imports": {
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
     "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
   }
 }
 </script>
@@ -117,23 +117,32 @@
 
       // --- SERVICES ---
       const OPENROUTER_API_KEY = "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";
-      
-      // API KEY Logic: Use process.env first (if polyfilled), otherwise empty string.
-      // We hardcoded the key in the polyfill above, so this will work.
       const API_KEY = (typeof process !== 'undefined' ? process.env?.API_KEY : '') || 'AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg';
       
-      // Helper to get AI instance safely from window (loaded by module script)
+      // Helper to get AI instance safely
       function getAI() {
         if (typeof window.GoogleGenAI === 'undefined') {
           return null;
         }
         try {
-           // Use the API key if available, otherwise empty (app handles missing key gracefully in logic)
            return new window.GoogleGenAI({ apiKey: API_KEY });
         } catch (e) {
-           console.error("Failed to init AI:", e);
            return null;
         }
+      }
+
+      // Retry function to wait for SDK to load
+      async function ensureAI() {
+          const ai = getAI();
+          if (ai) return ai;
+
+          // Wait up to 10 seconds for the SDK to load
+          for (let i = 0; i < 50; i++) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+              const retryAi = getAI();
+              if (retryAi) return retryAi;
+          }
+          throw new Error("Connection slow: AI SDK failed to load. Please refresh the page.");
       }
 
       async function getOpenRouterResponse(prompt, model, history) {
@@ -168,9 +177,8 @@
       }
 
       async function classifyPrompt(prompt) {
-        const ai = getAI();
         try {
-          if(!ai) return 'bapkam';
+          const ai = await ensureAI();
           const systemInstruction = `You are a prompt routing expert. Respond with ONLY 'bapkam' or 'deepsingh'.`;
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -188,10 +196,10 @@
       }
 
       async function generateChatResponse(prompt, history) {
-          // Check if AI is loaded
-          const ai = getAI();
-          if (!ai) throw new Error("AI SDK not fully loaded. Please wait a moment and try again.");
           if (!API_KEY) throw new Error("API Key is missing. Please check configuration.");
+          
+          // Wait for SDK
+          const ai = await ensureAI();
           
           const engine = await classifyPrompt(prompt);
           const instruction = getSystemInstruction(engine);
@@ -232,8 +240,7 @@
       }
 
       async function generateImage(prompt) {
-          const ai = getAI();
-          if (!ai) throw new Error("AI not initialized");
+          const ai = await ensureAI();
           const response = await ai.models.generateContent({
               model: 'gemini-2.5-flash-image',
               contents: { parts: [{ text: prompt }] },
@@ -470,14 +477,34 @@
           const [isLoading, setIsLoading] = useState(false);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           const [toast, setToast] = useState(null);
+          const [isSdkReady, setIsSdkReady] = useState(false);
 
           useEffect(() => {
               const handleResize = () => setIsSidebarOpen(window.innerWidth > 768);
               window.addEventListener('resize', handleResize);
+              
+              // SDK Check Poll
+              const checkSdk = () => {
+                 if (window.GoogleGenAI) {
+                     setIsSdkReady(true);
+                 } else {
+                     setTimeout(checkSdk, 200);
+                 }
+              };
+              checkSdk();
+
               return () => window.removeEventListener('resize', handleResize);
           }, []);
 
-          const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+          useEffect(() => {
+              if(!isSdkReady) {
+                  showToast("Initializing AI capabilities, please wait...");
+              } else {
+                  setToast(null);
+              }
+          }, [isSdkReady]);
+
+          const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
           const handleLogin = () => { setIsLoggedIn(true); showToast("Successfully logged in!"); };
           const handleNewChat = () => { 
               if(!isLoggedIn) return handleLogin();
@@ -486,6 +513,8 @@
           
           const handleSendMessage = async (text, file) => {
              if (isLoading) return;
+             if (!isSdkReady) { showToast("AI is still loading. Please wait a moment..."); return; }
+
              let currentId = activeSessionId;
              if (!currentId) {
                  currentId = Date.now().toString();
@@ -523,7 +552,7 @@
                           {currentView === 'chat' ? <ChatWindow session={activeSession} onSendMessage={handleSendMessage} isLoading={isLoading} isLoggedIn={isLoggedIn} onLogin={handleLogin} /> : <Gallery images={generatedImages} isLoggedIn={isLoggedIn} onLogin={handleLogin} />}
                       </main>
                   </div>
-                  {toast && <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2 rounded-full shadow-lg z-50 animate-fade-in-up">{toast}</div>}
+                  {toast && <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2 rounded-full shadow-lg z-50 animate-fade-in-up text-sm whitespace-nowrap">{toast}</div>}
               </div>
           );
       };
