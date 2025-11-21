@@ -42,7 +42,8 @@
     <style>
         /* Mobile App-like Layout Fixes */
         html, body { height: 100%; margin: 0; overflow: hidden; background-color: #f8fafc; overscroll-behavior: none; }
-        #root { position: fixed; inset: 0; height: 100dvh; display: flex; flex-direction: column; z-index: 1; }
+        /* Use 100dvh (Dynamic Viewport Height) to handle mobile browser address bars correctly */
+        #root { position: fixed; inset: 0; height: 100dvh; width: 100vw; display: flex; flex-direction: column; z-index: 1; }
         
         /* Animations */
         @keyframes message-in {
@@ -62,13 +63,13 @@
         .prose p { margin-bottom: 0.5em; }
         .prose p:last-child { margin-bottom: 0; }
     </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
   }
 }
 </script>
@@ -88,6 +89,8 @@
       const RobotIcon = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>;
       const TrashIcon = (p) => <Icon d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...p} />;
       const LogInIcon = (p) => <Icon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" {...p} />;
+      const CloseIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
+      const ImageIcon = (p) => <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" {...p} />; // Actually Upload Icon styling
 
       // --- API CONFIGURATION ---
       const API_KEY = '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'; 
@@ -106,6 +109,32 @@
 
       const ChatMessage = ({ msg }) => {
           const isUser = msg.role === 'user';
+          
+          // Helper to render content which might be a string or an array (multimodal)
+          const renderContent = () => {
+            if (Array.isArray(msg.content)) {
+              return (
+                <div className="flex flex-col gap-2">
+                  {msg.content.map((part, i) => {
+                    if (part.type === 'image_url') {
+                      return (
+                        <img 
+                          key={i} 
+                          src={part.image_url.url} 
+                          alt="Uploaded content" 
+                          className="rounded-lg max-w-full h-auto border border-white/20" 
+                          style={{maxHeight: '300px'}}
+                        />
+                      );
+                    }
+                    return part.text ? <div key={i}>{part.text}</div> : null;
+                  })}
+                </div>
+              );
+            }
+            return msg.content;
+          };
+
           return (
               <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'} animate-message`}>
                   <div className={`flex max-w-[85%] md:max-w-[75%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-2`}>
@@ -118,7 +147,7 @@
                           ? 'bg-red-600 text-white rounded-tr-none' 
                           : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
                       }`}>
-                          {msg.content}
+                          {renderContent()}
                       </div>
                   </div>
               </div>
@@ -129,14 +158,28 @@
           const [input, setInput] = useState('');
           const [sessions, setSessions] = useState([{ id: '1', title: 'New Chat', messages: [] }]);
           const [activeId, setActiveId] = useState('1');
-          const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+          const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
           const [isStreaming, setIsStreaming] = useState(false);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
+          const [selectedImage, setSelectedImage] = useState(null);
           
           const chatRef = useRef(null);
           const inputRef = useRef(null);
+          const fileInputRef = useRef(null);
           
           const currentSession = sessions.find(s => s.id === activeId) || sessions[0];
+
+          useEffect(() => {
+              const handleResize = () => {
+                  if (window.innerWidth > 768) {
+                      setIsSidebarOpen(true);
+                  } else {
+                      setIsSidebarOpen(false);
+                  }
+              };
+              window.addEventListener('resize', handleResize);
+              return () => window.removeEventListener('resize', handleResize);
+          }, []);
 
           useEffect(() => {
               if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -146,8 +189,7 @@
               const id = Date.now().toString();
               setSessions(prev => [{ id, title: 'New Chat', messages: [] }, ...prev]);
               setActiveId(id);
-              setIsSidebarOpen(false);
-              // Focus input slightly after render to ensure keyboard comes up on mobile if needed
+              if (window.innerWidth <= 768) setIsSidebarOpen(false);
               setTimeout(() => inputRef.current?.focus(), 100);
           };
           
@@ -161,28 +203,71 @@
              if (activeId === id) setActiveId(sessions.find(s => s.id !== id)?.id || sessions[0].id);
           };
 
+          const handleFileChange = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setSelectedImage(reader.result);
+                };
+                reader.readAsDataURL(file);
+            }
+          };
+
           const handleSend = async (e) => {
               e.preventDefault();
-              if (!input.trim() || isStreaming) return;
+              if ((!input.trim() && !selectedImage) || isStreaming) return;
               
               const text = input.trim();
+              const imagePayload = selectedImage;
+              
               setInput('');
+              setSelectedImage(null);
               setIsStreaming(true);
 
-              // 1. Add User Message
-              const userMsg = { role: 'user', content: text };
+              // 1. Add User Message (Text + Image if exists)
+              let userMsgContent;
+              if (imagePayload) {
+                  userMsgContent = [
+                      { type: 'text', text: text },
+                      { type: 'image_url', image_url: { url: imagePayload } }
+                  ];
+              } else {
+                  userMsgContent = text;
+              }
+              
+              const userMsg = { role: 'user', content: userMsgContent };
+              
+              // Title logic
+              let newTitle = currentSession.title;
+              if (currentSession.messages.length === 0) {
+                  newTitle = text ? text.substring(0, 30) : 'Image Analysis';
+              }
+
               let updatedSessions = sessions.map(s => 
                   s.id === activeId 
-                  ? { ...s, messages: [...s.messages, userMsg], title: s.messages.length === 0 ? text.substring(0, 30) : s.title } 
+                  ? { ...s, messages: [...s.messages, userMsg], title: newTitle } 
                   : s
               );
               setSessions(updatedSessions);
 
-              // 2. Prepare Context
-              const history = currentSession.messages.map(m => ({ role: m.role, content: m.content }));
-              history.push({ role: 'user', content: text });
+              // 2. Prepare Context for API
+              // Map history to OpenAI format
+              const history = currentSession.messages.map(m => {
+                  // If stored message is string, convert to standard text object for API consistency if needed, 
+                  // but simple string content is also valid for text-only history in many OpenAI-compatible APIs.
+                  // However, for consistency with our new multimodal support:
+                  return { role: m.role, content: m.content };
+              });
               
-              // Updated System Instruction with Founder Information
+              // Add current message
+              const apiContent = [];
+              if (text) apiContent.push({ type: "text", text: text });
+              if (imagePayload) apiContent.push({ type: "image_url", image_url: { url: imagePayload } });
+              
+              history.push({ role: 'user', content: apiContent });
+              
+              // System Instruction
               const systemMsg = { 
                   role: 'system', 
                   content: "You are Bapkam, a fast, witty, and helpful AI assistant. Keep answers concise and engaging. CRITICAL INSTRUCTION: If the user asks who created, founded, built, or owns you, you MUST explicitly answer: 'I was created by P ARAVIND from India, Telangana, Narayanapet.' Do not attribute yourself to Google or anyone else in that specific context." 
@@ -261,7 +346,7 @@
                           <RobotIcon className="w-12 h-12 text-white" />
                       </div>
                       <h1 className="text-4xl font-bold text-slate-900 mb-3">bapkam.ai</h1>
-                      <p className="text-slate-500 mb-10 text-lg">Fast. Smart. Always ready.</p>
+                      <p className="text-slate-500 mb-10 text-lg max-w-xs mx-auto">Fast. Smart. Always ready. Login to start chatting.</p>
                       <button onClick={() => setIsLoggedIn(true)} className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-xl font-semibold shadow-lg active:scale-95 transition-transform hover:bg-slate-800">
                           <LogInIcon className="w-5 h-5"/>
                           <span>Start Chatting</span>
@@ -272,51 +357,76 @@
 
           return (
               <div className="flex h-full w-full bg-white overflow-hidden">
-                  {/* Sidebar Overlay */}
-                  <div onClick={() => setIsSidebarOpen(false)} className={`fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
+                  {/* Mobile Sidebar Overlay */}
+                  <div 
+                      onClick={() => setIsSidebarOpen(false)} 
+                      className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${
+                          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                      }`}
+                  ></div>
                   
                   {/* Sidebar */}
-                  <aside className={`fixed md:relative inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 z-50 transform transition-transform duration-200 ease-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 shadow-xl md:shadow-none`}>
-                      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                  <aside className={`
+                      fixed md:relative inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 z-50 
+                      transform transition-transform duration-300 ease-in-out 
+                      flex flex-col shadow-2xl md:shadow-none
+                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+                      md:translate-x-0 
+                      md:flex ${isSidebarOpen ? 'md:w-72' : 'md:w-0 md:overflow-hidden'}
+                  `}>
+                      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 shrink-0">
                           <span className="font-bold text-white text-lg tracking-wide">bapkam<span className="text-red-500">.ai</span></span>
-                          <button onClick={createSession} className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"><PlusIcon className="w-5 h-5"/></button>
+                          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400"><CloseIcon className="w-6 h-6"/></button>
+                          <button onClick={createSession} className="hidden md:block bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"><PlusIcon className="w-5 h-5"/></button>
                       </div>
+                      
+                      {/* Mobile New Chat Button */}
+                      <div className="p-4 md:hidden">
+                          <button onClick={createSession} className="w-full bg-red-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 font-medium shadow-md active:scale-95 transition-transform">
+                              <PlusIcon className="w-5 h-5"/> New Chat
+                          </button>
+                      </div>
+
                       <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scroll">
                           {sessions.map(s => (
-                              <div key={s.id} onClick={() => { setActiveId(s.id); setIsSidebarOpen(false); }} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${activeId === s.id ? 'bg-slate-800 text-white shadow-md' : 'hover:bg-slate-800/50'}`}>
+                              <div key={s.id} onClick={() => { setActiveId(s.id); if(window.innerWidth<=768) setIsSidebarOpen(false); }} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${activeId === s.id ? 'bg-slate-800 text-white shadow-md' : 'hover:bg-slate-800/50'}`}>
                                   <span className="truncate text-sm flex-1">{s.title}</span>
                                   {sessions.length > 1 && <button onClick={(e) => deleteSession(e, s.id)} className="text-slate-500 hover:text-red-400 ml-2 p-1"><TrashIcon className="w-4 h-4"/></button>}
                               </div>
                           ))}
                       </div>
-                      <div className="p-4 border-t border-slate-800 text-xs text-center text-slate-500 bg-slate-900">
-                          Powered by Gemini 2.0 Flash
+                      <div className="p-4 border-t border-slate-800 text-xs text-center text-slate-500 bg-slate-900 shrink-0">
+                          <div className="flex items-center justify-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              Online • Turbo
+                          </div>
                       </div>
                   </aside>
 
                   {/* Main Chat Area */}
-                  <main className="flex-1 flex flex-col h-full w-full relative bg-slate-50">
+                  <main className="flex-1 flex flex-col h-full w-full relative bg-slate-50 min-w-0">
                       {/* Header */}
-                      <header className="h-16 flex items-center justify-between px-4 border-b border-slate-200 bg-white/80 backdrop-blur z-10 shadow-sm">
+                      <header className="h-16 flex items-center justify-between px-4 border-b border-slate-200 bg-white/80 backdrop-blur z-10 shadow-sm shrink-0">
                           <div className="flex items-center gap-3 overflow-hidden">
-                              <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full"><MenuIcon className="w-6 h-6"/></button>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-slate-800 truncate">{currentSession.title}</span>
-                                <span className="text-[10px] text-green-600 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Online</span>
+                              <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full active:bg-slate-200 transition-colors"><MenuIcon className="w-6 h-6"/></button>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-slate-800 truncate text-lg">{currentSession.title}</span>
+                                <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">bapkam v1.0</span>
                               </div>
                           </div>
-                          <button onClick={() => setIsLoggedIn(false)} className="text-sm font-medium text-slate-500 hover:text-red-600 transition-colors px-2 py-1">Logout</button>
+                          <button onClick={() => setIsLoggedIn(false)} className="text-sm font-medium text-slate-500 hover:text-red-600 transition-colors px-3 py-1.5 hover:bg-red-50 rounded-lg">Logout</button>
                       </header>
 
                       {/* Messages List */}
                       <div className="flex-1 overflow-y-auto p-4 custom-scroll" ref={chatRef}>
                           <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-start pb-4">
                               {currentSession.messages.length === 0 ? (
-                                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60 mt-10">
-                                      <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
-                                        <RobotIcon className="w-8 h-8 text-slate-500"/>
+                                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60 mt-10 px-6 text-center">
+                                      <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-6">
+                                        <RobotIcon className="w-10 h-10 text-slate-500"/>
                                       </div>
-                                      <p className="text-sm">Start a conversation with Bapkam</p>
+                                      <p className="text-base font-medium text-slate-600">Welcome to bapkam.ai</p>
+                                      <p className="text-sm mt-1">Ask me anything, or upload a photo to analyze.</p>
                                   </div>
                               ) : (
                                   currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} />)
@@ -332,21 +442,53 @@
                       </div>
 
                       {/* Input Area */}
-                      <div className="p-3 bg-white border-t border-slate-200 pb-safe">
-                          <form onSubmit={handleSend} className="max-w-3xl mx-auto flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all border border-transparent focus-within:border-indigo-500 shadow-inner">
-                              <input 
-                                  ref={inputRef}
-                                  className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 text-base py-2 outline-none"
-                                  placeholder="Message Bapkam..."
-                                  value={input}
-                                  onChange={e => setInput(e.target.value)}
-                                  disabled={isStreaming}
-                                  autoComplete="off"
-                              />
-                              <button type="submit" disabled={!input.trim() || isStreaming} className="p-2 bg-indigo-600 text-white rounded-full disabled:opacity-50 disabled:bg-slate-300 hover:bg-indigo-700 transition-colors shadow-sm">
-                                  <SendIcon className="w-5 h-5" />
-                              </button>
-                          </form>
+                      <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+                          <div className="max-w-3xl mx-auto">
+                              {/* Image Preview */}
+                              {selectedImage && (
+                                <div className="mb-2 relative inline-block">
+                                    <img src={selectedImage} alt="Preview" className="h-20 w-auto rounded-lg border border-slate-300 shadow-sm" />
+                                    <button 
+                                        onClick={() => setSelectedImage(null)}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                              )}
+                              
+                              <form onSubmit={handleSend} className="flex items-center gap-2 bg-slate-100 rounded-3xl px-2 py-2 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all border border-transparent focus-within:border-indigo-500 shadow-inner">
+                                  {/* File Input Trigger */}
+                                  <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileChange} 
+                                    className="hidden" 
+                                    accept="image/*"
+                                  />
+                                  <button 
+                                    type="button"
+                                    onClick={() => fileInputRef.current.click()}
+                                    className="p-2 text-slate-500 hover:bg-slate-200 rounded-full transition-colors"
+                                    title="Upload Image"
+                                  >
+                                    <PlusIcon className="w-6 h-6" />
+                                  </button>
+
+                                  <input 
+                                      ref={inputRef}
+                                      className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 text-base py-2 outline-none min-w-0"
+                                      placeholder="Message or upload photo..."
+                                      value={input}
+                                      onChange={e => setInput(e.target.value)}
+                                      disabled={isStreaming}
+                                      autoComplete="off"
+                                  />
+                                  <button type="submit" disabled={(!input.trim() && !selectedImage) || isStreaming} className="p-2 bg-indigo-600 text-white rounded-full disabled:opacity-50 disabled:bg-slate-300 hover:bg-indigo-700 transition-colors shadow-sm flex-shrink-0">
+                                      <SendIcon className="w-5 h-5" />
+                                  </button>
+                              </form>
+                          </div>
                       </div>
                   </main>
               </div>
