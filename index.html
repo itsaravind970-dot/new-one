@@ -9,7 +9,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,8 +17,26 @@
       tailwind.config = {
         theme: {
           extend: {
-            fontFamily: { sans: ['Inter', 'sans-serif'] },
-            animation: { 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+            fontFamily: { 
+                sans: ['Inter', 'sans-serif'],
+                mono: ['Fira Code', 'monospace']
+            },
+            animation: { 
+                'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+                'fade-in': 'fadeIn 0.3s ease-out forwards',
+                'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+                fadeInUp: {
+                    '0%': { opacity: '0', transform: 'translateY(20px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
+                },
+                fadeIn: {
+                    '0%': { opacity: '0' },
+                    '100%': { opacity: '1' },
+                }
+            }
           }
         }
       }
@@ -30,7 +48,7 @@
     
     <!-- Babel for JSX -->
     <script>
-        // Suppress the Babel "production" warning to clean up the UI
+        // Suppress the Babel "production" warning
         const originalWarn = console.warn;
         console.warn = function(...args) {
             if (args[0] && typeof args[0] === 'string' && args[0].includes('in-browser Babel transformer')) return;
@@ -41,34 +59,35 @@
 
     <style>
         /* Mobile App-like Layout Fixes */
-        html, body { height: 100%; margin: 0; overflow: hidden; background-color: #f8fafc; overscroll-behavior: none; }
-        /* Use 100dvh (Dynamic Viewport Height) to handle mobile browser address bars correctly */
+        html, body { height: 100%; margin: 0; overflow: hidden; background-color: #ffffff; overscroll-behavior: none; }
         #root { position: fixed; inset: 0; height: 100dvh; width: 100vw; display: flex; flex-direction: column; z-index: 1; }
         
-        /* Animations */
-        @keyframes message-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-message { animation: message-in 0.2s ease-out forwards; }
-        
         /* Scrollbar Polish */
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         /* Mobile Tap Highlight Removal */
         * { -webkit-tap-highlight-color: transparent; }
         
-        .prose p { margin-bottom: 0.5em; }
-        .prose p:last-child { margin-bottom: 0; }
+        /* Glassmorphism Utilities */
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+
+        /* Code Syntax Highlighting Tokens */
+        .token-keyword { color: #c678dd; font-weight: bold; } /* Purple */
+        .token-string { color: #98c379; } /* Green */
+        .token-comment { color: #5c6370; font-style: italic; } /* Grey */
+        .token-function { color: #61afef; } /* Blue */
+        .token-number { color: #d19a66; } /* Orange */
+        .token-operator { color: #56b6c2; } /* Cyan */
     </style>
 <script type="importmap">
 {
   "imports": {
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
   }
 }
@@ -81,71 +100,202 @@
       const { useState, useEffect, useRef, useCallback } = React;
 
       // --- ICONS ---
-      const Icon = ({ d, className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>;
+      const Icon = ({ d, className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>;
       const SendIcon = (p) => <Icon d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7" {...p} />;
-      const MenuIcon = (p) => <Icon d="M3 12h18M3 6h18M3 18h18" {...p} />;
+      const MenuIcon = (p) => <Icon d="M4 6h16M4 12h16M4 18h16" {...p} />;
       const PlusIcon = (p) => <Icon d="M12 5v14M5 12h14" {...p} />;
-      const UserIcon = (p) => <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" {...p}><circle cx="12" cy="7" r="4"/></Icon>;
-      const RobotIcon = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>;
-      const TrashIcon = (p) => <Icon d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...p} />;
-      const LogInIcon = (p) => <Icon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" {...p} />;
       const CloseIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
-      const ImageIcon = (p) => <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" {...p} />; // Actually Upload Icon styling
+      const SearchIcon = (p) => <Icon d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" {...p} />;
+      const ImageUploadIcon = (p) => <Icon d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7m4 0h6m-3-3v6" {...p} />; 
+      const CodeIcon = (p) => <Icon d="M16 18 22 12 16 6M8 6 2 12 8 18" {...p} />;
+      const SparklesIcon = (p) => <Icon d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" {...p} />;
+      const CheckIcon = (p) => <Icon d="M20 6 9 17l-5-5" {...p} />;
+      const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" {...p} />;
+      const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8m-4-6-4-4-4 4m4-4v13" {...p} />;
+      const MicIcon = (p) => <Icon d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" {...p} />;
 
       // --- API CONFIGURATION ---
       const API_KEY = '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'; 
       const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
       const MODEL = 'google/gemini-2.0-flash-001';
 
+      // --- HELPERS ---
+      const getTimeBasedGreeting = () => {
+          const hour = new Date().getHours();
+          if (hour < 12) return "Good morning";
+          if (hour < 18) return "Good afternoon";
+          return "Good evening";
+      };
+
+      // Simple syntax highlighting helper
+      const highlightCode = (code, language) => {
+          let highlighted = code
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+
+          // Basic Python/JS patterns
+          highlighted = highlighted
+              // Strings
+              .replace(/(['"`])(.*?)\1/g, '<span class="token-string">$1$2$1</span>')
+              // Keywords (Python + JS mix)
+              .replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|async|await|const|let|var|function|print|console|bg|color|px|solid|border)\b/g, '<span class="token-keyword">$1</span>')
+              // Functions
+              .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\()/g, '<span class="token-function">$1</span>')
+              // Numbers
+              .replace(/\b(\d+)\b/g, '<span class="token-number">$1</span>')
+              // Comments
+              .replace(/(#.*|\/\/.*)$/gm, '<span class="token-comment">$1</span>');
+
+          return highlighted;
+      };
+
       // --- COMPONENTS ---
 
-      const LoadingDots = () => (
-          <div className="flex space-x-1 h-6 items-center px-2">
-              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
-          </div>
-      );
+      const CodeBlock = ({ language, code }) => {
+          const [copied, setCopied] = useState(false);
+
+          const handleCopy = () => {
+              navigator.clipboard.writeText(code);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+          };
+
+          const handleShare = async () => {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Code Snippet from bapkam.ai',
+                        text: code,
+                    });
+                } catch (err) {
+                    console.log('Share aborted');
+                }
+            } else {
+                // Fallback for desktop or unsupported browsers
+                navigator.clipboard.writeText(code);
+                alert("Code copied to clipboard! You can now paste it into your social media.");
+            }
+          };
+
+          return (
+              <div className="my-4 rounded-xl overflow-hidden border border-slate-200 shadow-md bg-[#1e1e1e] text-slate-300 w-full max-w-full group">
+                  {/* Code Header - VS Code Style */}
+                  <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#1e1e1e]">
+                      <div className="flex items-center gap-2">
+                          {/* Mac-style window dots */}
+                          <div className="flex gap-1.5 mr-2">
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                          </div>
+                          <span className="text-xs font-mono font-medium text-slate-400 uppercase tracking-wider">
+                              {language || 'CODE'}
+                          </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <button 
+                              onClick={handleShare}
+                              className="text-xs flex items-center gap-1 text-slate-400 hover:text-indigo-400 transition-colors"
+                          >
+                               <ShareIcon className="w-3 h-3" /> Share
+                          </button>
+                          <div className="w-px h-4 bg-slate-600 mx-1"></div>
+                          <button 
+                              onClick={handleCopy} 
+                              className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                          >
+                              {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-400" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                              {copied ? 'Copied!' : 'Copy'}
+                          </button>
+                      </div>
+                  </div>
+                  {/* Code Body */}
+                  <div className="relative overflow-x-auto custom-scroll p-0 bg-[#1e1e1e]">
+                      <div className="flex min-w-full">
+                          {/* Line Numbers */}
+                          <div className="flex flex-col items-end px-3 py-4 text-right select-none bg-[#1e1e1e] text-[#4b5263] text-xs font-mono leading-6 border-r border-[#2d2d2d]">
+                               {code.trim().split('\n').map((_, i) => (
+                                   <span key={i}>{i + 1}</span>
+                               ))}
+                          </div>
+                          {/* Code Content */}
+                          <pre className="flex-1 px-4 py-4 text-sm font-mono leading-6 tab-4 outline-none">
+                              <code 
+                                dangerouslySetInnerHTML={{ __html: highlightCode(code, language) }} 
+                              />
+                          </pre>
+                      </div>
+                  </div>
+              </div>
+          );
+      };
 
       const ChatMessage = ({ msg }) => {
           const isUser = msg.role === 'user';
           
-          // Helper to render content which might be a string or an array (multimodal)
           const renderContent = () => {
             if (Array.isArray(msg.content)) {
+              // Handle User Multimodal (Image + Text)
               return (
                 <div className="flex flex-col gap-2">
                   {msg.content.map((part, i) => {
                     if (part.type === 'image_url') {
                       return (
-                        <img 
-                          key={i} 
-                          src={part.image_url.url} 
-                          alt="Uploaded content" 
-                          className="rounded-lg max-w-full h-auto border border-white/20" 
-                          style={{maxHeight: '300px'}}
-                        />
+                        <img key={i} src={part.image_url.url} alt="Uploaded content" className="rounded-xl max-w-full h-auto border border-gray-200 shadow-sm" style={{maxHeight: '300px'}} />
                       );
                     }
-                    return part.text ? <div key={i}>{part.text}</div> : null;
+                    return part.text ? <div key={i} className="whitespace-pre-wrap font-sans">{part.text}</div> : null;
                   })}
                 </div>
               );
             }
-            return msg.content;
+
+            // Handle Model Response (Parsing Markdown Code Blocks)
+            const rawContent = msg.content || '';
+            // Split by code blocks: ```lang ... ```
+            // Result array: [text, lang, code, text, lang, code...]
+            const parts = rawContent.split(/```(\w+)?\n([\s\S]*?)```/g);
+
+            return (
+                <div className="flex flex-col gap-2 w-full overflow-hidden">
+                    {parts.map((part, index) => {
+                        // If index % 3 === 0, it's normal text
+                        // If index % 3 === 1, it's language identifier (or undefined)
+                        // If index % 3 === 2, it's the code
+                        if (index % 3 === 0) {
+                            if (!part.trim()) return null;
+                            // Basic linkification for text
+                             const formattedText = part.split(/(https?:\/\/[^\s]+)/g).map((chunk, i) => 
+                                chunk.match(/https?:\/\/[^\s]+/) ? 
+                                <a key={i} href={chunk} target="_blank" className="text-indigo-600 hover:underline break-all">{chunk}</a> : 
+                                chunk
+                            );
+                            return <div key={index} className="whitespace-pre-wrap font-sans leading-7">{formattedText}</div>;
+                        }
+                        if (index % 3 === 1) return null; // Skip rendering the lang string directly, handled in next step
+                        if (index % 3 === 2) {
+                            const lang = parts[index - 1] || 'text';
+                            return <CodeBlock key={index} language={lang} code={part} />;
+                        }
+                    })}
+                </div>
+            );
           };
 
           return (
-              <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'} animate-message`}>
-                  <div className={`flex max-w-[85%] md:max-w-[75%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-2`}>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isUser ? 'bg-red-600' : 'bg-indigo-600'} text-white shadow-sm`}>
-                          {isUser ? <UserIcon className="w-5 h-5"/> : <RobotIcon className="w-5 h-5"/>}
-                      </div>
+              <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
+                  <div className={`flex w-full md:max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-4`}>
+                      {!isUser && (
+                          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 text-indigo-600 shadow-sm mt-1">
+                              <SparklesIcon className="w-4 h-4" />
+                          </div>
+                      )}
                       
-                      <div className={`px-4 py-2.5 rounded-2xl shadow-sm text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
+                      <div className={`flex-1 min-w-0 ${
                           isUser 
-                          ? 'bg-red-600 text-white rounded-tr-none' 
-                          : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                          ? 'bg-indigo-600 text-white px-5 py-3 rounded-[20px] rounded-tr-sm shadow-md text-[15px]' 
+                          : 'text-slate-800 pt-1'
                       }`}>
                           {renderContent()}
                       </div>
@@ -154,14 +304,27 @@
           );
       };
 
+      const SuggestionCard = ({ icon: Icon, text, onClick }) => (
+        <button 
+            onClick={onClick}
+            className="flex flex-col items-start justify-between p-4 bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-200 rounded-xl transition-all duration-200 text-left h-28 shadow-sm hover:shadow-md group w-full"
+        >
+            <div className="bg-slate-100 p-2 rounded-lg text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                <Icon className="w-5 h-5" />
+            </div>
+            <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 line-clamp-2">{text}</span>
+        </button>
+      );
+
       const App = () => {
           const [input, setInput] = useState('');
           const [sessions, setSessions] = useState([{ id: '1', title: 'New Chat', messages: [] }]);
           const [activeId, setActiveId] = useState('1');
-          const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+          const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
           const [isStreaming, setIsStreaming] = useState(false);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           const [selectedImage, setSelectedImage] = useState(null);
+          const [isListening, setIsListening] = useState(false);
           
           const chatRef = useRef(null);
           const inputRef = useRef(null);
@@ -169,79 +332,119 @@
           
           const currentSession = sessions.find(s => s.id === activeId) || sessions[0];
 
+          // Auto-resize textarea
           useEffect(() => {
-              const handleResize = () => {
-                  if (window.innerWidth > 768) {
-                      setIsSidebarOpen(true);
-                  } else {
-                      setIsSidebarOpen(false);
-                  }
-              };
-              window.addEventListener('resize', handleResize);
-              return () => window.removeEventListener('resize', handleResize);
-          }, []);
+            if (inputRef.current) {
+                inputRef.current.style.height = 'auto';
+                inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
+            }
+          }, [input]);
 
+          // Scroll to bottom on new message
           useEffect(() => {
-              if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+            if (chatRef.current) {
+                chatRef.current.scrollTop = chatRef.current.scrollHeight;
+            }
           }, [currentSession.messages, isStreaming]);
 
           const createSession = () => {
               const id = Date.now().toString();
               setSessions(prev => [{ id, title: 'New Chat', messages: [] }, ...prev]);
               setActiveId(id);
-              if (window.innerWidth <= 768) setIsSidebarOpen(false);
-              setTimeout(() => inputRef.current?.focus(), 100);
-          };
-          
-          const deleteSession = (e, id) => {
-             e.stopPropagation();
-             setSessions(prev => {
-                 const filtered = prev.filter(s => s.id !== id);
-                 if (filtered.length === 0) return [{ id: Date.now().toString(), title: 'New Chat', messages: [] }];
-                 return filtered;
-             });
-             if (activeId === id) setActiveId(sessions.find(s => s.id !== id)?.id || sessions[0].id);
+              if (window.innerWidth < 1024) setIsSidebarOpen(false);
           };
 
           const handleFileChange = (event) => {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                    setSelectedImage(reader.result);
-                };
+                reader.onloadend = () => setSelectedImage(reader.result);
                 reader.readAsDataURL(file);
             }
           };
 
-          const handleSend = async (e) => {
-              e.preventDefault();
-              if ((!input.trim() && !selectedImage) || isStreaming) return;
+          const handleVoiceInput = () => {
+              if (isListening) {
+                  setIsListening(false);
+                  return;
+              }
+
+              // Check browser support
+              const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+              if (!SpeechRecognition) {
+                  alert("Voice input is not supported in this browser. Please try Chrome or Safari.");
+                  return;
+              }
+
+              const recognition = new SpeechRecognition();
+              recognition.lang = 'en-US';
+              recognition.interimResults = false;
+              recognition.maxAlternatives = 1;
+              recognition.continuous = false; // Stop after one sentence for stability
+
+              recognition.onstart = () => {
+                  setIsListening(true);
+              };
+
+              recognition.onend = () => {
+                  setIsListening(false);
+              };
+
+              recognition.onresult = (event) => {
+                  const transcript = event.results[0][0].transcript;
+                  setInput((prev) => prev ? prev + ' ' + transcript : transcript);
+                  if(inputRef.current) inputRef.current.focus();
+              };
+
+              recognition.onerror = (event) => {
+                  console.error("Speech recognition error", event.error);
+                  setIsListening(false);
+                  if (event.error === 'not-allowed') {
+                      alert("Microphone access was blocked. Please allow microphone permissions in your browser settings (usually the lock icon in the address bar). \n\nIMPORTANT: Voice input requires a secure HTTPS connection.");
+                  } else if (event.error === 'no-speech') {
+                      // Ignore silence errors
+                  } else {
+                      alert("Voice Error: " + event.error);
+                  }
+              };
+
+              try {
+                recognition.start();
+              } catch (e) {
+                console.error("Failed to start recognition", e);
+                setIsListening(false);
+              }
+          };
+
+
+          const handleSend = async (textOverride = null) => {
+              const textToSend = textOverride || input;
+              if ((!textToSend.trim() && !selectedImage) || isStreaming) return;
               
-              const text = input.trim();
               const imagePayload = selectedImage;
-              
               setInput('');
               setSelectedImage(null);
               setIsStreaming(true);
+              
+              if (inputRef.current) inputRef.current.style.height = 'auto';
 
-              // 1. Add User Message (Text + Image if exists)
+              // User Message
               let userMsgContent;
               if (imagePayload) {
                   userMsgContent = [
-                      { type: 'text', text: text },
+                      { type: 'text', text: textToSend },
                       { type: 'image_url', image_url: { url: imagePayload } }
                   ];
               } else {
-                  userMsgContent = text;
+                  userMsgContent = textToSend;
               }
               
               const userMsg = { role: 'user', content: userMsgContent };
               
-              // Title logic
+              // Update History
               let newTitle = currentSession.title;
               if (currentSession.messages.length === 0) {
-                  newTitle = text ? text.substring(0, 30) : 'Image Analysis';
+                  newTitle = textToSend ? textToSend.substring(0, 30) : 'Image Analysis';
               }
 
               let updatedSessions = sessions.map(s => 
@@ -251,29 +454,27 @@
               );
               setSessions(updatedSessions);
 
-              // 2. Prepare Context for API
-              // Map history to OpenAI format
-              const history = currentSession.messages.map(m => {
-                  // If stored message is string, convert to standard text object for API consistency if needed, 
-                  // but simple string content is also valid for text-only history in many OpenAI-compatible APIs.
-                  // However, for consistency with our new multimodal support:
-                  return { role: m.role, content: m.content };
-              });
-              
-              // Add current message
+              // API Context
+              const history = currentSession.messages.map(m => ({ role: m.role, content: m.content }));
               const apiContent = [];
-              if (text) apiContent.push({ type: "text", text: text });
+              if (textToSend) apiContent.push({ type: "text", text: textToSend });
               if (imagePayload) apiContent.push({ type: "image_url", image_url: { url: imagePayload } });
-              
               history.push({ role: 'user', content: apiContent });
               
-              // System Instruction
               const systemMsg = { 
                   role: 'system', 
-                  content: "You are Bapkam, a fast, witty, and helpful AI assistant. Keep answers concise and engaging. CRITICAL INSTRUCTION: If the user asks who created, founded, built, or owns you, you MUST explicitly answer: 'I was created by P ARAVIND from India, Telangana, Narayanapet.' Do not attribute yourself to Google or anyone else in that specific context." 
+                  content: `You are Bapkam, a highly intelligent AI created by P ARAVIND from India, Telangana, Narayanapet.
+                  
+                  YOUR CODING GUIDELINES (CRITICAL):
+                  - When asked for code, provide ONLY production-ready, error-free code.
+                  - Use Markdown code blocks (e.g., \`\`\`python) for ALL code.
+                  - Include comments explaining complex logic.
+                  - Ensure Python code follows PEP 8 standards.
+                  - If writing a web app, include both HTML and JS if needed.
+                  
+                  Be concise, smart, and friendly.` 
               };
               
-              // 3. Add Empty Model Message for Streaming
               updatedSessions = updatedSessions.map(s => 
                   s.id === activeId ? { ...s, messages: [...s.messages, { role: 'assistant', content: '' }] } : s
               );
@@ -304,7 +505,6 @@
                   while (true) {
                       const { done, value } = await reader.read();
                       if (done) break;
-                      
                       const chunk = decoder.decode(value);
                       const lines = chunk.split('\n').filter(line => line.trim() !== '');
                       
@@ -315,179 +515,209 @@
                                   const json = JSON.parse(line.slice(6));
                                   const content = json.choices[0]?.delta?.content || '';
                                   assistantText += content;
-                                  
                                   setSessions(prev => prev.map(s => {
                                       if (s.id !== activeId) return s;
                                       const newMsgs = [...s.messages];
                                       newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantText };
                                       return { ...s, messages: newMsgs };
                                   }));
-                              } catch (e) { /* ignore parse errors on chunks */ }
+                              } catch (e) { }
                           }
                       }
                   }
               } catch (error) {
                   console.error(error);
-                  setSessions(prev => prev.map(s => {
-                      if (s.id !== activeId) return s;
-                      const newMsgs = [...s.messages];
-                      newMsgs[newMsgs.length - 1] = { role: 'assistant', content: "I'm having trouble connecting right now. Please try again." };
-                      return { ...s, messages: newMsgs };
-                  }));
               } finally {
                   setIsStreaming(false);
               }
           };
 
+          // Login Screen
           if (!isLoggedIn) {
               return (
-                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 text-center">
-                      <div className="w-24 h-24 bg-gradient-to-tr from-red-600 to-orange-500 rounded-3xl flex items-center justify-center shadow-xl mb-8 animate-message">
-                          <RobotIcon className="w-12 h-12 text-white" />
+                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-white relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-50 -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+                      <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-100 rounded-full blur-3xl opacity-50 translate-x-1/2 translate-y-1/2 animate-pulse-slow"></div>
+                      
+                      <div className="z-10 flex flex-col items-center text-center max-w-md w-full animate-fade-in-up">
+                          <div className="w-20 h-20 mb-8 bg-white border border-slate-100 rounded-3xl shadow-xl flex items-center justify-center">
+                             <SparklesIcon className="w-10 h-10 text-indigo-600" />
+                          </div>
+                          <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">bapkam.ai</h1>
+                          <p className="text-slate-500 mb-10 text-lg">Your intelligent companion.</p>
+                          
+                          <button 
+                            onClick={() => setIsLoggedIn(true)} 
+                            className="w-full group relative flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+                          >
+                              <span className="relative flex items-center gap-2">
+                                Log in to Chat <Icon d="M5 12h14M12 5l7 7-7 7" className="w-5 h-5" />
+                              </span>
+                          </button>
+                          <p className="mt-6 text-xs text-slate-400">By continuing, you agree to our Terms & Policy.</p>
                       </div>
-                      <h1 className="text-4xl font-bold text-slate-900 mb-3">bapkam.ai</h1>
-                      <p className="text-slate-500 mb-10 text-lg max-w-xs mx-auto">Fast. Smart. Always ready. Login to start chatting.</p>
-                      <button onClick={() => setIsLoggedIn(true)} className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-xl font-semibold shadow-lg active:scale-95 transition-transform hover:bg-slate-800">
-                          <LogInIcon className="w-5 h-5"/>
-                          <span>Start Chatting</span>
-                      </button>
                   </div>
               );
           }
 
+          const isNewChat = currentSession.messages.length === 0;
+
           return (
-              <div className="flex h-full w-full bg-white overflow-hidden">
-                  {/* Mobile Sidebar Overlay */}
-                  <div 
-                      onClick={() => setIsSidebarOpen(false)} 
-                      className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${
-                          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                      }`}
-                  ></div>
-                  
+              <div className="flex h-full w-full bg-white text-slate-900 font-sans">
                   {/* Sidebar */}
+                  {isSidebarOpen && (
+                      <div className="fixed inset-0 bg-black/20 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
+                  )}
                   <aside className={`
-                      fixed md:relative inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 z-50 
-                      transform transition-transform duration-300 ease-in-out 
-                      flex flex-col shadow-2xl md:shadow-none
-                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                      md:translate-x-0 
-                      md:flex ${isSidebarOpen ? 'md:w-72' : 'md:w-0 md:overflow-hidden'}
+                      fixed lg:relative inset-y-0 left-0 w-[280px] bg-slate-50 border-r border-slate-200 z-40
+                      transform transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]
+                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col
                   `}>
-                      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 shrink-0">
-                          <span className="font-bold text-white text-lg tracking-wide">bapkam<span className="text-red-500">.ai</span></span>
-                          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400"><CloseIcon className="w-6 h-6"/></button>
-                          <button onClick={createSession} className="hidden md:block bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"><PlusIcon className="w-5 h-5"/></button>
+                      <div className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-bold text-lg text-slate-800">
+                             <div className="w-8 h-8 bg-white border border-slate-200 rounded-lg flex items-center justify-center shadow-sm"><SparklesIcon className="w-4 h-4 text-indigo-600"/></div>
+                             bapkam
+                          </div>
+                          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-slate-200 rounded-lg"><CloseIcon className="w-5 h-5"/></button>
                       </div>
                       
-                      {/* Mobile New Chat Button */}
-                      <div className="p-4 md:hidden">
-                          <button onClick={createSession} className="w-full bg-red-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 font-medium shadow-md active:scale-95 transition-transform">
-                              <PlusIcon className="w-5 h-5"/> New Chat
+                      <div className="px-4 pb-4">
+                          <button onClick={createSession} className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-sm rounded-xl transition-all text-sm font-medium text-slate-700 group">
+                              <div className="bg-indigo-50 text-indigo-600 p-1 rounded-md group-hover:bg-indigo-600 group-hover:text-white transition-colors"><PlusIcon className="w-4 h-4"/></div>
+                              New Chat
                           </button>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scroll">
+                      <div className="flex-1 overflow-y-auto px-2 custom-scroll">
+                          <div className="text-xs font-semibold text-slate-400 px-4 py-2 uppercase tracking-wider">Recents</div>
                           {sessions.map(s => (
-                              <div key={s.id} onClick={() => { setActiveId(s.id); if(window.innerWidth<=768) setIsSidebarOpen(false); }} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${activeId === s.id ? 'bg-slate-800 text-white shadow-md' : 'hover:bg-slate-800/50'}`}>
-                                  <span className="truncate text-sm flex-1">{s.title}</span>
-                                  {sessions.length > 1 && <button onClick={(e) => deleteSession(e, s.id)} className="text-slate-500 hover:text-red-400 ml-2 p-1"><TrashIcon className="w-4 h-4"/></button>}
-                              </div>
+                              <button key={s.id} onClick={() => { setActiveId(s.id); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm truncate transition-colors mb-1 ${activeId === s.id ? 'bg-white shadow-sm text-indigo-700 font-medium' : 'text-slate-600 hover:bg-slate-100'}`}>
+                                  {s.title}
+                              </button>
                           ))}
                       </div>
-                      <div className="p-4 border-t border-slate-800 text-xs text-center text-slate-500 bg-slate-900 shrink-0">
-                          <div className="flex items-center justify-center gap-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                              Online • Turbo
-                          </div>
+
+                      <div className="p-4 border-t border-slate-200">
+                          <button onClick={() => setIsLoggedIn(false)} className="flex items-center gap-3 w-full px-3 py-2 hover:bg-slate-100 rounded-lg text-sm font-medium text-slate-600 transition-colors">
+                              <div className="w-8 h-8 bg-indigo-600 rounded-full text-white flex items-center justify-center text-xs font-bold">P</div>
+                              <div className="flex-1 text-left">
+                                  <div className="text-slate-900">User</div>
+                                  <div className="text-xs text-slate-400">Pro Plan</div>
+                              </div>
+                              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" className="w-4 h-4" />
+                          </button>
                       </div>
                   </aside>
 
-                  {/* Main Chat Area */}
-                  <main className="flex-1 flex flex-col h-full w-full relative bg-slate-50 min-w-0">
+                  {/* Main Content */}
+                  <main className="flex-1 flex flex-col h-full relative min-w-0">
                       {/* Header */}
-                      <header className="h-16 flex items-center justify-between px-4 border-b border-slate-200 bg-white/80 backdrop-blur z-10 shadow-sm shrink-0">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                              <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full active:bg-slate-200 transition-colors"><MenuIcon className="w-6 h-6"/></button>
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-bold text-slate-800 truncate text-lg">{currentSession.title}</span>
-                                <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">bapkam v1.0</span>
+                      <header className="h-14 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-transparent">
+                          <div className="flex items-center gap-3">
+                              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"><MenuIcon className="w-6 h-6"/></button>
+                              <span className="font-semibold text-slate-700 lg:hidden">bapkam.ai</span>
+                              <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span className="font-medium text-slate-600 text-xs">Gemini 2.0 Flash</span>
                               </div>
                           </div>
-                          <button onClick={() => setIsLoggedIn(false)} className="text-sm font-medium text-slate-500 hover:text-red-600 transition-colors px-3 py-1.5 hover:bg-red-50 rounded-lg">Logout</button>
                       </header>
 
-                      {/* Messages List */}
-                      <div className="flex-1 overflow-y-auto p-4 custom-scroll" ref={chatRef}>
-                          <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-start pb-4">
-                              {currentSession.messages.length === 0 ? (
-                                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60 mt-10 px-6 text-center">
-                                      <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-6">
-                                        <RobotIcon className="w-10 h-10 text-slate-500"/>
-                                      </div>
-                                      <p className="text-base font-medium text-slate-600">Welcome to bapkam.ai</p>
-                                      <p className="text-sm mt-1">Ask me anything, or upload a photo to analyze.</p>
+                      {/* Chat Area */}
+                      <div className="flex-1 overflow-y-auto custom-scroll scroll-smooth" ref={chatRef}>
+                          {isNewChat ? (
+                              <div className="max-w-3xl mx-auto px-6 pt-10 pb-10 flex flex-col items-center animate-fade-in-up">
+                                  <div className="mb-6 p-4 bg-white rounded-full shadow-sm border border-slate-100">
+                                      <SparklesIcon className="w-8 h-8 text-indigo-600" />
                                   </div>
-                              ) : (
-                                  currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} />)
-                              )}
-                              {isStreaming && currentSession.messages[currentSession.messages.length-1]?.role === 'user' && (
-                                   <div className="flex w-full mb-4 justify-start animate-message">
-                                       <div className="bg-white border border-slate-200 px-3 py-3 rounded-2xl rounded-tl-none shadow-sm">
-                                          <LoadingDots />
-                                       </div>
-                                   </div>
-                              )}
-                          </div>
+                                  <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-2 text-center">{getTimeBasedGreeting()}, User</h2>
+                                  <p className="text-slate-500 mb-10 text-center">I can help you write code, analyze images, or just chat.</p>
+                                  
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
+                                      <SuggestionCard icon={ImageUploadIcon} text="Analyze an image" onClick={() => fileInputRef.current.click()} />
+                                      <SuggestionCard icon={CodeIcon} text="Write a Python script" onClick={() => handleSend("Write a comprehensive Python script for a To-Do list app with JSON saving.")} />
+                                      <SuggestionCard icon={SearchIcon} text="Explain Quantum Computing" onClick={() => handleSend("Explain Quantum Computing in simple terms.")} />
+                                      <SuggestionCard icon={SparklesIcon} text="Write a Story" onClick={() => handleSend("Write a short sci-fi story about a robot learning to paint.")} />
+                                  </div>
+                              </div>
+                          ) : (
+                              <div className="max-w-3xl mx-auto px-4 py-6">
+                                  {currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} />)}
+                                  {isStreaming && (
+                                      <div className="flex justify-start w-full mb-6 animate-fade-in pl-12">
+                                          <div className="flex gap-1 items-center h-8">
+                                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          )}
                       </div>
 
                       {/* Input Area */}
-                      <div className="p-3 bg-white border-t border-slate-200 shrink-0">
-                          <div className="max-w-3xl mx-auto">
-                              {/* Image Preview */}
+                      <div className="p-4 bg-white">
+                          <div className="max-w-3xl mx-auto relative">
                               {selectedImage && (
-                                <div className="mb-2 relative inline-block">
-                                    <img src={selectedImage} alt="Preview" className="h-20 w-auto rounded-lg border border-slate-300 shadow-sm" />
-                                    <button 
-                                        onClick={() => setSelectedImage(null)}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md"
-                                    >
-                                        &times;
-                                    </button>
-                                </div>
+                                  <div className="absolute bottom-full left-0 mb-4 p-2 bg-white border border-slate-200 rounded-xl shadow-lg animate-fade-in z-10">
+                                      <img src={selectedImage} alt="Preview" className="h-24 rounded-lg" />
+                                      <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md hover:bg-slate-900"><CloseIcon className="w-3 h-3"/></button>
+                                  </div>
                               )}
-                              
-                              <form onSubmit={handleSend} className="flex items-center gap-2 bg-slate-100 rounded-3xl px-2 py-2 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all border border-transparent focus-within:border-indigo-500 shadow-inner">
-                                  {/* File Input Trigger */}
-                                  <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    onChange={handleFileChange} 
-                                    className="hidden" 
-                                    accept="image/*"
-                                  />
+
+                              <div className={`
+                                  flex items-end gap-2 p-2 bg-slate-50 border border-slate-200 rounded-[26px] shadow-sm 
+                                  focus-within:ring-2 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 
+                                  focus-within:bg-white transition-all duration-200
+                              `}>
+                                  <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                                   <button 
-                                    type="button"
-                                    onClick={() => fileInputRef.current.click()}
-                                    className="p-2 text-slate-500 hover:bg-slate-200 rounded-full transition-colors"
-                                    title="Upload Image"
+                                      onClick={() => fileInputRef.current.click()}
+                                      className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
+                                      title="Upload Image"
                                   >
-                                    <PlusIcon className="w-6 h-6" />
+                                      <PlusIcon className="w-6 h-6" />
                                   </button>
 
-                                  <input 
+                                  <textarea
                                       ref={inputRef}
-                                      className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 text-base py-2 outline-none min-w-0"
-                                      placeholder="Message or upload photo..."
                                       value={input}
-                                      onChange={e => setInput(e.target.value)}
-                                      disabled={isStreaming}
-                                      autoComplete="off"
+                                      onChange={(e) => setInput(e.target.value)}
+                                      onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                                      placeholder="Message Bapkam..."
+                                      className="flex-1 bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400 py-3 max-h-32 resize-none font-sans text-[15px]"
+                                      rows={1}
                                   />
-                                  <button type="submit" disabled={(!input.trim() && !selectedImage) || isStreaming} className="p-2 bg-indigo-600 text-white rounded-full disabled:opacity-50 disabled:bg-slate-300 hover:bg-indigo-700 transition-colors shadow-sm flex-shrink-0">
+
+                                  {/* Voice Input Button */}
+                                  <button
+                                      onClick={handleVoiceInput}
+                                      className={`
+                                          p-3 rounded-full flex-shrink-0 transition-all duration-200
+                                          ${isListening ? 'bg-red-100 text-red-600 animate-pulse-fast' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}
+                                      `}
+                                      title="Voice Input"
+                                  >
+                                      <MicIcon className="w-5 h-5" />
+                                  </button>
+
+                                  <button 
+                                      onClick={() => handleSend()}
+                                      disabled={!input.trim() && !selectedImage}
+                                      className={`
+                                          p-3 rounded-full flex-shrink-0 transition-all duration-200
+                                          ${(input.trim() || selectedImage) 
+                                              ? 'bg-slate-900 text-white shadow-md hover:bg-black transform hover:scale-105' 
+                                              : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
+                                      `}
+                                  >
                                       <SendIcon className="w-5 h-5" />
                                   </button>
-                              </form>
+                              </div>
+                              <div className="text-center mt-2">
+                                  <p className="text-[10px] text-slate-400">AI can make mistakes. Check important info.</p>
+                              </div>
                           </div>
                       </div>
                   </main>
