@@ -1,49 +1,10 @@
-import { GoogleGenAI, Modality, Content } from "@google/genai";
+import { GoogleGenAI, Content } from "@google/genai";
 import { GroundingSource, Engine, ChatMessage, ChatMessageRole } from "../types";
 
-// Safely access the API key, defaulting to the hardcoded key if process.env is missing.
-const HARDCODED_KEY = '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';
-const API_KEY = (typeof process !== 'undefined' && process.env?.API_KEY) ? process.env.API_KEY : HARDCODED_KEY;
-
 // Initialize the AI client.
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const model = 'gemini-2.5-flash';
-
-// Helper function to fetch from OpenRouter (Inlined to remove external dependency)
-async function getOpenRouterResponse(prompt: string, modelId: string, history: ChatMessage[]): Promise<string> {
-  try {
-    const messages = history.map(msg => ({
-      role: msg.role === ChatMessageRole.MODEL ? 'assistant' : 'user',
-      content: msg.content
-    }));
-    messages.push({ role: 'user', content: prompt });
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : 'https://bapkam.ai',
-        'X-Title': 'bapkam.ai',
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: messages,
-      })
-    });
-
-    if (!response.ok) {
-       console.warn(`OpenRouter ${modelId} failed: ${response.statusText}`);
-       return '';
-    }
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  } catch (error) {
-    console.error(`Error fetching from OpenRouter (${modelId}):`, error);
-    return '';
-  }
-}
 
 async function classifyPrompt(prompt: string): Promise<Engine> {
   try {
@@ -106,96 +67,28 @@ Your goal is to make the user feel like they are talking to a real person, not a
 
 export async function generateChatResponse(prompt: string, history: ChatMessage[]): Promise<{ text: string; modelSources: string[] }> {
   try {
-    if (!API_KEY) {
-        throw new Error("API Key is missing. Please check your environment configuration.");
-    }
-
-    // 1. Classify prompt to determine the persona for the Gemini portion of the response.
     const engine = await classifyPrompt(prompt);
-    const geminiSystemInstruction = getSystemInstruction(engine);
+    const systemInstruction = getSystemInstruction(engine);
 
-    const geminiChatHistory: Content[] = history
+    const chatHistory: Content[] = history
       .filter(msg => msg.content && !msg.content.startsWith('data:image'))
       .map(msg => ({
         role: msg.role === ChatMessageRole.USER ? 'user' : 'model',
         parts: [{ text: msg.content }],
       }));
 
-    const geminiChat = ai.chats.create({
+    const chat = ai.chats.create({
       model: model,
-      config: { systemInstruction: geminiSystemInstruction },
-      history: geminiChatHistory,
+      config: { systemInstruction },
+      history: chatHistory,
     });
 
-    // 2. Concurrently fetch responses from multiple models.
-    const responsePromises = [
-      geminiChat.sendMessage({ message: prompt }).then(res => ({ source: 'Gemini', text: res.text })),
-      getOpenRouterResponse(prompt, 'deepseek/deepseek-chat', history).then(text => ({ source: 'DeepSeek', text })),
-      getOpenRouterResponse(prompt, 'openai/gpt-4o-mini', history).then(text => ({ source: 'GPT', text })),
-    ];
-
-    const results = await Promise.allSettled(responsePromises);
-    const successfulResponses: { source: string; text: string }[] = [];
-    results.forEach(result => {
-      if (result.status === 'fulfilled' && result.value.text) {
-        successfulResponses.push(result.value);
-      } else if (result.status === 'rejected') {
-        console.warn('A model failed to respond:', result.reason);
-      }
-    });
-
-    if (successfulResponses.length === 0) {
-      throw new Error("All AI models failed to respond.");
-    }
-    
-    const responseTexts = successfulResponses.map(r => r.text);
-    const modelSources = successfulResponses.map(r => r.source);
-
-    // 3. Synthesize the collected responses into a single, cohesive answer.
-    const synthesisSystemInstruction = `You are a helpful AI assistant named Bapkam. Your task is to synthesize the best points from multiple internal thought processes into a single, cohesive, and friendly answer for the user. Adopt your Bapkam persona: warm, empathetic, and witty. Address the user directly in a conversational tone. Do not mention that you are combining answers from multiple sources or AIs.
-
-**CRITICAL INSTRUCTIONS ON RESPONSE LENGTH:**
-1.  **Standard Answers:** For most general questions, your response MUST be between 200 and 400 characters. This is the ideal length for a conversational reply.
-2.  **Simple Interactions:** For simple greetings or short questions (e.g., 'hi', 'how are you?'), keep your answer very brief and natural.
-3.  **Complex Queries:** When the user asks a complex question that requires a detailed explanation, you are allowed to provide a longer, more thorough answer. You can go beyond 400 characters if necessary to be helpful, but avoid unnecessary verbosity.
-4.  **User-Specified Length:** If the user specifically asks for a certain length (e.g., "explain in 100 words" or "give me a short answer"), you MUST strictly follow their instruction. Do not provide a longer answer unless they ask for more detail.
-
-Here are the different perspectives:
-${responseTexts.map((res, i) => `--- Perspective ${i + 1} ---\n${res}`).join('\n\n')}
-
----
-Based on the above, provide a single, synthesized response in your Bapkam persona to the user's original query: "${prompt}". If the query involves generating code, ensure the final code is correct, well-explained, and follows best practices, synthesizing the best aspects from all perspectives.`;
-
-    const synthesisResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: synthesisSystemInstruction,
-      },
-    });
-
-    return { text: synthesisResponse.text, modelSources: modelSources.sort() };
+    const response = await chat.sendMessage({ message: prompt });
+    return { text: response.text, modelSources: ['Gemini'] };
 
   } catch (error) {
-    console.error("Error in multi-model orchestration:", error);
-    // Fallback to the original single-model generation if orchestration fails.
-    try {
-      console.log("Fallback: attempting single model generation.");
-      const engine = await classifyPrompt(prompt);
-      const systemInstruction = getSystemInstruction(engine);
-      const chatHistory: Content[] = history
-        .filter(msg => msg.content && !msg.content.startsWith('data:image'))
-        .map(msg => ({
-          role: msg.role === ChatMessageRole.USER ? 'user' : 'model',
-          parts: [{ text: msg.content }],
-        }));
-      const chat = ai.chats.create({ model, config: { systemInstruction }, history: chatHistory });
-      const response = await chat.sendMessage({ message: prompt });
-      return { text: response.text, modelSources: ['Gemini'] };
-    } catch (fallbackError) {
-      console.error("Fallback to single model also failed:", fallbackError);
-      throw new Error("I'm very sorry, but I'm having trouble processing your request right now. Please try again in a moment.");
-    }
+    console.error("Error in chat generation:", error);
+    throw new Error("I'm very sorry, but I'm having trouble processing your request right now. Please try again in a moment.");
   }
 }
 
@@ -275,9 +168,6 @@ export async function generateImage(prompt: string): Promise<string> {
             model: 'gemini-2.5-flash-image',
             contents: {
                 parts: [{ text: prompt }],
-            },
-            config: {
-                responseModalities: [Modality.IMAGE],
             },
         });
         
