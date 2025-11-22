@@ -1,16 +1,49 @@
 import { GoogleGenAI, Modality, Content } from "@google/genai";
 import { GroundingSource, Engine, ChatMessage, ChatMessageRole } from "../types";
-import { getOpenRouterResponse } from './openRouterService';
 
-// Safely access the API key, defaulting to an empty string if missing or if process is undefined.
-// This prevents the "White Screen of Death" on initial load.
-const API_KEY = (typeof process !== 'undefined' ? process.env?.API_KEY : '') || '';
+// Safely access the API key, defaulting to the hardcoded key if process.env is missing.
+const HARDCODED_KEY = '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';
+const API_KEY = (typeof process !== 'undefined' && process.env?.API_KEY) ? process.env.API_KEY : HARDCODED_KEY;
 
-// Initialize the AI client. We do not block the app from loading if the key is missing.
-// Errors will occur gracefully only when the user attempts to send a message.
+// Initialize the AI client.
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const model = 'gemini-2.5-flash';
+
+// Helper function to fetch from OpenRouter (Inlined to remove external dependency)
+async function getOpenRouterResponse(prompt: string, modelId: string, history: ChatMessage[]): Promise<string> {
+  try {
+    const messages = history.map(msg => ({
+      role: msg.role === ChatMessageRole.MODEL ? 'assistant' : 'user',
+      content: msg.content
+    }));
+    messages.push({ role: 'user', content: prompt });
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : 'https://bapkam.ai',
+        'X-Title': 'bapkam.ai',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: messages,
+      })
+    });
+
+    if (!response.ok) {
+       console.warn(`OpenRouter ${modelId} failed: ${response.statusText}`);
+       return '';
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch (error) {
+    console.error(`Error fetching from OpenRouter (${modelId}):`, error);
+    return '';
+  }
+}
 
 async function classifyPrompt(prompt: string): Promise<Engine> {
   try {
@@ -74,7 +107,6 @@ Your goal is to make the user feel like they are talking to a real person, not a
 export async function generateChatResponse(prompt: string, history: ChatMessage[]): Promise<{ text: string; modelSources: string[] }> {
   try {
     if (!API_KEY) {
-        // This error is thrown ONLY when the user tries to chat, not on app load.
         throw new Error("API Key is missing. Please check your environment configuration.");
     }
 
@@ -167,9 +199,6 @@ Based on the above, provide a single, synthesized response in your Bapkam person
   }
 }
 
-
-// For one-off requests like search and image generation
-// FIX: Added explicit return type to fix type inference issue in ChatWindow.tsx.
 export async function generateContentWithSearch(prompt: string): Promise<{ text: string; sources: GroundingSource[] }> {
   try {
     const response = await ai.models.generateContent({
@@ -182,7 +211,6 @@ export async function generateContentWithSearch(prompt: string): Promise<{ text:
 
     const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
     
-    // FIX: Refactored source extraction and deduplication to resolve TypeScript inference issue.
     const sourcesMap = new Map<string, GroundingSource>();
     groundingMetadata?.groundingChunks?.forEach((chunk: any) => {
       if (chunk.web?.uri && chunk.web?.title) {
@@ -240,7 +268,6 @@ export async function generateContentWithFile(prompt: string, file: File) {
         throw new Error("Failed to process the file and prompt. Please try again.");
     }
 }
-
 
 export async function generateImage(prompt: string): Promise<string> {
     try {

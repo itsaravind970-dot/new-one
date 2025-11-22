@@ -85,10 +85,10 @@
 <script type="importmap">
 {
   "imports": {
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
   }
 }
 </script>
@@ -112,12 +112,13 @@
       const CheckIcon = (p) => <Icon d="M20 6 9 17l-5-5" {...p} />;
       const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" {...p} />;
       const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8m-4-6-4-4-4 4m4-4v13" {...p} />;
-      const MicIcon = (p) => <Icon d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" {...p} />;
 
-      // --- API CONFIGURATION ---
-      const API_KEY = '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'; 
-      const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-      const MODEL = 'google/gemini-2.0-flash-001';
+      // --- GOOGLE GEMINI CONFIGURATION ---
+      const API_KEY = 'AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg'; 
+      
+      // Using Google's Direct REST API for maximum speed and zero SDK bloat
+      // gemini-2.0-flash is the fastest and most capable model
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${API_KEY}`;
 
       // --- HELPERS ---
       const getTimeBasedGreeting = () => {
@@ -127,24 +128,17 @@
           return "Good evening";
       };
 
-      // Simple syntax highlighting helper
       const highlightCode = (code, language) => {
           let highlighted = code
               .replace(/&/g, "&amp;")
               .replace(/</g, "&lt;")
               .replace(/>/g, "&gt;");
 
-          // Basic Python/JS patterns
           highlighted = highlighted
-              // Strings
               .replace(/(['"`])(.*?)\1/g, '<span class="token-string">$1$2$1</span>')
-              // Keywords (Python + JS mix)
               .replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|async|await|const|let|var|function|print|console|bg|color|px|solid|border)\b/g, '<span class="token-keyword">$1</span>')
-              // Functions
               .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\()/g, '<span class="token-function">$1</span>')
-              // Numbers
               .replace(/\b(\d+)\b/g, '<span class="token-number">$1</span>')
-              // Comments
               .replace(/(#.*|\/\/.*)$/gm, '<span class="token-comment">$1</span>');
 
           return highlighted;
@@ -172,7 +166,6 @@
                     console.log('Share aborted');
                 }
             } else {
-                // Fallback for desktop or unsupported browsers
                 navigator.clipboard.writeText(code);
                 alert("Code copied to clipboard! You can now paste it into your social media.");
             }
@@ -180,10 +173,8 @@
 
           return (
               <div className="my-4 rounded-xl overflow-hidden border border-slate-200 shadow-md bg-[#1e1e1e] text-slate-300 w-full max-w-full group">
-                  {/* Code Header - VS Code Style */}
                   <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#1e1e1e]">
                       <div className="flex items-center gap-2">
-                          {/* Mac-style window dots */}
                           <div className="flex gap-1.5 mr-2">
                               <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
                               <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
@@ -210,16 +201,13 @@
                           </button>
                       </div>
                   </div>
-                  {/* Code Body */}
                   <div className="relative overflow-x-auto custom-scroll p-0 bg-[#1e1e1e]">
                       <div className="flex min-w-full">
-                          {/* Line Numbers */}
                           <div className="flex flex-col items-end px-3 py-4 text-right select-none bg-[#1e1e1e] text-[#4b5263] text-xs font-mono leading-6 border-r border-[#2d2d2d]">
                                {code.trim().split('\n').map((_, i) => (
                                    <span key={i}>{i + 1}</span>
                                ))}
                           </div>
-                          {/* Code Content */}
                           <pre className="flex-1 px-4 py-4 text-sm font-mono leading-6 tab-4 outline-none">
                               <code 
                                 dangerouslySetInnerHTML={{ __html: highlightCode(code, language) }} 
@@ -235,37 +223,25 @@
           const isUser = msg.role === 'user';
           
           const renderContent = () => {
-            if (Array.isArray(msg.content)) {
-              // Handle User Multimodal (Image + Text)
-              return (
-                <div className="flex flex-col gap-2">
-                  {msg.content.map((part, i) => {
-                    if (part.type === 'image_url') {
-                      return (
-                        <img key={i} src={part.image_url.url} alt="Uploaded content" className="rounded-xl max-w-full h-auto border border-gray-200 shadow-sm" style={{maxHeight: '300px'}} />
-                      );
-                    }
-                    return part.text ? <div key={i} className="whitespace-pre-wrap font-sans">{part.text}</div> : null;
-                  })}
-                </div>
-              );
+            if (msg.images && msg.images.length > 0) {
+                 return (
+                     <div className="flex flex-col gap-2">
+                         {msg.images.map((img, i) => (
+                             <img key={i} src={img} alt="Uploaded content" className="rounded-xl max-w-full h-auto border border-gray-200 shadow-sm mb-2" style={{maxHeight: '300px'}} />
+                         ))}
+                         <div className="whitespace-pre-wrap font-sans">{msg.content}</div>
+                     </div>
+                 )
             }
 
-            // Handle Model Response (Parsing Markdown Code Blocks)
             const rawContent = msg.content || '';
-            // Split by code blocks: ```lang ... ```
-            // Result array: [text, lang, code, text, lang, code...]
             const parts = rawContent.split(/```(\w+)?\n([\s\S]*?)```/g);
 
             return (
                 <div className="flex flex-col gap-2 w-full overflow-hidden">
                     {parts.map((part, index) => {
-                        // If index % 3 === 0, it's normal text
-                        // If index % 3 === 1, it's language identifier (or undefined)
-                        // If index % 3 === 2, it's the code
                         if (index % 3 === 0) {
                             if (!part.trim()) return null;
-                            // Basic linkification for text
                              const formattedText = part.split(/(https?:\/\/[^\s]+)/g).map((chunk, i) => 
                                 chunk.match(/https?:\/\/[^\s]+/) ? 
                                 <a key={i} href={chunk} target="_blank" className="text-indigo-600 hover:underline break-all">{chunk}</a> : 
@@ -273,7 +249,7 @@
                             );
                             return <div key={index} className="whitespace-pre-wrap font-sans leading-7">{formattedText}</div>;
                         }
-                        if (index % 3 === 1) return null; // Skip rendering the lang string directly, handled in next step
+                        if (index % 3 === 1) return null;
                         if (index % 3 === 2) {
                             const lang = parts[index - 1] || 'text';
                             return <CodeBlock key={index} language={lang} code={part} />;
@@ -324,7 +300,6 @@
           const [isStreaming, setIsStreaming] = useState(false);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           const [selectedImage, setSelectedImage] = useState(null);
-          const [isListening, setIsListening] = useState(false);
           
           const chatRef = useRef(null);
           const inputRef = useRef(null);
@@ -332,7 +307,6 @@
           
           const currentSession = sessions.find(s => s.id === activeId) || sessions[0];
 
-          // Auto-resize textarea
           useEffect(() => {
             if (inputRef.current) {
                 inputRef.current.style.height = 'auto';
@@ -340,7 +314,6 @@
             }
           }, [input]);
 
-          // Scroll to bottom on new message
           useEffect(() => {
             if (chatRef.current) {
                 chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -363,60 +336,6 @@
             }
           };
 
-          const handleVoiceInput = () => {
-              if (isListening) {
-                  setIsListening(false);
-                  return;
-              }
-
-              // Check browser support
-              const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-              if (!SpeechRecognition) {
-                  alert("Voice input is not supported in this browser. Please try Chrome or Safari.");
-                  return;
-              }
-
-              const recognition = new SpeechRecognition();
-              recognition.lang = 'en-US';
-              recognition.interimResults = false;
-              recognition.maxAlternatives = 1;
-              recognition.continuous = false; // Stop after one sentence for stability
-
-              recognition.onstart = () => {
-                  setIsListening(true);
-              };
-
-              recognition.onend = () => {
-                  setIsListening(false);
-              };
-
-              recognition.onresult = (event) => {
-                  const transcript = event.results[0][0].transcript;
-                  setInput((prev) => prev ? prev + ' ' + transcript : transcript);
-                  if(inputRef.current) inputRef.current.focus();
-              };
-
-              recognition.onerror = (event) => {
-                  console.error("Speech recognition error", event.error);
-                  setIsListening(false);
-                  if (event.error === 'not-allowed') {
-                      alert("Microphone access was blocked. Please allow microphone permissions in your browser settings (usually the lock icon in the address bar). \n\nIMPORTANT: Voice input requires a secure HTTPS connection.");
-                  } else if (event.error === 'no-speech') {
-                      // Ignore silence errors
-                  } else {
-                      alert("Voice Error: " + event.error);
-                  }
-              };
-
-              try {
-                recognition.start();
-              } catch (e) {
-                console.error("Failed to start recognition", e);
-                setIsListening(false);
-              }
-          };
-
-
           const handleSend = async (textOverride = null) => {
               const textToSend = textOverride || input;
               if ((!textToSend.trim() && !selectedImage) || isStreaming) return;
@@ -428,20 +347,14 @@
               
               if (inputRef.current) inputRef.current.style.height = 'auto';
 
-              // User Message
-              let userMsgContent;
-              if (imagePayload) {
-                  userMsgContent = [
-                      { type: 'text', text: textToSend },
-                      { type: 'image_url', image_url: { url: imagePayload } }
-                  ];
-              } else {
-                  userMsgContent = textToSend;
-              }
+              // 1. Create User Message for UI
+              const userMsg = { 
+                  role: 'user', 
+                  content: textToSend,
+                  images: imagePayload ? [imagePayload] : []
+              };
               
-              const userMsg = { role: 'user', content: userMsgContent };
-              
-              // Update History
+              // Update UI immediately
               let newTitle = currentSession.title;
               if (currentSession.messages.length === 0) {
                   newTitle = textToSend ? textToSend.substring(0, 30) : 'Image Analysis';
@@ -454,49 +367,72 @@
               );
               setSessions(updatedSessions);
 
-              // API Context
-              const history = currentSession.messages.map(m => ({ role: m.role, content: m.content }));
-              const apiContent = [];
-              if (textToSend) apiContent.push({ type: "text", text: textToSend });
-              if (imagePayload) apiContent.push({ type: "image_url", image_url: { url: imagePayload } });
-              history.push({ role: 'user', content: apiContent });
-              
-              const systemMsg = { 
-                  role: 'system', 
-                  content: `You are Bapkam, a highly intelligent AI created by P ARAVIND from India, Telangana, Narayanapet.
-                  
-                  YOUR CODING GUIDELINES (CRITICAL):
-                  - When asked for code, provide ONLY production-ready, error-free code.
-                  - Use Markdown code blocks (e.g., \`\`\`python) for ALL code.
-                  - Include comments explaining complex logic.
-                  - Ensure Python code follows PEP 8 standards.
-                  - If writing a web app, include both HTML and JS if needed.
-                  
-                  Be concise, smart, and friendly.` 
-              };
-              
+              // 2. Prepare Payload for Google Gemini API
+              // Structure conversation history
+              const contents = currentSession.messages.map(m => {
+                  const parts = [];
+                  if (m.images && m.images.length > 0) {
+                      // Convert base64 data url to just base64 string for API
+                      const base64Data = m.images[0].split(',')[1];
+                      const mimeType = m.images[0].split(';')[0].split(':')[1];
+                      parts.push({ inlineData: { mimeType: mimeType, data: base64Data } });
+                  }
+                  if (m.content) {
+                      parts.push({ text: m.content });
+                  }
+                  return {
+                      role: m.role === 'user' ? 'user' : 'model',
+                      parts: parts
+                  };
+              });
+
+              // Add current message
+              const currentParts = [];
+              if (imagePayload) {
+                  const base64Data = imagePayload.split(',')[1];
+                  const mimeType = imagePayload.split(';')[0].split(':')[1];
+                  currentParts.push({ inlineData: { mimeType: mimeType, data: base64Data } });
+              }
+              if (textToSend) {
+                  currentParts.push({ text: textToSend });
+              }
+              contents.push({ role: 'user', parts: currentParts });
+
+              // 3. Add placeholder for Assistant response
               updatedSessions = updatedSessions.map(s => 
-                  s.id === activeId ? { ...s, messages: [...s.messages, { role: 'assistant', content: '' }] } : s
+                  s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '' }] } : s
               );
               setSessions(updatedSessions);
 
               try {
                   const response = await fetch(API_URL, {
                       method: 'POST',
-                      headers: {
-                          'Authorization': `Bearer ${API_KEY}`,
-                          'Content-Type': 'application/json',
-                          'HTTP-Referer': window.location.href,
-                          'X-Title': 'bapkam.ai',
-                      },
+                      headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                          model: MODEL,
-                          messages: [systemMsg, ...history],
-                          stream: true
+                          contents: contents,
+                          systemInstruction: {
+                              parts: [{ 
+                                text: `You are Bapkam.ai, a highly intelligent AI created by P ARAVIND from India, Telangana, Narayanapet.
+                                
+                                YOUR CODING GUIDELINES:
+                                - Provide ONLY production-ready, error-free code.
+                                - Use Markdown code blocks.
+                                - Include comments.
+                                
+                                Be concise, smart, and friendly.` 
+                              }]
+                          },
+                          generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 8000,
+                          }
                       })
                   });
 
-                  if (!response.ok) throw new Error('Connection error');
+                  if (!response.ok) {
+                       const errText = await response.text();
+                       throw new Error(`API Error (${response.status}): ${errText}`);
+                  }
 
                   const reader = response.body.getReader();
                   const decoder = new TextDecoder();
@@ -505,34 +441,51 @@
                   while (true) {
                       const { done, value } = await reader.read();
                       if (done) break;
-                      const chunk = decoder.decode(value);
-                      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                      const chunk = decoder.decode(value, { stream: true });
                       
-                      for (const line of lines) {
-                          if (line === 'data: [DONE]') break;
-                          if (line.startsWith('data: ')) {
-                              try {
-                                  const json = JSON.parse(line.slice(6));
-                                  const content = json.choices[0]?.delta?.content || '';
-                                  assistantText += content;
-                                  setSessions(prev => prev.map(s => {
-                                      if (s.id !== activeId) return s;
-                                      const newMsgs = [...s.messages];
-                                      newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantText };
-                                      return { ...s, messages: newMsgs };
-                                  }));
-                              } catch (e) { }
+                      let cleanChunk = chunk.trim();
+                      if (cleanChunk.startsWith('[')) cleanChunk = cleanChunk.substring(1);
+                      if (cleanChunk.endsWith(']')) cleanChunk = cleanChunk.substring(0, cleanChunk.length - 1);
+                      if (cleanChunk.startsWith(',')) cleanChunk = cleanChunk.substring(1);
+                      if (cleanChunk.endsWith(',')) cleanChunk = cleanChunk.substring(0, cleanChunk.length - 1);
+                      
+                      try {
+                          const data = JSON.parse(cleanChunk);
+                          if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                              const newText = data.candidates[0].content.parts[0].text || '';
+                              assistantText += newText;
                           }
+                      } catch (e) {
+                           const matchText = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
+                           let match;
+                           while ((match = matchText.exec(chunk)) !== null) {
+                               try {
+                                   const txt = JSON.parse(`"${match[1]}"`);
+                                   assistantText += txt;
+                               } catch(err) {}
+                           }
                       }
+                      
+                      setSessions(prev => prev.map(s => {
+                          if (s.id !== activeId) return s;
+                          const newMsgs = [...s.messages];
+                          newMsgs[newMsgs.length - 1] = { role: 'model', content: assistantText };
+                          return { ...s, messages: newMsgs };
+                      }));
                   }
               } catch (error) {
                   console.error(error);
+                   setSessions(prev => prev.map(s => {
+                      if (s.id !== activeId) return s;
+                      const newMsgs = [...s.messages];
+                      newMsgs[newMsgs.length - 1] = { role: 'model', content: `⚠️ ${error.message}` };
+                      return { ...s, messages: newMsgs };
+                  }));
               } finally {
                   setIsStreaming(false);
               }
           };
 
-          // Login Screen
           if (!isLoggedIn) {
               return (
                   <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-white relative overflow-hidden">
@@ -617,7 +570,7 @@
                               <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"><MenuIcon className="w-6 h-6"/></button>
                               <span className="font-semibold text-slate-700 lg:hidden">bapkam.ai</span>
                               <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
-                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                                 <span className="font-medium text-slate-600 text-xs">Gemini 2.0 Flash</span>
                               </div>
                           </div>
@@ -689,18 +642,6 @@
                                       className="flex-1 bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400 py-3 max-h-32 resize-none font-sans text-[15px]"
                                       rows={1}
                                   />
-
-                                  {/* Voice Input Button */}
-                                  <button
-                                      onClick={handleVoiceInput}
-                                      className={`
-                                          p-3 rounded-full flex-shrink-0 transition-all duration-200
-                                          ${isListening ? 'bg-red-100 text-red-600 animate-pulse-fast' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}
-                                      `}
-                                      title="Voice Input"
-                                  >
-                                      <MicIcon className="w-5 h-5" />
-                                  </button>
 
                                   <button 
                                       onClick={() => handleSend()}
