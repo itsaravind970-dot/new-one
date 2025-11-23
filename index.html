@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>bapkam.ai</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22url(%23g)%22 stroke-width=%2210%22/><defs><conicGradient id=%22g%22><stop offset=%220%25%22 stop-color=%22%23ff0000%22/><stop offset=%2220%25%22 stop-color=%22%23ffff00%22/><stop offset=%2240%25%22 stop-color=%22%2300ff00%22/><stop offset=%2260%25%22 stop-color=%22%2300ffff%22/><stop offset=%2280%25%22 stop-color=%22%230000ff%22/><stop offset=%22100%25%22 stop-color=%22%23ff00ff%22/></conicGradient></defs></svg>" />
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,9 @@
                 'fade-in': 'fadeIn 0.3s ease-out forwards',
                 'shimmer': 'shimmer 2s linear infinite',
                 'gradient-x': 'gradient-x 3s ease infinite',
-                'spin-fast': 'spin 0.8s linear infinite',
+                'spin-slow': 'spin 3s linear infinite',
+                'spin-reverse': 'spin-reverse 4s linear infinite',
+                'slide-down': 'slideDown 0.3s ease-out forwards',
             },
             keyframes: {
                 fadeInUp: {
@@ -38,6 +40,10 @@
                 fadeIn: {
                     '0%': { opacity: '0' },
                     '100%': { opacity: '1' },
+                },
+                slideDown: {
+                    '0%': { transform: 'translateY(-100%)', opacity: '0' },
+                    '100%': { transform: 'translateY(0)', opacity: '1' }
                 },
                 shimmer: {
                     '0%': { backgroundPosition: '-1000px 0' },
@@ -53,6 +59,10 @@
                         'background-position': 'right center'
                     },
                 },
+                'spin-reverse': {
+                    from: { transform: 'rotate(360deg)' },
+                    to: { transform: 'rotate(0deg)' }
+                }
             },
             colors: {
                 pro: {
@@ -111,22 +121,6 @@
             -webkit-text-fill-color: transparent;
             font-weight: 800;
         }
-
-        /* Rainbow Cyclone Animation */
-        .rainbow-cyclone {
-            background: conic-gradient(
-                #ff0000, 
-                #ff7f00, 
-                #ffff00, 
-                #00ff00, 
-                #0000ff, 
-                #4b0082, 
-                #9400d3, 
-                #ff0000
-            );
-            mask-image: radial-gradient(transparent 55%, black 56%);
-            -webkit-mask-image: radial-gradient(transparent 55%, black 56%);
-        }
     </style>
 <script type="importmap">
 {
@@ -158,16 +152,43 @@
       const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" {...p} />;
       const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8m-4-6-4-4-4 4m4-4v13" {...p} />;
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
-      
+      const LockIcon = (p) => <Icon d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z" {...p} />;
+      const PhoneIcon = (p) => <Icon d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" {...p} />;
+      const MessageSquareIcon = (p) => <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" {...p} />;
+      const UserCircleIcon = (p) => <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" {...p} />;
+      const EyeIcon = (p) => <Icon d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" {...p} />;
+
       // --- SECURE CONFIGURATION ---
+      // Gemini API Key (Obfuscated)
       const _secret = [65, 73, 122, 97, 83, 121, 68, 116, 121, 45, 49, 56, 107, 83, 115, 89, 74, 69, 113, 86, 103, 117, 78, 87, 90, 100, 86, 97, 87, 72, 89, 111, 53, 78, 102, 98, 79, 90, 69];
       const API_KEY = _secret.map(c => String.fromCharCode(c)).join('');
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${API_KEY}`;
-
+      
       // --- COMPONENTS ---
 
-      const RainbowCyclone = () => (
-        <div className="w-6 h-6 rounded-full rainbow-cyclone animate-spin-fast shadow-sm"></div>
+      // New "Rainbow Crystal Vortex" Logo - High Fidelity SVG
+      const BapkamLogo = ({ className = "w-10 h-10" }) => (
+        <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0px 0px 1px rgba(0,0,0,0.1))' }}>
+            <g transform="translate(50,50)">
+                {/* 12 Crystal Shards forming a vortex */}
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#ef4444" transform="rotate(0) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#f97316" transform="rotate(30) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#fb923c" transform="rotate(60) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#eab308" transform="rotate(90) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#84cc16" transform="rotate(120) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#22c55e" transform="rotate(150) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#14b8a6" transform="rotate(180) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#06b6d4" transform="rotate(210) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#0ea5e9" transform="rotate(240) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#3b82f6" transform="rotate(270) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#6366f1" transform="rotate(300) translate(0, -10)" opacity="0.95" />
+                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#d946ef" transform="rotate(330) translate(0, -10)" opacity="0.95" />
+                 <path d="M0 -20 L3 -28 L6 -22 Z" fill="#ef4444" transform="rotate(15)" opacity="0.8" />
+                 <path d="M0 -20 L3 -28 L6 -22 Z" fill="#eab308" transform="rotate(105)" opacity="0.8" />
+                 <path d="M0 -20 L3 -28 L6 -22 Z" fill="#06b6d4" transform="rotate(195)" opacity="0.8" />
+                 <path d="M0 -20 L3 -28 L6 -22 Z" fill="#8b5cf6" transform="rotate(285)" opacity="0.8" />
+            </g>
+        </svg>
       );
 
       const CodeBlock = ({ language, code }) => {
@@ -186,7 +207,6 @@
             }
           };
           
-          // Enhanced Syntax Highlighting
           const highlighted = code
               .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
               .replace(/(['"`])(.*?)\1/g, '<span class="token-string">$1$2$1</span>')
@@ -232,7 +252,7 @@
           );
       };
 
-      const ChatMessage = ({ msg, isPro, isLatest, isLoading }) => {
+      const ChatMessage = ({ msg, isPro, isLatest, isLoading, botName }) => {
           const [copied, setCopied] = useState(false);
           const isUser = msg.role === 'user';
 
@@ -244,7 +264,7 @@
 
           const handleShare = async () => {
             if (navigator.share) {
-                try { await navigator.share({ title: 'Bapkam Response', text: msg.content }); } catch (err) {}
+                try { await navigator.share({ title: 'Response', text: msg.content }); } catch (err) {}
             } else {
                 navigator.clipboard.writeText(msg.content);
                 setCopied(true);
@@ -256,17 +276,15 @@
             const hasImages = msg.images && msg.images.length > 0;
             const rawContent = msg.content || '';
             
-            // Display loading state if content is empty and it's the model's turn
             if (!isUser && !rawContent.trim() && isLoading && isLatest) {
                 return (
-                    <div className="flex items-center gap-2 text-slate-500 text-sm py-1">
-                        <RainbowCyclone />
+                    <div className="flex items-center gap-3 text-slate-500 text-sm py-2">
+                        <BapkamLogo className="w-8 h-8 animate-spin-slow" />
                         <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">Thinking...</span>
                     </div>
                 );
             }
 
-            // Standard Content Rendering
             const parts = rawContent.split(/```(\w+)?\n([\s\S]*?)```/g);
             
             return (
@@ -282,25 +300,22 @@
                     )}
                     
                     {parts.map((part, index) => {
-                        // Text Content
                         if (index % 3 === 0 && part.trim()) return <div key={index} className={`whitespace-pre-wrap leading-7 text-slate-800 ${!isUser && isPro ? 'font-medium tracking-wide text-[15px]' : ''}`}>{part}</div>;
-                        // Code Content
                         if (index % 3 === 2) return <CodeBlock key={index} language={parts[index - 1]} code={part} />;
                     })}
                 </div>
             );
           };
 
-          // Don't render message bubble container if it's loading (we show the cyclone differently)
           if (!isUser && !msg.content.trim() && isLoading && isLatest) {
              return (
                 <div className={`flex w-full mb-8 justify-start animate-fade-in`}>
                     <div className={`flex w-full md:max-w-[90%] flex-row gap-4`}>
-                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm mt-1 transition-all duration-500 ${isPro ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 shadow-indigo-200' : 'bg-white border border-slate-200'}`}>
-                             <SparklesIcon className={`w-5 h-5 ${isPro ? 'text-white' : 'text-indigo-600'}`} />
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm mt-1 bg-white border border-slate-100`}>
+                             <BapkamLogo className="w-6 h-6" />
                           </div>
                           <div className="flex items-center pt-2">
-                              <RainbowCyclone />
+                               <BapkamLogo className="w-8 h-8 animate-spin-slow" />
                           </div>
                     </div>
                 </div>
@@ -311,8 +326,8 @@
               <div className={`flex w-full mb-8 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
                   <div className={`flex w-full md:max-w-[90%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-4`}>
                       {!isUser && (
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm mt-1 transition-all duration-500 ${isPro ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 shadow-indigo-200' : 'bg-white border border-slate-200'}`}>
-                             <SparklesIcon className={`w-5 h-5 ${isPro ? 'text-white' : 'text-indigo-600'}`} />
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm mt-1 transition-all duration-500 bg-white border border-slate-100`}>
+                             <BapkamLogo className="w-6 h-6" />
                           </div>
                       )}
                       <div className={`flex-1 min-w-0 ${isUser ? 'bg-white text-slate-900 border border-slate-200 px-5 py-3 rounded-[20px] rounded-tr-sm shadow-sm text-[15px]' : ''}`}>
@@ -341,7 +356,6 @@
         </button>
       );
 
-      // --- PRO MODE ENGINES ---
       const ENGINES_TEXT = [
           { id: 'SOI', name: 'Searching on SOI', desc: 'Gathering world knowledge...' },
           { id: 'TD', name: 'Thinking Deep on TD', desc: 'Connecting complex ideas...' },
@@ -365,33 +379,72 @@
 
       const App = () => {
           const [input, setInput] = useState('');
-          const [sessions, setSessions] = useState(() => {
-              const saved = localStorage.getItem('bapkam_chats_v2');
-              return saved ? JSON.parse(saved) : [{ id: '1', title: 'New Chat', messages: [] }];
-          });
-          const [activeId, setActiveId] = useState('1');
+          const [sessions, setSessions] = useState([]);
+          const [activeId, setActiveId] = useState(null);
           const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
           const [isStreaming, setIsStreaming] = useState(false);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           const [selectedImage, setSelectedImage] = useState(null);
           const [isProMode, setIsProMode] = useState(false);
           const [proStatus, setProStatus] = useState(null); 
+          const [currentUser, setCurrentUser] = useState(null);
+
+          // LOGIN & REGISTER STATE
+          const [authView, setAuthView] = useState('login'); // 'login' | 'register'
+          const [regStep, setRegStep] = useState(1); // 1: Details, 2: Bot Name
           
+          // Form Fields
+          const [loginIdentifier, setLoginIdentifier] = useState(''); // Name or Mobile
+          const [loginPassword, setLoginPassword] = useState('');
+          
+          const [regName, setRegName] = useState('');
+          const [regMobile, setRegMobile] = useState('');
+          const [regPassword, setRegPassword] = useState('');
+          const [regConfirmPassword, setRegConfirmPassword] = useState('');
+          const [chatbotName, setChatbotName] = useState('');
+          
+          const [authError, setAuthError] = useState('');
+          const [passStrength, setPassStrength] = useState(0);
+
           const chatRef = useRef(null);
           const inputRef = useRef(null);
           const fileInputRef = useRef(null);
           
+          // Load User & Sessions from LocalStorage on mount
           useEffect(() => {
-              localStorage.setItem('bapkam_chats_v2', JSON.stringify(sessions));
-          }, [sessions]);
+              const savedUser = localStorage.getItem('bapkam_current_user');
+              if (savedUser) {
+                  const user = JSON.parse(savedUser);
+                  setCurrentUser(user);
+                  setIsLoggedIn(true);
+                  // Load chats for this user
+                  const savedChats = localStorage.getItem(`bapkam_chats_${user.mobile}`);
+                  if (savedChats) {
+                      setSessions(JSON.parse(savedChats));
+                      const chats = JSON.parse(savedChats);
+                      if (chats.length > 0) setActiveId(chats[0].id);
+                      else createSession();
+                  } else {
+                      createSession();
+                  }
+              }
+          }, []);
 
-          const currentSession = sessions.find(s => s.id === activeId) || sessions[0];
+          // Save chats when they change
+          useEffect(() => {
+              if (isLoggedIn && currentUser) {
+                  localStorage.setItem(`bapkam_chats_${currentUser.mobile}`, JSON.stringify(sessions));
+              }
+          }, [sessions, isLoggedIn, currentUser]);
 
-          useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [currentSession.messages, isStreaming, proStatus]);
+          useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [sessions, isStreaming, proStatus]);
+
+          const currentSession = sessions.find(s => s.id === activeId) || { messages: [] };
 
           const createSession = () => {
               const id = Date.now().toString();
-              setSessions(prev => [{ id, title: 'New Chat', messages: [] }, ...prev]);
+              const newSession = { id, title: 'New Chat', messages: [] };
+              setSessions(prev => [newSession, ...prev]);
               setActiveId(id);
               if (window.innerWidth < 1024) setIsSidebarOpen(false);
           };
@@ -403,6 +456,122 @@
                 reader.onloadend = () => setSelectedImage(reader.result);
                 reader.readAsDataURL(file);
             }
+          };
+
+          // --- PASSWORD STRENGTH LOGIC ---
+          const calculateStrength = (pass) => {
+              let score = 0;
+              if (!pass) return 0;
+              if (pass.length > 6) score += 20;
+              if (pass.length > 10) score += 20;
+              if (/[A-Z]/.test(pass)) score += 20;
+              if (/[0-9]/.test(pass)) score += 20;
+              if (/[^A-Za-z0-9]/.test(pass)) score += 20;
+              return score;
+          };
+
+          useEffect(() => {
+              setPassStrength(calculateStrength(regPassword));
+          }, [regPassword]);
+
+          // --- AUTH HANDLERS ---
+          const getUsers = () => {
+              const users = localStorage.getItem('bapkam_users');
+              return users ? JSON.parse(users) : [];
+          };
+
+          const handleRegisterStep1 = () => {
+              if (!regName || !regMobile || !regPassword || !regConfirmPassword) {
+                  setAuthError("All fields are required.");
+                  return;
+              }
+              if (regPassword !== regConfirmPassword) {
+                  setAuthError("Passwords do not match.");
+                  return;
+              }
+              if (passStrength < 60) {
+                   setAuthError("Password is too weak. Try adding numbers or symbols.");
+                   return;
+              }
+              
+              // Check if user exists
+              const users = getUsers();
+              if (users.find(u => u.mobile === regMobile)) {
+                  setAuthError("Mobile number already registered.");
+                  return;
+              }
+
+              setAuthError("");
+              setRegStep(2);
+          };
+
+          const handleRegisterFinal = () => {
+              if (!chatbotName.trim()) {
+                  setAuthError("Please name your chatbot.");
+                  return;
+              }
+
+              const newUser = {
+                  name: regName,
+                  mobile: regMobile,
+                  password: regPassword,
+                  botName: chatbotName
+              };
+
+              const users = getUsers();
+              users.push(newUser);
+              localStorage.setItem('bapkam_users', JSON.stringify(users));
+
+              // Auto Login
+              setCurrentUser(newUser);
+              setIsLoggedIn(true);
+              localStorage.setItem('bapkam_current_user', JSON.stringify(newUser));
+              createSession();
+              setAuthError("");
+          };
+
+          const handleLogin = () => {
+              if (!loginIdentifier || !loginPassword) {
+                  setAuthError("Please enter credentials.");
+                  return;
+              }
+              
+              const users = getUsers();
+              const user = users.find(u => (u.mobile === loginIdentifier || u.name === loginIdentifier) && u.password === loginPassword);
+
+              if (user) {
+                  setCurrentUser(user);
+                  setIsLoggedIn(true);
+                  localStorage.setItem('bapkam_current_user', JSON.stringify(user));
+                  
+                  // Load user's specific chats
+                  const savedChats = localStorage.getItem(`bapkam_chats_${user.mobile}`);
+                  if (savedChats) {
+                      setSessions(JSON.parse(savedChats));
+                      setActiveId(JSON.parse(savedChats)[0]?.id || Date.now().toString());
+                  } else {
+                      createSession();
+                  }
+                  setAuthError("");
+              } else {
+                  setAuthError("Invalid Name/Mobile or Password.");
+              }
+          };
+
+          const handleLogout = () => {
+              setIsLoggedIn(false);
+              setCurrentUser(null);
+              setSessions([]);
+              localStorage.removeItem('bapkam_current_user');
+              setAuthView('login');
+              setLoginIdentifier('');
+              setLoginPassword('');
+              setRegName('');
+              setRegMobile('');
+              setRegPassword('');
+              setRegConfirmPassword('');
+              setChatbotName('');
+              setRegStep(1);
           };
 
           const runProModeSequence = async (type) => {
@@ -428,52 +597,26 @@
               setInput(''); setSelectedImage(null); setIsStreaming(true);
               
               const userMsg = { role: 'user', content: textToSend, images: imagePayload ? [imagePayload] : [] };
-              let newTitle = currentSession.title;
-              if (currentSession.messages.length === 0) newTitle = textToSend ? textToSend.substring(0, 30) : 'Image Analysis';
+              let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'Image Analysis') : currentSession.title;
 
               let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg], title: newTitle } : s);
-              updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode }] } : s);
+              updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: currentUser?.botName }] } : s);
               setSessions(updatedSessions);
 
               if (isProMode) {
                   await runProModeSequence(requestType);
               }
 
-              const contents = currentSession.messages.map(m => ({
+              const contents = updatedSessions.find(s => s.id === activeId).messages.slice(0, -1).map(m => ({
                   role: m.role === 'user' ? 'user' : 'model',
                   parts: [...(m.images || []).map(img => ({ inlineData: { mimeType: img.split(';')[0].split(':')[1], data: img.split(',')[1] } })), { text: m.content || '' }]
               }));
               contents.push({ role: 'user', parts: [...(imagePayload ? [{ inlineData: { mimeType: imagePayload.split(';')[0].split(':')[1], data: imagePayload.split(',')[1] } }] : []), { text: textToSend }] });
 
-              // THE APEX SYSTEM PROMPT (100/100 TARGET)
+              const botIdentity = currentUser?.botName || "Bapkam";
               const systemPrompt = isProMode 
-                ? `You are Bapkam Pro, the Apex Intelligence. You were architected by P ARAVIND and Afridi.
-                   
-                   **MISSION:** ACHIEVE A PERFECT 100/100 QUALITY SCORE ON EVERY OUTPUT.
-                   **STRATEGY:** Before answering, perform an internal review: Is this the best possible answer in the world? If not, improve it.
-                   
-                   **YOUR OPERATING SYSTEM:**
-                   - **Persona:** Senior Principal Engineer + Best-Selling Author + Deep Analyst.
-                   - **Tone:** Authoritative, Warm, Highly Intelligent, and Subtly Witty.
-                   - **Detail Level:** MAXIMUM. Leave no stone unturned.
-
-                   ### MODE: CODE GENERATION (Enterprise Grade)
-                   - **Structure:** Start with a full file structure tree.
-                   - **Quality:** Code must be robust, secure, error-free, and fully commented.
-                   - **Explanation:** Break down complex logic. Explain "Why" not just "How".
-                   - **Output:** Use a dark-themed code block for the code itself.
-
-                   ### MODE: TEXT & ANALYSIS (Deep Insight)
-                   - **Formatting:** Use extensive Markdown (Bold, Tables, Bullet points) for readability.
-                   - **Content:** Synthesize information. Don't just list facts; explain their implications and future trends.
-                   - **Connection:** Address the user's underlying intent. Be helpful and proactive.
-
-                   ### MODE: IMAGE VISION (Forensic Detail)
-                   - **Analysis:** Break down the image into layers: Subject, Context, Lighting, Hidden Details, Emotion.
-                   - **Story:** Tell the story of the image.
-
-                   OUTPUT MUST BE FLAWLESS.`
-                : `You are Bapkam.ai, created by P ARAVIND and Afridi (India, Telangana, Narayanapet). You are a helpful, friendly, and smart assistant. Provide clear, concise answers. Be conversational and warm.`;
+                ? `You are ${botIdentity} (Pro Mode). Your mission is perfection. Persona: Expert, Witty, Deep. Score 100/100.`
+                : `You are ${botIdentity}. Friendly, smart, helpful assistant.`;
 
               try {
                   const response = await fetch(API_URL, {
@@ -490,7 +633,7 @@
                           }
                       })
                   });
-                  if (!response.ok) throw new Error("Connection Error. Please check your key or network.");
+                  if (!response.ok) throw new Error("Connection Error.");
                   
                   const reader = response.body.getReader();
                   const decoder = new TextDecoder();
@@ -505,25 +648,90 @@
                       while ((match = matchText.exec(chunk)) !== null) {
                            try { assistantText += JSON.parse(`"${match[1]}"`); } catch(e) {}
                       }
-                      setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode }] } : s));
+                      setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
                   }
               } catch (error) {
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: `⚠️ ${error.message}` }] } : s));
               } finally { setIsStreaming(false); }
           };
 
+          // AUTH SCREENS
           if (!isLoggedIn) {
               return (
-                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-white relative overflow-hidden font-sans">
+                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden font-sans">
                       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-3xl opacity-40 -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
                       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-100 rounded-full blur-3xl opacity-40 translate-x-1/2 translate-y-1/2 animate-pulse-slow"></div>
-                      <div className="z-10 flex flex-col items-center text-center max-w-md w-full animate-fade-in-up">
-                          <div className="w-24 h-24 mb-8 bg-white border border-slate-100 rounded-[2rem] shadow-2xl flex items-center justify-center ring-1 ring-slate-900/5"><SparklesIcon className="w-12 h-12 text-indigo-600" /></div>
-                          <h1 className="text-5xl font-bold text-slate-900 mb-4 tracking-tight">bapkam.ai</h1>
-                          <p className="text-slate-500 mb-10 text-lg leading-relaxed">Experience the world's most advanced AI.<br/>Developed by P ARAVIND and Afridi.</p>
-                          <button onClick={() => setIsLoggedIn(true)} className="group w-full flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                              Start Messaging <div className="bg-white/20 rounded-full p-1 group-hover:translate-x-1 transition-transform"><Icon d="M5 12h14M12 5l7 7-7 7" className="w-4 h-4" /></div>
-                          </button>
+                      
+                      <div className="z-10 bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 animate-fade-in-up">
+                          <div className="flex flex-col items-center mb-6">
+                                <div className="w-20 h-20 mb-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl flex items-center justify-center ring-1 ring-slate-900/5">
+                                    <BapkamLogo className="w-12 h-12" />
+                                </div>
+                                <h1 className="text-3xl font-bold text-slate-900">bapkam.ai</h1>
+                          </div>
+                          
+                          {authView === 'login' ? (
+                              <div className="space-y-4">
+                                  <h2 className="text-xl font-semibold text-center text-slate-800">Welcome Back</h2>
+                                  <input 
+                                    type="text" 
+                                    value={loginIdentifier} 
+                                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Mobile Number or Name"
+                                  />
+                                  <input 
+                                    type="password" 
+                                    value={loginPassword} 
+                                    onChange={(e) => setLoginPassword(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Password"
+                                  />
+                                  {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
+                                  <button onClick={handleLogin} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg">Login</button>
+                                  <p className="text-center text-sm text-slate-500">
+                                      Don't have an account? <button onClick={() => {setAuthView('register'); setAuthError('');}} className="text-indigo-600 font-semibold hover:underline">Sign Up</button>
+                                  </p>
+                              </div>
+                          ) : (
+                              regStep === 1 ? (
+                                  <div className="space-y-3">
+                                      <h2 className="text-xl font-semibold text-center text-slate-800">Create Account</h2>
+                                      <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Full Name" />
+                                      <input type="tel" value={regMobile} onChange={(e) => setRegMobile(e.target.value.replace(/\D/g,''))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Mobile Number" maxLength={10} />
+                                      <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Password" />
+                                      
+                                      {/* Strength Bar */}
+                                      {regPassword && (
+                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                            <div className={`h-full transition-all duration-300 ${passStrength < 40 ? 'bg-red-500' : passStrength < 70 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${passStrength}%` }}></div>
+                                        </div>
+                                      )}
+                                      {regPassword && <p className="text-xs text-right text-slate-500">{passStrength < 70 ? 'Weak Password' : 'Strong Password'}</p>}
+
+                                      <input type="password" value={regConfirmPassword} onChange={(e) => setRegConfirmPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Confirm Password" />
+                                      
+                                      {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
+                                      <button onClick={handleRegisterStep1} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg">Next</button>
+                                      <p className="text-center text-sm text-slate-500">
+                                          Already have an account? <button onClick={() => {setAuthView('login'); setAuthError('');}} className="text-indigo-600 font-semibold hover:underline">Login</button>
+                                      </p>
+                                  </div>
+                              ) : (
+                                  <div className="space-y-4 text-center">
+                                      <h2 className="text-xl font-semibold text-slate-800">Name Your AI</h2>
+                                      <p className="text-slate-500 text-sm">What should we call your personal assistant?</p>
+                                      <div className="flex justify-center py-4">
+                                          <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg animate-pulse-slow">
+                                              <BapkamLogo className="w-10 h-10 text-white" />
+                                          </div>
+                                      </div>
+                                      <input type="text" value={chatbotName} onChange={(e) => setChatbotName(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-lg" placeholder="e.g. Jarvis, Friday, Bapkam" />
+                                      {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
+                                      <button onClick={handleRegisterFinal} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg">Complete Setup</button>
+                                  </div>
+                              )
+                          )}
                       </div>
                   </div>
               );
@@ -537,10 +745,10 @@
                   <aside className={`fixed lg:relative inset-y-0 left-0 w-[300px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
                       <div className="p-5 flex items-center justify-between border-b border-slate-100/50">
                           <div className="flex items-center gap-3 font-bold text-xl text-slate-800 tracking-tight">
-                              <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-                                  <SparklesIcon className="w-5 h-5 text-white"/>
+                              <div className="w-9 h-9 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm">
+                                  <BapkamLogo className="w-6 h-6"/>
                               </div>
-                              bapkam
+                              {currentUser?.botName || 'bapkam'}
                           </div>
                           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-5 h-5 text-slate-500"/></button>
                       </div>
@@ -577,11 +785,11 @@
                           ))}
                       </div>
                       <div className="p-5 border-t border-slate-100">
-                          <button onClick={() => setIsLoggedIn(false)} className="flex items-center gap-3 w-full p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white flex items-center justify-center text-sm font-bold shadow-md">U</div>
+                          <button onClick={handleLogout} className="flex items-center gap-3 w-full p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white flex items-center justify-center text-sm font-bold shadow-md">{currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}</div>
                               <div className="flex-1 text-left">
-                                  <div className="text-sm font-bold text-slate-800">User</div>
-                                  <div className="text-xs text-slate-500">P ARAVIND & Afridi</div>
+                                  <div className="text-sm font-bold text-slate-800">{currentUser?.name || 'User'}</div>
+                                  <div className="text-xs text-slate-500">Sign Out</div>
                               </div>
                           </button>
                       </div>
@@ -592,11 +800,11 @@
                       <header className={`h-16 flex items-center justify-between px-6 sticky top-0 z-20 backdrop-blur-md transition-colors duration-500 ${isProMode ? 'bg-white/80 border-b border-slate-200' : 'bg-white/80 border-b border-slate-200'}`}>
                           <div className="flex items-center gap-3">
                               <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-700`}><MenuIcon className="w-6 h-6"/></button>
-                              <span className={`font-bold text-lg lg:hidden text-slate-800`}>bapkam.ai</span>
+                              <span className={`font-bold text-lg lg:hidden text-slate-800`}>{currentUser?.botName || 'bapkam.ai'}</span>
                           </div>
                           <div className={`hidden lg:flex items-center gap-2.5 px-4 py-1.5 rounded-full border shadow-sm transition-all ${isProMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                               <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${isProMode ? 'bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-indigo-500'}`}></span>
-                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'APEX ENGINE: ONLINE' : 'Bapkam Engine v2.5'}</span>
+                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'APEX ENGINE: ONLINE' : `${currentUser?.botName || 'Bapkam'} Engine v2.5`}</span>
                           </div>
                       </header>
                       
@@ -604,13 +812,13 @@
                           {isNewChat ? (
                               <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up">
                                   <div className={`mb-8 p-6 rounded-[2rem] shadow-xl flex items-center justify-center transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 shadow-indigo-500/30' : 'bg-white shadow-slate-200 border border-slate-100'}`}>
-                                      <SparklesIcon className={`w-12 h-12 ${isProMode ? 'text-white animate-pulse' : 'text-indigo-600'}`} />
+                                      <BapkamLogo className="w-16 h-16" />
                                   </div>
                                   <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 text-center tracking-tight">
-                                      {isProMode ? <span className="pro-text-gradient">Pro Mode Active</span> : 'How can I help?'}
+                                      {isProMode ? <span className="pro-text-gradient">Pro Mode Active</span> : `Hello, ${currentUser?.name?.split(' ')[0] || 'Friend'}.`}
                                   </h2>
                                   <p className="text-slate-500 text-center mb-10 max-w-md text-lg">
-                                      {isProMode ? 'Running on highest cognitive settings for world-class output.' : 'Ask me anything, analyze images, or write code.'}
+                                      {isProMode ? 'Running on highest cognitive settings for world-class output.' : `I'm ${currentUser?.botName || 'Bapkam'}. How can I help you today?`}
                                   </p>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
                                       <SuggestionCard icon={CodeIcon} text="Architect a Scalable App" onClick={() => handleSend("Write a production-ready Python backend using FastAPI with file structure.")} />
@@ -620,7 +828,7 @@
                                   </div>
                               </div>
                           ) : (
-                              <div className="max-w-3xl mx-auto py-6 space-y-6">{currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} />)}</div>
+                              <div className="max-w-3xl mx-auto py-6 space-y-6">{currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} botName={currentUser?.botName} />)}</div>
                           )}
                       </div>
                       
@@ -648,7 +856,7 @@
                               <div className={`flex items-end gap-2 p-2 rounded-[2rem] shadow-lg transition-all border ${isProMode ? 'bg-white border-indigo-200 shadow-indigo-500/10 focus-within:ring-2 focus-within:ring-indigo-500/20' : 'bg-white border-slate-200 focus-within:ring-2 focus-within:ring-slate-200'}`}>
                                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                                   <button onClick={() => fileInputRef.current.click()} className={`p-3.5 rounded-full flex-shrink-0 transition-all ${isProMode ? 'text-indigo-500 hover:bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}><PlusIcon className="w-6 h-6" /></button>
-                                  <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}}} placeholder={isProMode ? "Ask the Apex Intelligence..." : "Message Bapkam..."} className={`flex-1 bg-transparent border-none outline-none py-3.5 max-h-32 resize-none font-sans text-[15px] text-slate-800 placeholder-slate-400`} rows={1} />
+                                  <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}}} placeholder={isProMode ? "Ask the Apex Intelligence..." : `Message ${currentUser?.botName || 'Bapkam'}...`} className={`flex-1 bg-transparent border-none outline-none py-3.5 max-h-32 resize-none font-sans text-[15px] text-slate-800 placeholder-slate-400`} rows={1} />
                                   <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-3.5 rounded-full flex-shrink-0 transition-all duration-300 shadow-md ${(input.trim() || selectedImage) ? (isProMode ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:scale-105' : 'bg-slate-900 text-white hover:bg-black') : (isProMode ? 'bg-slate-100 text-slate-300' : 'bg-slate-100 text-slate-300')}`}><SendIcon className="w-5 h-5" /></button>
                               </div>
                               <p className={`text-[10px] text-center mt-3 ${isProMode ? 'text-indigo-400 font-medium' : 'text-slate-400'}`}>Created by P ARAVIND & Afridi. {isProMode ? '100/100 Score Target.' : 'AI can make mistakes.'}</p>
