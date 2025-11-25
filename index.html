@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>bapkam.ai</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22url(%23g)%22 stroke-width=%2210%22/><defs><conicGradient id=%22g%22><stop offset=%220%25%22 stop-color=%22%23ff0000%22/><stop offset=%2220%25%22 stop-color=%22%23ffff00%22/><stop offset=%2240%25%22 stop-color=%22%2300ff00%22/><stop offset=%2260%25%22 stop-color=%22%2300ffff%22/><stop offset=%2280%25%22 stop-color=%22%230000ff%22/><stop offset=%22100%25%22 stop-color=%22%23ff00ff%22/></conicGradient></defs></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><g transform=%22translate(50,50)%22><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#ef4444%22 transform=%22rotate(0) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#f97316%22 transform=%22rotate(30) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#fb923c%22 transform=%22rotate(60) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#eab308%22 transform=%22rotate(90) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#84cc16%22 transform=%22rotate(120) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#22c55e%22 transform=%22rotate(150) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#14b8a6%22 transform=%22rotate(180) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#06b6d4%22 transform=%22rotate(210) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#0ea5e9%22 transform=%22rotate(240) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#3b82f6%22 transform=%22rotate(270) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#6366f1%22 transform=%22rotate(300) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#d946ef%22 transform=%22rotate(330) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -20 L3 -28 L6 -22 Z%22 fill=%22#ef4444%22 transform=%22rotate(15)%22 opacity=%220.8%22 /><path d=%22M0 -20 L3 -28 L6 -22 Z%22 fill=%22#eab308%22 transform=%22rotate(105)%22 opacity=%220.8%22 /><path d=%22M0 -20 L3 -28 L6 -22 Z%22 fill=%22#06b6d4%22 transform=%22rotate(195)%22 opacity=%220.8%22 /><path d=%22M0 -20 L3 -28 L6 -22 Z%22 fill=%22#8b5cf6%22 transform=%22rotate(285)%22 opacity=%220.8%22 /></g></svg>" />
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,6 +31,7 @@
                 'spin-slow': 'spin 3s linear infinite',
                 'spin-reverse': 'spin-reverse 4s linear infinite',
                 'slide-down': 'slideDown 0.3s ease-out forwards',
+                'wiggle': 'wiggle 1s ease-in-out infinite',
             },
             keyframes: {
                 fadeInUp: {
@@ -62,6 +63,10 @@
                 'spin-reverse': {
                     from: { transform: 'rotate(360deg)' },
                     to: { transform: 'rotate(0deg)' }
+                },
+                wiggle: {
+                    '0%, 100%': { transform: 'rotate(-3deg)' },
+                    '50%': { transform: 'rotate(3deg)' },
                 }
             },
             colors: {
@@ -144,7 +149,7 @@
       const MenuIcon = (p) => <Icon d="M4 6h16M4 12h16M4 18h16" {...p} />;
       const PlusIcon = (p) => <Icon d="M12 5v14M5 12h14" {...p} />;
       const CloseIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
-      const SearchIcon = (p) => <Icon d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" {...p} />;
+      const SearchIcon = (p) => <Icon d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 16zM21 21l-4.35-4.35" {...p} />;
       const ImageUploadIcon = (p) => <Icon d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7m4 0h6m-3-3v6" {...p} />; 
       const CodeIcon = (p) => <Icon d="M16 18 22 12 16 6M8 6 2 12 8 18" {...p} />;
       const SparklesIcon = (p) => <Icon d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" {...p} />;
@@ -152,12 +157,15 @@
       const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" {...p} />;
       const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8m-4-6-4-4-4 4m4-4v13" {...p} />;
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
+      const MagicWandIcon = (p) => <Icon d="M10.5 10.5 3 3m18 18-7.5-7.5M10.5 10.5l4-4m-4 4 5 5m.5-9.5L21 3l-4.5 4.5m-11 11 6.5-6.5" {...p} />;
       
       // --- SECURE CONFIGURATION ---
       // Gemini API Key (Obfuscated)
       const _secret = [65, 73, 122, 97, 83, 121, 68, 116, 121, 45, 49, 56, 107, 83, 115, 89, 74, 69, 113, 86, 103, 117, 78, 87, 90, 100, 86, 97, 87, 72, 89, 111, 53, 78, 102, 98, 79, 90, 69];
       const API_KEY = _secret.map(c => String.fromCharCode(c)).join('');
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${API_KEY}`;
+      const API_URL_ONESHOT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
       // Google Apps Script Web App URL for data logging
       const GOOGLE_DATA_URL = "https://script.google.com/macros/s/AKfycbzh-dxDTs6MGeq0xDeYt72ezjETaNeQUef1k9o4vt8KLKbjjXSoMM5cQbRSyU19igLa/exec";
 
@@ -188,6 +196,18 @@
         </svg>
       );
 
+      // Rainbow Cyclone Loader Component
+      const RainbowCyclone = ({ className = "w-6 h-6" }) => (
+          <div className={`${className} rounded-full animate-spin-slow`} 
+               style={{ 
+                   background: 'conic-gradient(from 0deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)',
+                   padding: '3px',
+                   mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px + 1px))',
+                   WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px + 1px))'
+               }}>
+          </div>
+      );
+
       const CodeBlock = ({ language, code }) => {
           const [copied, setCopied] = useState(false);
           const handleCopy = () => {
@@ -213,7 +233,7 @@
               .replace(/(#.*|\/\/.*)$/gm, '<span class="token-comment">$1</span>');
 
           return (
-              <div className="my-5 rounded-xl overflow-hidden border border-slate-200/80 shadow-xl bg-[#1e1e2e] text-slate-300 w-full group ring-1 ring-black/5 relative">
+              <div className="my-5 rounded-xl overflow-hidden border border-slate-200/80 shadow-xl bg-[#1e1e2e] text-slate-300 w-full group ring-1 ring-black/5 relative max-w-full">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-[#181825] border-b border-white/10">
                       <div className="flex items-center gap-3">
                           <div className="flex gap-1.5 opacity-75">
@@ -276,8 +296,8 @@
             if (!isUser && !rawContent.trim() && isLoading && isLatest) {
                 return (
                     <div className="flex items-center gap-3 text-slate-500 text-sm py-2">
-                        <BapkamLogo className="w-8 h-8 animate-spin-slow" />
-                        <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">Thinking...</span>
+                         <RainbowCyclone className="w-6 h-6" />
+                         <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">Thinking...</span>
                     </div>
                 );
             }
@@ -290,14 +310,14 @@
                         <div className="flex flex-wrap gap-2 mb-2">
                             {msg.images.map((img, i) => (
                                 <div key={i} className="relative group">
-                                    <img src={img} className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                                    <img src={img} className="w-16 h-16 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90" onClick={() => window.open(img, '_blank')} />
                                 </div>
                             ))}
                         </div>
                     )}
                     
                     {parts.map((part, index) => {
-                        if (index % 3 === 0 && part.trim()) return <div key={index} className={`whitespace-pre-wrap leading-7 text-slate-800 ${!isUser && isPro ? 'font-medium tracking-wide text-[15px]' : ''}`}>{part}</div>;
+                        if (index % 3 === 0 && part.trim()) return <div key={index} className={`whitespace-pre-wrap leading-relaxed text-slate-800 ${!isUser ? 'text-[15px] md:text-[16px]' : ''}`}>{part}</div>;
                         if (index % 3 === 2) return <CodeBlock key={index} language={parts[index - 1]} code={part} />;
                     })}
                 </div>
@@ -306,13 +326,13 @@
 
           if (!isUser && !msg.content.trim() && isLoading && isLatest) {
              return (
-                <div className={`flex w-full mb-8 justify-start animate-fade-in`}>
-                    <div className={`flex w-full md:max-w-[90%] flex-row gap-4`}>
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm mt-1 bg-white border border-slate-100`}>
-                             <BapkamLogo className="w-6 h-6" />
+                <div className={`flex w-full mb-6 justify-start animate-fade-in`}>
+                    <div className={`flex w-full flex-row gap-4`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1`}>
+                             <RainbowCyclone className="w-6 h-6" />
                           </div>
                           <div className="flex items-center pt-2">
-                               <BapkamLogo className="w-8 h-8 animate-spin-slow" />
+                               <RainbowCyclone className="w-6 h-6" />
                           </div>
                     </div>
                 </div>
@@ -320,17 +340,17 @@
           }
 
           return (
-              <div className={`flex w-full mb-8 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
-                  <div className={`flex w-full md:max-w-[90%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-4`}>
+              <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
+                  <div className={`flex w-full ${isUser ? 'flex-row-reverse max-w-3xl' : 'flex-row max-w-5xl'} gap-4`}>
                       {!isUser && (
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm mt-1 transition-all duration-500 bg-white border border-slate-100`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 transition-all duration-500`}>
                              <BapkamLogo className="w-6 h-6" />
                           </div>
                       )}
-                      <div className={`flex-1 min-w-0 ${isUser ? 'bg-white text-slate-900 border border-slate-200 px-5 py-3 rounded-[20px] rounded-tr-sm shadow-sm text-[15px]' : ''}`}>
+                      <div className={`flex-1 min-w-0 ${isUser ? 'bg-white text-slate-900 border border-slate-200 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm' : ''}`}>
                         {renderContent()}
                         {!isUser && msg.content.trim() && (
-                            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-4 mt-3 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-colors">
                                     {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-500" /> : <CopyIcon className="w-3.5 h-3.5" />} 
                                     {copied ? 'Copied' : 'Copy'}
@@ -402,6 +422,9 @@
           const [isProMode, setIsProMode] = useState(false);
           const [proStatus, setProStatus] = useState(null); 
           const [isDataLoaded, setIsDataLoaded] = useState(false); // Flag to prevent saving empty data over valid data
+          const [isMagicLoading, setIsMagicLoading] = useState(false);
+          const [isMagicActive, setIsMagicActive] = useState(false); // New state to toggle magic wand color
+          const [toastMessage, setToastMessage] = useState(null); // Toast state
 
           // LOGIN & REGISTER STATE
           const [authView, setAuthView] = useState('login'); // 'login' | 'register'
@@ -440,6 +463,31 @@
           }, [sessions, isLoggedIn, currentUser, isDataLoaded]);
 
           useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [sessions, isStreaming, proStatus]);
+
+          // --- AUTO MAGIC ENHANCER LOGIC ---
+          useEffect(() => {
+             // If Magic is active, text exists, and not currently loading magic...
+             if (isMagicActive && input.trim() && !isMagicLoading && isProMode) {
+                 const timer = setTimeout(() => {
+                     // Check one last time before firing
+                     if (input.trim() && isMagicActive) {
+                         handleEnhancePrompt();
+                     }
+                 }, 1500); // 1.5s Debounce time (Wait for "completion of typing")
+                 
+                 return () => clearTimeout(timer);
+             }
+          }, [input, isMagicActive, isProMode]);
+
+          // Toast timer
+          useEffect(() => {
+            if (toastMessage) {
+                const timer = setTimeout(() => setToastMessage(null), 3000);
+                return () => clearTimeout(timer);
+            }
+          }, [toastMessage]);
+
+          const showToast = (msg) => setToastMessage(msg);
 
           const currentSession = sessions.find(s => s.id === activeId) || { messages: [] };
 
@@ -607,6 +655,42 @@
               setRegStep(1);
           };
 
+          const handleToggleMagic = () => {
+             if (!isProMode) {
+                 showToast("Turn on Pro Mode to use this feature.");
+                 return;
+             }
+             setIsMagicActive(!isMagicActive);
+          };
+
+          const handleEnhancePrompt = async () => {
+              if (!input.trim()) return;
+              setIsMagicLoading(true);
+              try {
+                  const systemPrompt = "You are an APEX PROMPT ENGINEER. Your goal is to rewrite the user's raw input into a 'God-Tier' prompt using advanced techniques like Chain of Thought, Persona adoption, and Context optimization. Output ONLY the optimized prompt text. Do not add explanations. Keep it concise but professional.";
+                  
+                  const response = await fetch(API_URL_ONESHOT, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                          contents: [{ parts: [{ text: input }] }],
+                          systemInstruction: { parts: [{ text: systemPrompt }] },
+                          generationConfig: { temperature: 0.7 }
+                      })
+                  });
+                  const data = await response.json();
+                  const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (enhancedText) {
+                      setInput(enhancedText.trim());
+                      // We keep magic active so they can edit or send
+                  }
+              } catch (e) {
+                  console.error("Magic Wand Error", e);
+              } finally {
+                  setIsMagicLoading(false);
+              }
+          };
+
           const runProModeSequence = async (type) => {
               let sequence = ENGINES_TEXT;
               if (type === 'image') sequence = ENGINES_IMAGE;
@@ -628,6 +712,7 @@
               const requestType = imagePayload ? 'image' : (isCodeRequest ? 'code' : 'text');
 
               setInput(''); setSelectedImage(null); setIsStreaming(true);
+              setIsMagicActive(false); // Reset magic state on send
               
               const userMsg = { role: 'user', content: textToSend, images: imagePayload ? [imagePayload] : [] };
               let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'Image Analysis') : currentSession.title;
@@ -650,9 +735,10 @@
               const systemPrompt = isProMode 
                 ? `You are ${botIdentity} (Pro Mode). Your mission is perfection. Persona: Senior Principal Architect & Pulitzer-Winning Author. Score: 100/100.
                    CRITICAL RULES:
-                   1. IF CODE: Provide PRODUCTION-READY code. Modular, Scalable, Secure. Include file structure tree. No placeholders.
-                   2. IF TEXT: Use 'First Principles' thinking. Analyze subtext. Be deeply insightful.
-                   3. SELF-CORRECTION: Before answering, internally grade your response. If it's not 100/100, refine it.`
+                   1. PRE-COMPUTATION: Before answering, strictly grade your potential response. If it's not 100/100, discard and refine until it is.
+                   2. IF CODE: Provide PRODUCTION-READY code. Modular, Scalable, Secure. Include file structure tree. No placeholders.
+                   3. IF TEXT: Use 'First Principles' thinking. Analyze subtext. Be deeply insightful.
+                   4. EMOTIONAL RESONANCE: Connect deeply with the user's intent.`
                 : `You are ${botIdentity}. Friendly, smart, helpful assistant.`;
 
               try {
@@ -845,9 +931,9 @@
                           </div>
                       </header>
                       
-                      <div className="flex-1 overflow-y-auto custom-scroll scroll-smooth p-4" ref={chatRef}>
+                      <div className="flex-1 overflow-y-auto custom-scroll scroll-smooth p-0" ref={chatRef}>
                           {isNewChat ? (
-                              <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up">
+                              <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up px-6">
                                   <div className={`mb-8 p-6 rounded-[2rem] shadow-xl flex items-center justify-center transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 shadow-indigo-500/30' : 'bg-white shadow-slate-200 border border-slate-100'}`}>
                                       <BapkamLogo className="w-16 h-16" />
                                   </div>
@@ -865,7 +951,9 @@
                                   </div>
                               </div>
                           ) : (
-                              <div className="max-w-3xl mx-auto py-6 space-y-6">{currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} botName={currentUser?.botName} />)}</div>
+                              <div className="max-w-6xl mx-auto py-8 space-y-8 px-4 sm:px-8">
+                                {currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} botName={currentUser?.botName} />)}
+                              </div>
                           )}
                       </div>
                       
@@ -887,13 +975,43 @@
                         </div>
                       )}
 
+                      {/* Toast Notification */}
+                      {toastMessage && (
+                          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
+                              <div className="bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium border border-slate-700/50 flex items-center gap-2">
+                                  <span>{toastMessage}</span>
+                              </div>
+                          </div>
+                      )}
+
                       <div className={`p-4 transition-colors duration-500 ${isProMode ? 'bg-slate-50' : 'bg-white'}`}>
-                          <div className="max-w-3xl mx-auto relative">
+                          <div className="max-w-4xl mx-auto relative">
                               {selectedImage && <div className="absolute bottom-full left-0 mb-4 p-2 bg-white border border-slate-200 rounded-xl shadow-xl animate-fade-in z-10"><img src={selectedImage} className="h-24 rounded-lg object-cover" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md hover:bg-red-500 transition-colors"><CloseIcon className="w-3.5 h-3.5"/></button></div>}
                               <div className={`flex items-end gap-2 p-2 rounded-[2rem] shadow-lg transition-all border ${isProMode ? 'bg-white border-indigo-200 shadow-indigo-500/10 focus-within:ring-2 focus-within:ring-indigo-500/20' : 'bg-white border-slate-200 focus-within:ring-2 focus-within:ring-slate-200'}`}>
                                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                                   <button onClick={() => fileInputRef.current.click()} className={`p-3.5 rounded-full flex-shrink-0 transition-all ${isProMode ? 'text-indigo-500 hover:bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}><PlusIcon className="w-6 h-6" /></button>
-                                  <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}}} placeholder={isProMode ? "Ask the Apex Intelligence..." : `Message ${currentUser?.botName || 'Bapkam'}...`} className={`flex-1 bg-transparent border-none outline-none py-3.5 max-h-32 resize-none font-sans text-[15px] text-slate-800 placeholder-slate-400`} rows={1} />
+                                  
+                                  {/* Magic Wand Button with Active State */}
+                                  <button 
+                                      onClick={handleToggleMagic} 
+                                      className={`p-3.5 rounded-full flex-shrink-0 transition-all group 
+                                        ${isMagicLoading ? 'animate-pulse bg-indigo-50' : ''}
+                                        ${isMagicActive ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}
+                                      `}
+                                      title={isMagicActive ? "Auto-Magic Active" : "Enable Auto-Magic"}
+                                  >
+                                      <MagicWandIcon className={`w-6 h-6 ${isMagicLoading ? 'text-indigo-600 animate-wiggle' : ''} ${isMagicActive ? 'text-white' : ''}`} />
+                                  </button>
+                                  
+                                  <textarea 
+                                    ref={inputRef} 
+                                    value={input} 
+                                    onChange={(e) => { setInput(e.target.value); }} 
+                                    onKeyDown={(e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}}} 
+                                    placeholder={isMagicLoading ? "Optimizing your prompt..." : (isMagicActive ? "Type... Magic happens when you stop." : (isProMode ? "Ask the Apex Intelligence..." : `Message ${currentUser?.botName || 'Bapkam'}...`))} 
+                                    className={`flex-1 bg-transparent border-none outline-none py-3.5 max-h-32 resize-none font-sans text-[16px] text-slate-800 placeholder-slate-400 leading-normal`} 
+                                    rows={1} 
+                                  />
                                   <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-3.5 rounded-full flex-shrink-0 transition-all duration-300 shadow-md ${(input.trim() || selectedImage) ? (isProMode ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:scale-105' : 'bg-slate-900 text-white hover:bg-black') : (isProMode ? 'bg-slate-100 text-slate-300' : 'bg-slate-100 text-slate-300')}`}><SendIcon className="w-5 h-5" /></button>
                               </div>
                               <p className={`text-[10px] text-center mt-3 ${isProMode ? 'text-indigo-400 font-medium' : 'text-slate-400'}`}>Created by P ARAVIND & Afridi. {isProMode ? '100/100 Score Target.' : 'AI can make mistakes.'}</p>
