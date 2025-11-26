@@ -33,7 +33,9 @@
                 'slide-down': 'slideDown 0.3s ease-out forwards',
                 'wiggle': 'wiggle 1s ease-in-out infinite',
                 'scan-down': 'scanDown 2s ease-in-out forwards',
-                'pop-in': 'popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                'pop-in': 'popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                'hud-scan': 'hudScan 8s linear infinite',
+                'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
             },
             keyframes: {
                 fadeInUp: {
@@ -84,6 +86,12 @@
                     '0%': { transform: 'scale(0.9)', opacity: '0' },
                     '50%': { transform: 'scale(1.05)', opacity: '1' },
                     '100%': { transform: 'scale(1)', opacity: '1' }
+                },
+                hudScan: {
+                    '0%': { top: '-10%', opacity: '0' },
+                    '15%': { opacity: '0.3' },
+                    '85%': { opacity: '0.3' },
+                    '100%': { top: '110%', opacity: '0' }
                 }
             },
             colors: {
@@ -138,6 +146,19 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
+        }
+
+        /* Pro Grid Background */
+        .pro-grid-bg {
+            background-size: 50px 50px;
+            background-image: 
+                linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+        }
+        
+        .mask-radial-faded {
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
 
         /* Markdown Styles for Chat */
@@ -253,9 +274,44 @@
 
       const ProModeBackground = () => (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
-            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl animate-pulse-slow" style={{animationDelay: '1s'}}></div>
-            <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-cyan-500/5 rounded-full blur-3xl animate-spin-slow opacity-50"></div>
+            {/* Darker base for pro mode contrast */}
+            <div className="absolute inset-0 bg-slate-900/5 transition-colors duration-1000"></div>
+            
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 pro-grid-bg mask-radial-faded opacity-60"></div>
+
+            {/* Moving Glows */}
+            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-3xl animate-pulse-slow"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-3xl animate-pulse-slow" style={{animationDelay: '1s'}}></div>
+            <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-cyan-600/5 rounded-full blur-3xl animate-spin-slow opacity-30"></div>
+        </div>
+      );
+
+      const ProModeHUD = () => (
+        <div className="fixed inset-0 pointer-events-none z-[5] overflow-hidden">
+            {/* Scaning Line */}
+            <div className="absolute inset-x-0 h-[2px] bg-indigo-500/10 blur-[1px] animate-hud-scan"></div>
+            
+            {/* Corner Brackets */}
+            <div className="absolute top-6 left-6 w-16 h-16 border-l-2 border-t-2 border-indigo-300/20 rounded-tl-2xl"></div>
+            <div className="absolute top-6 right-6 w-16 h-16 border-r-2 border-t-2 border-indigo-300/20 rounded-tr-2xl"></div>
+            <div className="absolute bottom-6 left-6 w-16 h-16 border-l-2 border-b-2 border-indigo-300/20 rounded-bl-2xl"></div>
+            <div className="absolute bottom-6 right-6 w-16 h-16 border-r-2 border-b-2 border-indigo-300/20 rounded-br-2xl"></div>
+
+            {/* System Status Indicators */}
+            <div className="absolute top-8 left-10 text-[10px] font-mono text-indigo-400/40 tracking-[0.2em] flex flex-col gap-1.5">
+                <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>SYS.STATUS: OPTIMAL</span>
+                <span>MEM.ALLOC: 84%</span>
+                <span>SECURE.CONN: TRUE</span>
+            </div>
+
+             {/* Decorative Data Bars */}
+            <div className="absolute bottom-10 right-10 flex items-end gap-1 opacity-40">
+                <div className="w-1 h-3 bg-indigo-500/50 animate-[pulse_1s_ease-in-out_infinite]"></div>
+                <div className="w-1 h-5 bg-indigo-500/50 animate-[pulse_1.2s_ease-in-out_infinite]"></div>
+                <div className="w-1 h-8 bg-indigo-500/50 animate-[pulse_0.8s_ease-in-out_infinite]"></div>
+                <div className="w-1 h-4 bg-indigo-500/50 animate-[pulse_1.5s_ease-in-out_infinite]"></div>
+            </div>
         </div>
       );
 
@@ -942,6 +998,10 @@
                   <main className="flex-1 flex flex-col h-full relative min-w-0 bg-[#fcfcfc]">
                       {/* --- Pro Mode Ambient Background --- */}
                       {isProMode && <ProModeBackground />}
+                      
+                      {/* --- Pro Mode HUD Overlay --- */}
+                      {isProMode && <ProModeHUD />}
+
                       {/* --- Pro Mode Transition Overlay --- */}
                       {showProTransition && <ProModeTransition />}
 
