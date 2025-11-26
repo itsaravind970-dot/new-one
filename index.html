@@ -84,10 +84,6 @@
       }
     </script>
     
-    <!-- React Dependencies -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
     <!-- Babel for JSX -->
     <script>
         const originalWarn = console.warn;
@@ -99,7 +95,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        html, body { height: 100%; margin: 0; overflow: hidden; background-color: #ffffff; overscroll-behavior: none; }
+        html, body { height: 100%; margin: 0; overflow: hidden; background-color: #ffffff; overscroll-behavior: none; text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
         #root { position: fixed; inset: 0; height: 100dvh; width: 100vw; display: flex; flex-direction: column; z-index: 1; }
         
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -126,13 +122,25 @@
             -webkit-text-fill-color: transparent;
             font-weight: 800;
         }
+
+        /* Markdown Styles for Chat */
+        .prose-content ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .prose-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .prose-content strong { font-weight: 700; color: #1e293b; }
+        .prose-content em { font-style: italic; }
+        .prose-content h3 { font-size: 1.1rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #0f172a; }
+        .prose-content h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0f172a; }
+        .prose-content p { margin-bottom: 0.75rem; }
+        .prose-content p:last-child { margin-bottom: 0; }
     </style>
 <script type="importmap">
 {
   "imports": {
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    "react": "https://esm.sh/react@18.3.1",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
   }
 }
 </script>
@@ -140,8 +148,9 @@
   <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-presets="typescript,react">
-      const { useState, useEffect, useRef, useCallback } = React;
+    <script type="text/babel" data-type="module" data-presets="typescript,react">
+      import React, { useState, useEffect, useRef, useCallback } from 'react';
+      import { createRoot } from 'react-dom/client';
 
       // --- ICONS ---
       const Icon = ({ d, className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>;
@@ -158,6 +167,7 @@
       const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8m-4-6-4-4-4 4m4-4v13" {...p} />;
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
       const MagicWandIcon = (p) => <Icon d="M10.5 10.5 3 3m18 18-7.5-7.5M10.5 10.5l4-4m-4 4 5 5m.5-9.5L21 3l-4.5 4.5m-11 11 6.5-6.5" {...p} />;
+      const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
       
       // --- SECURE CONFIGURATION ---
       // Gemini API Key (Obfuscated)
@@ -165,9 +175,6 @@
       const API_KEY = _secret.map(c => String.fromCharCode(c)).join('');
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${API_KEY}`;
       const API_URL_ONESHOT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-
-      // Google Apps Script Web App URL for data logging
-      const GOOGLE_DATA_URL = "https://script.google.com/macros/s/AKfycbzh-dxDTs6MGeq0xDeYt72ezjETaNeQUef1k9o4vt8KLKbjjXSoMM5cQbRSyU19igLa/exec";
 
       // --- COMPONENTS ---
 
@@ -215,14 +222,6 @@
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
           };
-          const handleShare = async () => {
-            if (navigator.share) {
-                try { await navigator.share({ title: 'Code Snippet', text: code }); } catch (err) {}
-            } else {
-                navigator.clipboard.writeText(code);
-                alert("Copied to clipboard!");
-            }
-          };
           
           const highlighted = code
               .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -245,15 +244,10 @@
                              {language || 'CODE'}
                           </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                          <button onClick={handleShare} className="p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors" title="Share">
-                             <ShareIcon className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/10">
-                              {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-400" /> : <CopyIcon className="w-3.5 h-3.5" />}
-                              {copied ? 'Copied' : 'Copy'}
-                          </button>
-                      </div>
+                      <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/10">
+                          {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-400" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                          {copied ? 'Copied' : 'Copy'}
+                      </button>
                   </div>
                   <div className="relative overflow-x-auto custom-scroll bg-[#1e1e2e]">
                       <div className="flex min-w-full">
@@ -267,6 +261,59 @@
                   </div>
               </div>
           );
+      };
+
+      // Improved Text formatting component for better mobile reading
+      const MarkdownText = ({ text }) => {
+          // Simple parser for Bold, Italics, and Headers to improve readability without heavy libraries
+          const formatText = (input) => {
+              if (!input) return null;
+              
+              // Split by double newline for paragraphs
+              const paragraphs = input.split(/\n\n+/);
+              
+              return paragraphs.map((paragraph, i) => {
+                  // Headers
+                  if (paragraph.startsWith('### ')) {
+                      return <h3 key={i} className="text-lg font-bold mt-4 mb-2 text-slate-900">{paragraph.replace('### ', '')}</h3>;
+                  }
+                  if (paragraph.startsWith('## ')) {
+                      return <h2 key={i} className="text-xl font-bold mt-6 mb-3 text-slate-900">{paragraph.replace('## ', '')}</h2>;
+                  }
+                  
+                  // Lists
+                  if (paragraph.match(/^[-•] /m)) {
+                      const items = paragraph.split(/\n/).filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'));
+                      if (items.length > 0) {
+                          return (
+                              <ul key={i} className="list-disc pl-5 my-2 space-y-1 text-slate-800">
+                                  {items.map((item, j) => {
+                                      const content = item.replace(/^[-•] /, '').trim();
+                                      return (
+                                          <li key={j} dangerouslySetInnerHTML={{
+                                              __html: content
+                                                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                          }} />
+                                      );
+                                  })}
+                              </ul>
+                          );
+                      }
+                  }
+
+                  // Standard paragraph with bold/italic parsing
+                  const htmlContent = paragraph
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      // Convert single newlines to breaks within a paragraph, but not if it looks like a list
+                      .replace(/\n(?![-\d])/g, '<br/>');
+
+                  return <p key={i} className="mb-3 last:mb-0 leading-relaxed text-[16px] text-slate-800" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+              });
+          };
+
+          return <div className="prose-content">{formatText(text)}</div>;
       };
 
       const ChatMessage = ({ msg, isPro, isLatest, isLoading, botName }) => {
@@ -296,7 +343,7 @@
             if (!isUser && !rawContent.trim() && isLoading && isLatest) {
                 return (
                     <div className="flex items-center gap-3 text-slate-500 text-sm py-2">
-                         <RainbowCyclone className="w-6 h-6" />
+                         <RainbowCyclone className="w-5 h-5" />
                          <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">Thinking...</span>
                     </div>
                 );
@@ -307,17 +354,21 @@
             return (
                 <div className="flex flex-col gap-2 w-full overflow-hidden">
                     {hasImages && (
-                        <div className="flex flex-wrap gap-2 mb-2">
+                        <div className="flex flex-wrap gap-2 mb-2 justify-end">
                             {msg.images.map((img, i) => (
                                 <div key={i} className="relative group">
-                                    <img src={img} className="w-16 h-16 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90" onClick={() => window.open(img, '_blank')} />
+                                    <img src={img} className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90" onClick={() => window.open(img, '_blank')} />
                                 </div>
                             ))}
                         </div>
                     )}
                     
                     {parts.map((part, index) => {
-                        if (index % 3 === 0 && part.trim()) return <div key={index} className={`whitespace-pre-wrap leading-relaxed text-slate-800 ${!isUser ? 'text-[15px] md:text-[16px]' : ''}`}>{part}</div>;
+                        // Text parts
+                        if (index % 3 === 0 && part.trim()) {
+                            return <MarkdownText key={index} text={part} />;
+                        }
+                        // Code blocks
                         if (index % 3 === 2) return <CodeBlock key={index} language={parts[index - 1]} code={part} />;
                     })}
                 </div>
@@ -332,7 +383,7 @@
                              <RainbowCyclone className="w-6 h-6" />
                           </div>
                           <div className="flex items-center pt-2">
-                               <RainbowCyclone className="w-6 h-6" />
+                               <RainbowCyclone className="w-5 h-5" />
                           </div>
                     </div>
                 </div>
@@ -341,21 +392,21 @@
 
           return (
               <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
-                  <div className={`flex w-full ${isUser ? 'flex-row-reverse max-w-3xl' : 'flex-row max-w-5xl'} gap-4`}>
+                  <div className={`flex w-full ${isUser ? 'flex-row-reverse max-w-2xl' : 'flex-row max-w-4xl'} gap-3 sm:gap-4`}>
                       {!isUser && (
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 transition-all duration-500`}>
-                             <BapkamLogo className="w-6 h-6" />
+                          <div className={`w-8 h-8 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center flex-shrink-0 mt-1 transition-all duration-500 overflow-hidden hidden sm:flex`}>
+                             <BapkamLogo className="w-5 h-5" />
                           </div>
                       )}
-                      <div className={`flex-1 min-w-0 ${isUser ? 'bg-white text-slate-900 border border-slate-200 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm' : ''}`}>
+                      <div className={`flex-1 min-w-0 ${isUser ? 'bg-slate-100 text-slate-900 px-4 py-3 rounded-2xl rounded-tr-sm' : 'pl-0 sm:pl-0'}`}>
                         {renderContent()}
                         {!isUser && msg.content.trim() && (
-                            <div className="flex items-center gap-4 mt-3 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-colors">
+                            <div className="flex items-center gap-4 mt-2 pt-1">
+                                <button onClick={handleCopy} className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-all">
                                     {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-500" /> : <CopyIcon className="w-3.5 h-3.5" />} 
                                     {copied ? 'Copied' : 'Copy'}
                                 </button>
-                                <button onClick={handleShare} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-colors">
+                                <button onClick={handleShare} className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-all">
                                     <ShareIcon className="w-3.5 h-3.5" /> Share
                                 </button>
                             </div>
@@ -367,9 +418,9 @@
       };
 
       const SuggestionCard = ({ icon: Icon, text, onClick }) => (
-        <button onClick={onClick} className="flex flex-col items-start justify-between p-4 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 rounded-2xl transition-all text-left h-32 shadow-sm hover:shadow-md group w-full">
-            <div className="bg-slate-100 p-2.5 rounded-xl text-slate-600 group-hover:bg-white group-hover:text-indigo-600 transition-colors shadow-sm"><Icon className="w-6 h-6" /></div>
-            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 line-clamp-2 pr-2">{text}</span>
+        <button onClick={onClick} className="flex flex-col items-start justify-between p-4 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-200 rounded-2xl transition-all text-left h-28 sm:h-32 shadow-sm group w-full">
+            <div className="bg-white p-2 rounded-xl text-indigo-500 group-hover:text-indigo-600 transition-colors shadow-sm ring-1 ring-slate-100"><Icon className="w-5 h-5 sm:w-6 sm:h-6" /></div>
+            <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 line-clamp-2">{text}</span>
         </button>
       );
 
@@ -395,91 +446,98 @@
       ];
 
       const App = () => {
-          // LAZY INITIALIZATION from LocalStorage to prevent login flash and data loss
-          const [currentUser, setCurrentUser] = useState(() => {
-              const saved = localStorage.getItem('bapkam_current_user');
-              return saved ? JSON.parse(saved) : null;
-          });
-          const [isLoggedIn, setIsLoggedIn] = useState(() => !!currentUser);
+          // Replaced Clerk hooks with local state
+          const [isSignedIn, setIsSignedIn] = useState(false);
+          const [user, setUser] = useState(null);
+          const [isLoaded, setIsLoaded] = useState(false); // Simulate loading
           
-          const [sessions, setSessions] = useState(() => {
-              if (currentUser) {
-                  const saved = localStorage.getItem(`bapkam_chats_${currentUser.mobile}`);
-                  return saved ? JSON.parse(saved) : [];
-              }
-              return [];
-          });
-          
-          const [activeId, setActiveId] = useState(() => {
-               if (sessions && sessions.length > 0) return sessions[0].id;
-               return null;
-          });
+          // Bot Name Logic (Persisted in LocalStorage per user)
+          const [chatbotName, setChatbotName] = useState('');
+          const [isSetupComplete, setIsSetupComplete] = useState(false);
 
+          // Chat Logic
+          const [sessions, setSessions] = useState([]);
+          const [activeId, setActiveId] = useState(null);
           const [input, setInput] = useState('');
           const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
           const [isStreaming, setIsStreaming] = useState(false);
           const [selectedImage, setSelectedImage] = useState(null);
           const [isProMode, setIsProMode] = useState(false);
           const [proStatus, setProStatus] = useState(null); 
-          const [isDataLoaded, setIsDataLoaded] = useState(false); // Flag to prevent saving empty data over valid data
+          const [isDataLoaded, setIsDataLoaded] = useState(false);
           const [isMagicLoading, setIsMagicLoading] = useState(false);
-          const [isMagicActive, setIsMagicActive] = useState(false); // New state to toggle magic wand color
-          const [toastMessage, setToastMessage] = useState(null); // Toast state
-
-          // LOGIN & REGISTER STATE
-          const [authView, setAuthView] = useState('login'); // 'login' | 'register'
-          const [regStep, setRegStep] = useState(1); // 1: Details, 2: Bot Name
-          
-          // Form Fields
-          const [loginIdentifier, setLoginIdentifier] = useState(''); // Name or Mobile
-          const [loginPassword, setLoginPassword] = useState('');
-          
-          const [regName, setRegName] = useState('');
-          const [regMobile, setRegMobile] = useState('');
-          const [regPassword, setRegPassword] = useState('');
-          const [regConfirmPassword, setRegConfirmPassword] = useState('');
-          const [chatbotName, setChatbotName] = useState('');
-          
-          const [authError, setAuthError] = useState('');
-          const [passStrength, setPassStrength] = useState(0);
+          const [isMagicActive, setIsMagicActive] = useState(false);
+          const [toastMessage, setToastMessage] = useState(null);
 
           const chatRef = useRef(null);
           const inputRef = useRef(null);
           const fileInputRef = useRef(null);
-          
-          // Mark data as loaded after mount to allow safe saving
+
+          const isMagicActiveRef = useRef(isMagicActive);
+          useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
+
+          // Simulate Auth Load
           useEffect(() => {
-             setIsDataLoaded(true);
-             if (isLoggedIn && sessions.length === 0) {
+              const timer = setTimeout(() => {
+                const storedAuth = localStorage.getItem('bapkam_auth_token');
+                if (storedAuth) {
+                    setIsSignedIn(true);
+                    setUser({ id: 'guest_user', firstName: 'Guest' });
+                }
+                setIsLoaded(true);
+              }, 800);
+              return () => clearTimeout(timer);
+          }, []);
+          
+          // Load sessions and bot name when user is loaded
+          useEffect(() => {
+              if (isLoaded && isSignedIn && user) {
+                  const savedName = localStorage.getItem(`bapkam_bot_name_${user.id}`);
+                  if (savedName) {
+                      setChatbotName(savedName);
+                      setIsSetupComplete(true);
+                  }
+
+                  const savedChats = localStorage.getItem(`bapkam_chats_${user.id}`);
+                  if (savedChats) {
+                      const parsed = JSON.parse(savedChats);
+                      setSessions(parsed);
+                      setActiveId(parsed[0]?.id || null);
+                  } else {
+                      setSessions([]);
+                  }
+                  setIsDataLoaded(true);
+              }
+          }, [isLoaded, isSignedIn, user]);
+
+          // Initialize new chat if needed
+          useEffect(() => {
+             if (isDataLoaded && isSignedIn && sessions.length === 0) {
                  createSession();
              }
-          }, []);
+          }, [isDataLoaded, isSignedIn]);
 
-          // Save chats ONLY when data is loaded and logged in
+          // Save chats
           useEffect(() => {
-              if (isLoggedIn && currentUser && isDataLoaded) {
-                  localStorage.setItem(`bapkam_chats_${currentUser.mobile}`, JSON.stringify(sessions));
+              if (isSignedIn && user && isDataLoaded) {
+                  localStorage.setItem(`bapkam_chats_${user.id}`, JSON.stringify(sessions));
               }
-          }, [sessions, isLoggedIn, currentUser, isDataLoaded]);
+          }, [sessions, isSignedIn, user, isDataLoaded]);
 
           useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [sessions, isStreaming, proStatus]);
 
-          // --- AUTO MAGIC ENHANCER LOGIC ---
+          // Magic Wand Logic
           useEffect(() => {
-             // If Magic is active, text exists, and not currently loading magic...
              if (isMagicActive && input.trim() && !isMagicLoading && isProMode) {
                  const timer = setTimeout(() => {
-                     // Check one last time before firing
                      if (input.trim() && isMagicActive) {
                          handleEnhancePrompt();
                      }
-                 }, 1500); // 1.5s Debounce time (Wait for "completion of typing")
-                 
+                 }, 1500); 
                  return () => clearTimeout(timer);
              }
           }, [input, isMagicActive, isProMode]);
 
-          // Toast timer
           useEffect(() => {
             if (toastMessage) {
                 const timer = setTimeout(() => setToastMessage(null), 3000);
@@ -488,6 +546,21 @@
           }, [toastMessage]);
 
           const showToast = (msg) => setToastMessage(msg);
+
+          const handleLogin = (e) => {
+              e.preventDefault(); // prevent form submit refresh if applicable
+              localStorage.setItem('bapkam_auth_token', 'guest_access_granted');
+              setIsSignedIn(true);
+              setUser({ id: 'guest_user', firstName: 'Guest' });
+          };
+
+          const handleLogout = () => {
+              localStorage.removeItem('bapkam_auth_token');
+              setIsSignedIn(false);
+              setUser(null);
+              setSessions([]);
+              setIsSetupComplete(false);
+          };
 
           const currentSession = sessions.find(s => s.id === activeId) || { messages: [] };
 
@@ -508,151 +581,12 @@
             }
           };
 
-          // --- PASSWORD STRENGTH LOGIC ---
-          const calculateStrength = (pass) => {
-              let score = 0;
-              if (!pass) return 0;
-              if (pass.length > 6) score += 20;
-              if (pass.length > 10) score += 20;
-              if (/[A-Z]/.test(pass)) score += 20;
-              if (/[0-9]/.test(pass)) score += 20;
-              if (/[^A-Za-z0-9]/.test(pass)) score += 20;
-              return score;
-          };
-
-          useEffect(() => {
-              setPassStrength(calculateStrength(regPassword));
-          }, [regPassword]);
-
-          // --- AUTH HANDLERS ---
-          const getUsers = () => {
-              const users = localStorage.getItem('bapkam_users');
-              return users ? JSON.parse(users) : [];
-          };
-
-          const handleRegisterStep1 = () => {
-              if (!regName || !regMobile || !regPassword || !regConfirmPassword) {
-                  setAuthError("All fields are required.");
-                  return;
-              }
-              if (regPassword !== regConfirmPassword) {
-                  setAuthError("Passwords do not match.");
-                  return;
-              }
-              if (passStrength < 60) {
-                   setAuthError("Password is too weak. Try adding numbers or symbols.");
-                   return;
-              }
-              
-              const users = getUsers();
-              if (users.find(u => u.mobile === regMobile)) {
-                  setAuthError("Mobile number already registered.");
-                  return;
-              }
-
-              setAuthError("");
-              setRegStep(2);
-          };
-
-          // Function to simulate sending data to Google Sheets
-          const sendToGoogleSheet = (user) => {
-              const timestamp = new Date().toLocaleString();
-              // Changed from FormData to URLSearchParams for better Google Apps Script compatibility
-              const params = new URLSearchParams();
-              params.append("timestamp", timestamp);
-              params.append("name", user.name);
-              params.append("mobile", user.mobile);
-              params.append("password", user.password);
-              params.append("botName", user.botName);
-              params.append("action", "register");
-
-              // Using no-cors to prevent CORS errors in browser.
-              // The request is sent, but we cannot read the response (opaque).
-              fetch(GOOGLE_DATA_URL, {
-                  method: 'POST',
-                  mode: 'no-cors', 
-                  headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                  },
-                  body: params.toString()
-              }).then(() => {
-                  console.log("Registration data sent to Google Sheet.");
-              }).catch(e => {
-                  console.error("Error sending to Google Sheet", e);
-              });
-          };
-
-          const handleRegisterFinal = () => {
-              if (!chatbotName.trim()) {
-                  setAuthError("Please name your chatbot.");
-                  return;
-              }
-
-              const newUser = {
-                  name: regName,
-                  mobile: regMobile,
-                  password: regPassword,
-                  botName: chatbotName
-              };
-
-              const users = getUsers();
-              users.push(newUser);
-              localStorage.setItem('bapkam_users', JSON.stringify(users));
-
-              // Auto Login
-              setCurrentUser(newUser);
-              setIsLoggedIn(true);
-              localStorage.setItem('bapkam_current_user', JSON.stringify(newUser));
-              
-              // Send data to cloud
-              sendToGoogleSheet(newUser);
-
+          const handleBotSetup = (name) => {
+              if (!name.trim()) return;
+              localStorage.setItem(`bapkam_bot_name_${user.id}`, name);
+              setChatbotName(name);
+              setIsSetupComplete(true);
               createSession();
-              setAuthError("");
-          };
-
-          const handleLogin = () => {
-              if (!loginIdentifier || !loginPassword) {
-                  setAuthError("Please enter credentials.");
-                  return;
-              }
-              
-              const users = getUsers();
-              const user = users.find(u => (u.mobile === loginIdentifier || u.name === loginIdentifier) && u.password === loginPassword);
-
-              if (user) {
-                  setCurrentUser(user);
-                  setIsLoggedIn(true);
-                  localStorage.setItem('bapkam_current_user', JSON.stringify(user));
-                  
-                  // Load chats efficiently
-                  const savedChats = localStorage.getItem(`bapkam_chats_${user.mobile}`);
-                  if (savedChats) {
-                      setSessions(JSON.parse(savedChats));
-                      setActiveId(JSON.parse(savedChats)[0]?.id || Date.now().toString());
-                  } else {
-                      createSession();
-                  }
-                  setAuthError("");
-              } else {
-                  setAuthError("Invalid Name/Mobile or Password.");
-              }
-          };
-
-          const handleLogout = () => {
-              setIsLoggedIn(false);
-              setCurrentUser(null);
-              setSessions([]);
-              localStorage.removeItem('bapkam_current_user');
-              setAuthView('login');
-              setLoginIdentifier('');
-              setLoginPassword('');
-              setRegName('');
-              setRegMobile('');
-              setRegPassword('');
-              setRegConfirmPassword('');
-              setChatbotName('');
-              setRegStep(1);
           };
 
           const handleToggleMagic = () => {
@@ -679,10 +613,12 @@
                       })
                   });
                   const data = await response.json();
+
+                  if (!isMagicActiveRef.current) return;
+
                   const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                   if (enhancedText) {
                       setInput(enhancedText.trim());
-                      // We keep magic active so they can edit or send
                   }
               } catch (e) {
                   console.error("Magic Wand Error", e);
@@ -712,13 +648,13 @@
               const requestType = imagePayload ? 'image' : (isCodeRequest ? 'code' : 'text');
 
               setInput(''); setSelectedImage(null); setIsStreaming(true);
-              setIsMagicActive(false); // Reset magic state on send
+              setIsMagicActive(false); 
               
               const userMsg = { role: 'user', content: textToSend, images: imagePayload ? [imagePayload] : [] };
               let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'Image Analysis') : currentSession.title;
 
               let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg], title: newTitle } : s);
-              updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: currentUser?.botName }] } : s);
+              updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: chatbotName }] } : s);
               setSessions(updatedSessions);
 
               if (isProMode) {
@@ -731,15 +667,15 @@
               }));
               contents.push({ role: 'user', parts: [...(imagePayload ? [{ inlineData: { mimeType: imagePayload.split(';')[0].split(':')[1], data: imagePayload.split(',')[1] } }] : []), { text: textToSend }] });
 
-              const botIdentity = currentUser?.botName || "Bapkam";
+              const botIdentity = chatbotName || "Bapkam";
               const systemPrompt = isProMode 
                 ? `You are ${botIdentity} (Pro Mode). Your mission is perfection. Persona: Senior Principal Architect & Pulitzer-Winning Author. Score: 100/100.
                    CRITICAL RULES:
                    1. PRE-COMPUTATION: Before answering, strictly grade your potential response. If it's not 100/100, discard and refine until it is.
                    2. IF CODE: Provide PRODUCTION-READY code. Modular, Scalable, Secure. Include file structure tree. No placeholders.
-                   3. IF TEXT: Use 'First Principles' thinking. Analyze subtext. Be deeply insightful.
+                   3. IF TEXT: Use 'First Principles' thinking. Analyze subtext. Be deeply insightful. Format with Markdown (Bold, Lists, Headers) for readability.
                    4. EMOTIONAL RESONANCE: Connect deeply with the user's intent.`
-                : `You are ${botIdentity}. Friendly, smart, helpful assistant.`;
+                : `You are ${botIdentity}. Friendly, smart, helpful assistant. Format your response nicely using Markdown (bold for emphasis, bullet points for lists) to make it easy to read on mobile.`;
 
               try {
                   const response = await fetch(API_URL, {
@@ -779,7 +715,15 @@
           };
 
           // AUTH SCREENS
-          if (!isLoggedIn) {
+          if (!isLoaded) {
+             return (
+                 <div className="h-full w-full flex items-center justify-center bg-white">
+                    <RainbowCyclone className="w-10 h-10" />
+                 </div>
+             )
+          }
+
+          if (!isSignedIn) {
               return (
                   <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden font-sans">
                       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-3xl opacity-40 -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
@@ -791,72 +735,40 @@
                                     <BapkamLogo className="w-12 h-12" />
                                 </div>
                                 <h1 className="text-3xl font-bold text-slate-900">bapkam.ai</h1>
+                                <p className="text-slate-500 mt-2 text-center">Your Advanced AI Assistant</p>
                           </div>
                           
-                          {authView === 'login' ? (
-                              <div className="space-y-4">
-                                  <h2 className="text-xl font-semibold text-center text-slate-800">Welcome Back</h2>
-                                  <input 
-                                    type="text" 
-                                    value={loginIdentifier} 
-                                    onChange={(e) => setLoginIdentifier(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="Mobile Number or Name"
-                                  />
-                                  <input 
-                                    type="password" 
-                                    value={loginPassword} 
-                                    onChange={(e) => setLoginPassword(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="Password"
-                                  />
-                                  {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
-                                  <button onClick={handleLogin} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg">Login</button>
-                                  <p className="text-center text-sm text-slate-500">
-                                      Don't have an account? <button onClick={() => {setAuthView('register'); setAuthError('');}} className="text-indigo-600 font-semibold hover:underline">Sign Up</button>
-                                  </p>
-                              </div>
-                          ) : (
-                              regStep === 1 ? (
-                                  <div className="space-y-3">
-                                      <h2 className="text-xl font-semibold text-center text-slate-800">Create Account</h2>
-                                      <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Full Name" />
-                                      <input type="tel" value={regMobile} onChange={(e) => setRegMobile(e.target.value.replace(/\D/g,''))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Mobile Number" maxLength={10} />
-                                      <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Password" />
-                                      
-                                      {/* Strength Bar */}
-                                      {regPassword && (
-                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                            <div className={`h-full transition-all duration-300 ${passStrength < 40 ? 'bg-red-500' : passStrength < 70 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${passStrength}%` }}></div>
-                                        </div>
-                                      )}
-                                      {regPassword && <p className="text-xs text-right text-slate-500">{passStrength < 70 ? 'Weak Password' : 'Strong Password'}</p>}
-
-                                      <input type="password" value={regConfirmPassword} onChange={(e) => setRegConfirmPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Confirm Password" />
-                                      
-                                      {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
-                                      <button onClick={handleRegisterStep1} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg">Next</button>
-                                      <p className="text-center text-sm text-slate-500">
-                                          Already have an account? <button onClick={() => {setAuthView('login'); setAuthError('');}} className="text-indigo-600 font-semibold hover:underline">Login</button>
-                                      </p>
-                                  </div>
-                              ) : (
-                                  <div className="space-y-4 text-center">
-                                      <h2 className="text-xl font-semibold text-slate-800">Name Your AI</h2>
-                                      <p className="text-slate-500 text-sm">What should we call your personal assistant?</p>
-                                      <div className="flex justify-center py-4">
-                                          <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg animate-pulse-slow">
-                                              <BapkamLogo className="w-10 h-10 text-white" />
-                                          </div>
-                                      </div>
-                                      <input type="text" value={chatbotName} onChange={(e) => setChatbotName(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-lg" placeholder="e.g. Jarvis, Friday, Bapkam" />
-                                      {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
-                                      <button onClick={handleRegisterFinal} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg">Complete Setup</button>
-                                  </div>
-                              )
-                          )}
+                          <div className="flex justify-center w-full">
+                            <button 
+                                onClick={handleLogin}
+                                className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg flex items-center justify-center gap-2 group"
+                            >
+                                <span>Get Started</span>
+                                <span className="group-hover:translate-x-1 transition-transform">→</span>
+                            </button>
+                          </div>
                       </div>
                   </div>
+              );
+          }
+
+          if (isSignedIn && !isSetupComplete) {
+              return (
+                <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 font-sans">
+                     <div className="z-10 bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 animate-fade-in-up text-center">
+                        <h2 className="text-xl font-semibold text-slate-800">Name Your AI</h2>
+                        <p className="text-slate-500 text-sm mb-6">What should we call your personal assistant?</p>
+                        <div className="flex justify-center py-4 mb-4">
+                            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg animate-pulse-slow">
+                                <BapkamLogo className="w-10 h-10 text-white" />
+                            </div>
+                        </div>
+                        <form onSubmit={(e) => { e.preventDefault(); handleBotSetup(e.target.elements.name.value); }}>
+                            <input name="name" type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-lg mb-4" placeholder="e.g. Jarvis, Friday, Bapkam" autoFocus />
+                            <button type="submit" className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg">Complete Setup</button>
+                        </form>
+                    </div>
+                </div>
               );
           }
           
@@ -865,94 +777,100 @@
               <div className={`flex h-full w-full font-sans transition-colors duration-700 ${isProMode ? 'bg-slate-50' : 'bg-white'}`}>
                   {/* Sidebar */}
                   {isSidebarOpen && <div className="fixed inset-0 bg-black/20 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>}
-                  <aside className={`fixed lg:relative inset-y-0 left-0 w-[300px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
-                      <div className="p-5 flex items-center justify-between border-b border-slate-100/50">
-                          <div className="flex items-center gap-3 font-bold text-xl text-slate-800 tracking-tight">
-                              <div className="w-9 h-9 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm">
-                                  <BapkamLogo className="w-6 h-6"/>
+                  <aside className={`fixed lg:relative inset-y-0 left-0 w-[280px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
+                      <div className="p-4 flex items-center justify-between border-b border-slate-100/50">
+                          <div className="flex items-center gap-3 font-bold text-lg text-slate-800 tracking-tight">
+                              <div className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center shadow-sm">
+                                  <BapkamLogo className="w-5 h-5"/>
                               </div>
-                              {currentUser?.botName || 'bapkam'}
+                              {chatbotName}
                           </div>
                           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-5 h-5 text-slate-500"/></button>
                       </div>
                       
-                      <div className="px-5 mt-6 mb-2">
-                        <div className={`relative overflow-hidden flex items-center justify-between p-4 rounded-2xl border shadow-sm transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 border-slate-800 shadow-indigo-500/20' : 'bg-white border-slate-200'}`}>
+                      <div className="px-4 mt-4 mb-2">
+                        <div className={`relative overflow-hidden flex items-center justify-between p-3 rounded-xl border shadow-sm transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 border-slate-800 shadow-indigo-500/20' : 'bg-white border-slate-200'}`}>
                             {isProMode && <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 animate-shimmer"></div>}
                             <div className="flex items-center gap-3 relative z-10">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isProMode ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
-                                    <ZapIcon className="w-5 h-5" />
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isProMode ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
+                                    <ZapIcon className="w-4 h-4" />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className={`text-sm font-bold ${isProMode ? 'text-white' : 'text-slate-800'}`}>Pro Mode</span>
-                                    <span className={`text-[10px] font-medium ${isProMode ? 'text-indigo-300' : 'text-slate-400'}`}>{isProMode ? 'APEX INTELLIGENCE' : 'Standard Model'}</span>
                                 </div>
                             </div>
                             <button 
                                 onClick={() => setIsProMode(!isProMode)}
-                                className={`w-12 h-7 rounded-full p-1 transition-colors relative z-10 ${isProMode ? 'bg-indigo-500' : 'bg-slate-200'}`}
+                                className={`w-10 h-6 rounded-full p-1 transition-colors relative z-10 ${isProMode ? 'bg-indigo-500' : 'bg-slate-200'}`}
                             >
-                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isProMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isProMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
                             </button>
                         </div>
                       </div>
 
-                      <div className="px-5 pb-4 mt-4"><button onClick={createSession} className="w-full flex items-center gap-3 px-4 py-3.5 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-xl transition-all text-sm font-semibold text-slate-700 group"><div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors"><PlusIcon className="w-4 h-4"/></div>New Chat</button></div>
+                      <div className="px-4 pb-4 mt-2"><button onClick={createSession} className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-xl transition-all text-sm font-semibold text-slate-700 group"><div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors"><PlusIcon className="w-4 h-4"/></div>New Chat</button></div>
                       
-                      <div className="flex-1 overflow-y-auto px-3 custom-scroll space-y-0.5">
-                          <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Recent</div>
+                      <div className="flex-1 overflow-y-auto px-2 custom-scroll space-y-0.5">
+                          <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Recent</div>
                           {sessions.map(s => (
-                              <button key={s.id} onClick={() => { setActiveId(s.id); if(window.innerWidth<1024) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl text-sm truncate transition-all ${activeId===s.id ? 'bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700 font-medium' : 'text-slate-600 hover:bg-slate-100'}`}>
+                              <button key={s.id} onClick={() => { setActiveId(s.id); if(window.innerWidth<1024) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-lg text-sm truncate transition-all ${activeId===s.id ? 'bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700 font-medium' : 'text-slate-600 hover:bg-slate-100'}`}>
                                   {s.title}
                               </button>
                           ))}
                       </div>
-                      <div className="p-5 border-t border-slate-100">
-                          <button onClick={handleLogout} className="flex items-center gap-3 w-full p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white flex items-center justify-center text-sm font-bold shadow-md">{currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}</div>
-                              <div className="flex-1 text-left">
-                                  <div className="text-sm font-bold text-slate-800">{currentUser?.name || 'User'}</div>
-                                  <div className="text-xs text-slate-500">Sign Out</div>
+                      <div className="p-4 border-t border-slate-100">
+                          <div className="flex items-center justify-between w-full p-2 rounded-xl bg-slate-50 border border-slate-100">
+                              <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold text-xs">
+                                      {user?.firstName?.charAt(0) || 'G'}
+                                  </div>
+                                  <div className="flex flex-col">
+                                      <span className="text-sm font-bold text-slate-800">{user?.firstName || 'Guest'}</span>
+                                      <span className="text-[10px] text-slate-500">Free Plan</span>
+                                  </div>
                               </div>
-                          </button>
+                              <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Sign Out">
+                                  <LogOutIcon className="w-4 h-4" />
+                              </button>
+                          </div>
                       </div>
                   </aside>
 
                   {/* Main */}
                   <main className="flex-1 flex flex-col h-full relative min-w-0 bg-[#fcfcfc]">
-                      <header className={`h-16 flex items-center justify-between px-6 sticky top-0 z-20 backdrop-blur-md transition-colors duration-500 ${isProMode ? 'bg-white/80 border-b border-slate-200' : 'bg-white/80 border-b border-slate-200'}`}>
+                      <header className={`h-14 lg:h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 backdrop-blur-md transition-colors duration-500 ${isProMode ? 'bg-white/80 border-b border-slate-200' : 'bg-white/80 border-b border-slate-200'}`}>
                           <div className="flex items-center gap-3">
-                              <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-700`}><MenuIcon className="w-6 h-6"/></button>
-                              <span className={`font-bold text-lg lg:hidden text-slate-800`}>{currentUser?.botName || 'bapkam.ai'}</span>
+                              <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 text-slate-700`}><MenuIcon className="w-6 h-6"/></button>
+                              <span className={`font-bold text-lg lg:hidden text-slate-800`}>{chatbotName}</span>
                           </div>
                           <div className={`hidden lg:flex items-center gap-2.5 px-4 py-1.5 rounded-full border shadow-sm transition-all ${isProMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                               <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${isProMode ? 'bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-indigo-500'}`}></span>
-                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'APEX ENGINE: ONLINE' : `${currentUser?.botName || 'Bapkam'} Engine v2.5`}</span>
+                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'APEX ENGINE: ONLINE' : `${chatbotName} Engine v2.5`}</span>
                           </div>
                       </header>
                       
                       <div className="flex-1 overflow-y-auto custom-scroll scroll-smooth p-0" ref={chatRef}>
                           {isNewChat ? (
-                              <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up px-6">
-                                  <div className={`mb-8 p-6 rounded-[2rem] shadow-xl flex items-center justify-center transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 shadow-indigo-500/30' : 'bg-white shadow-slate-200 border border-slate-100'}`}>
-                                      <BapkamLogo className="w-16 h-16" />
+                              <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[50vh] animate-fade-in-up px-4 sm:px-6 pb-20">
+                                  <div className={`mb-6 p-4 rounded-[1.5rem] shadow-lg flex items-center justify-center transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 shadow-indigo-500/30' : 'bg-white shadow-slate-200 border border-slate-100'}`}>
+                                      <BapkamLogo className="w-12 h-12" />
                                   </div>
-                                  <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 text-center tracking-tight">
-                                      {isProMode ? <span className="pro-text-gradient">Pro Mode Active</span> : `Hello, ${currentUser?.name?.split(' ')[0] || 'Friend'}.`}
+                                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 text-center tracking-tight">
+                                      {isProMode ? <span className="pro-text-gradient">Pro Mode Active</span> : `Hello, ${user?.firstName || 'Friend'}.`}
                                   </h2>
-                                  <p className="text-slate-500 text-center mb-10 max-w-md text-lg">
-                                      {isProMode ? 'Running on highest cognitive settings for world-class output.' : `I'm ${currentUser?.botName || 'Bapkam'}. How can I help you today?`}
+                                  <p className="text-slate-500 text-center mb-8 max-w-sm text-base">
+                                      {isProMode ? 'Running on highest cognitive settings.' : `I'm ${chatbotName}. How can I help you today?`}
                                   </p>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                                       <SuggestionCard icon={CodeIcon} text="Architect a Scalable App" onClick={() => handleSend("Write a production-ready Python backend using FastAPI with file structure.")} />
-                                      <SuggestionCard icon={SparklesIcon} text="Write a Best-Selling Story" onClick={() => handleSend("Write a short story with a massive plot twist about AI.")} />
-                                      <SuggestionCard icon={ImageUploadIcon} text="Deep Image Forensics" onClick={() => fileInputRef.current.click()} />
-                                      <SuggestionCard icon={SearchIcon} text="First Principles Analysis" onClick={() => handleSend("Explain Quantum Entanglement using first principles.")} />
+                                      <SuggestionCard icon={SparklesIcon} text="Write a Story" onClick={() => handleSend("Write a short story with a massive plot twist about AI.")} />
+                                      <div className="hidden sm:block"><SuggestionCard icon={ImageUploadIcon} text="Image Forensics" onClick={() => fileInputRef.current.click()} /></div>
+                                      <div className="hidden sm:block"><SuggestionCard icon={SearchIcon} text="First Principles Analysis" onClick={() => handleSend("Explain Quantum Entanglement using first principles.")} /></div>
                                   </div>
                               </div>
                           ) : (
-                              <div className="max-w-6xl mx-auto py-8 space-y-8 px-4 sm:px-8">
-                                {currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} botName={currentUser?.botName} />)}
+                              <div className="max-w-4xl mx-auto py-6 space-y-6 px-4 sm:px-6 pb-24">
+                                {currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} botName={chatbotName} />)}
                               </div>
                           )}
                       </div>
@@ -977,24 +895,24 @@
 
                       {/* Toast Notification */}
                       {toastMessage && (
-                          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
-                              <div className="bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium border border-slate-700/50 flex items-center gap-2">
+                          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up w-max max-w-[90%]">
+                              <div className="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium border border-slate-700/50 flex items-center gap-2">
                                   <span>{toastMessage}</span>
                               </div>
                           </div>
                       )}
 
                       <div className={`p-4 transition-colors duration-500 ${isProMode ? 'bg-slate-50' : 'bg-white'}`}>
-                          <div className="max-w-4xl mx-auto relative">
+                          <div className="max-w-3xl mx-auto relative">
                               {selectedImage && <div className="absolute bottom-full left-0 mb-4 p-2 bg-white border border-slate-200 rounded-xl shadow-xl animate-fade-in z-10"><img src={selectedImage} className="h-24 rounded-lg object-cover" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md hover:bg-red-500 transition-colors"><CloseIcon className="w-3.5 h-3.5"/></button></div>}
-                              <div className={`flex items-end gap-2 p-2 rounded-[2rem] shadow-lg transition-all border ${isProMode ? 'bg-white border-indigo-200 shadow-indigo-500/10 focus-within:ring-2 focus-within:ring-indigo-500/20' : 'bg-white border-slate-200 focus-within:ring-2 focus-within:ring-slate-200'}`}>
+                              <div className={`flex items-end gap-2 p-2 rounded-[1.8rem] shadow-lg transition-all border ${isProMode ? 'bg-white border-indigo-200 shadow-indigo-500/10 focus-within:ring-2 focus-within:ring-indigo-500/20' : 'bg-white border-slate-200 focus-within:ring-2 focus-within:ring-slate-200'}`}>
                                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                                  <button onClick={() => fileInputRef.current.click()} className={`p-3.5 rounded-full flex-shrink-0 transition-all ${isProMode ? 'text-indigo-500 hover:bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}><PlusIcon className="w-6 h-6" /></button>
+                                  <button onClick={() => fileInputRef.current.click()} className={`p-3 rounded-full flex-shrink-0 transition-all ${isProMode ? 'text-indigo-500 hover:bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}><PlusIcon className="w-6 h-6" /></button>
                                   
                                   {/* Magic Wand Button with Active State */}
                                   <button 
                                       onClick={handleToggleMagic} 
-                                      className={`p-3.5 rounded-full flex-shrink-0 transition-all group 
+                                      className={`p-3 rounded-full flex-shrink-0 transition-all group 
                                         ${isMagicLoading ? 'animate-pulse bg-indigo-50' : ''}
                                         ${isMagicActive ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}
                                       `}
@@ -1008,21 +926,21 @@
                                     value={input} 
                                     onChange={(e) => { setInput(e.target.value); }} 
                                     onKeyDown={(e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}}} 
-                                    placeholder={isMagicLoading ? "Optimizing your prompt..." : (isMagicActive ? "Type... Magic happens when you stop." : (isProMode ? "Ask the Apex Intelligence..." : `Message ${currentUser?.botName || 'Bapkam'}...`))} 
-                                    className={`flex-1 bg-transparent border-none outline-none py-3.5 max-h-32 resize-none font-sans text-[16px] text-slate-800 placeholder-slate-400 leading-normal`} 
+                                    placeholder={isMagicLoading ? "Optimizing..." : (isMagicActive ? "Magic mode..." : (isProMode ? "Ask Apex..." : `Message...`))} 
+                                    className={`flex-1 bg-transparent border-none outline-none py-3 max-h-32 resize-none font-sans text-[16px] text-slate-800 placeholder-slate-400 leading-relaxed`} 
                                     rows={1} 
                                   />
-                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-3.5 rounded-full flex-shrink-0 transition-all duration-300 shadow-md ${(input.trim() || selectedImage) ? (isProMode ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:scale-105' : 'bg-slate-900 text-white hover:bg-black') : (isProMode ? 'bg-slate-100 text-slate-300' : 'bg-slate-100 text-slate-300')}`}><SendIcon className="w-5 h-5" /></button>
+                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-3 rounded-full flex-shrink-0 transition-all duration-300 shadow-md ${(input.trim() || selectedImage) ? (isProMode ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:scale-105' : 'bg-slate-900 text-white hover:bg-black') : (isProMode ? 'bg-slate-100 text-slate-300' : 'bg-slate-100 text-slate-300')}`}><SendIcon className="w-5 h-5" /></button>
                               </div>
-                              <p className={`text-[10px] text-center mt-3 ${isProMode ? 'text-indigo-400 font-medium' : 'text-slate-400'}`}>Created by P ARAVIND & Afridi. {isProMode ? '100/100 Score Target.' : 'AI can make mistakes.'}</p>
                           </div>
                       </div>
                   </main>
               </div>
           );
       };
-      const root = ReactDOM.createRoot(document.getElementById('root'));
+      const root = createRoot(document.getElementById('root'));
       root.render(<App />);
     </script>
   </body>
 </html>
+    
