@@ -27,6 +27,8 @@
                 'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
                 'fade-in': 'fadeIn 0.3s ease-out forwards',
                 'spin-slow': 'spin 3s linear infinite',
+                'spin-slower': 'spin 12s linear infinite', // Ultra smooth slow rotation for Pro Mode
+                'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
             },
             keyframes: {
                 fadeInUp: {
@@ -47,6 +49,9 @@
                     900: '#14532d',
                     glow: '#4ade80'
                 }
+            },
+            dropShadow: {
+                'cyan': '0 0 8px rgba(34, 211, 238, 0.5)',
             }
           }
         }
@@ -200,17 +205,27 @@
       // --- COMPONENTS ---
 
       // Modern Logo (Black/Dark Grey Crystal Vortex)
-      const BapkamLogo = ({ className = "w-10 h-10" }) => (
-        <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
-            <g transform="translate(50,50)">
-                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#111827" transform="rotate(0) translate(0, -10)" />
-                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#1f2937" transform="rotate(60) translate(0, -10)" />
-                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#374151" transform="rotate(120) translate(0, -10)" />
-                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#4b5563" transform="rotate(180) translate(0, -10)" />
-                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#6b7280" transform="rotate(240) translate(0, -10)" />
-                <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill="#9ca3af" transform="rotate(300) translate(0, -10)" />
-            </g>
-        </svg>
+      // Updated with Pro Mode effects (Rotation, Lightning/Glow)
+      const BapkamLogo = ({ className = "w-10 h-10", isPro = false }) => (
+        <div className={`${className} relative flex items-center justify-center`}>
+            {isPro && (
+                <>
+                    {/* Attractive Background Light / Lightning Aura */}
+                    <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-40 animate-pulse" style={{ animationDuration: '2s' }}></div>
+                    <div className="absolute -inset-2 bg-blue-500 rounded-full blur-2xl opacity-20 animate-ping-slow"></div>
+                </>
+            )}
+            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 ease-in-out ${isPro ? 'animate-spin-slower drop-shadow-cyan' : ''}`} xmlns="http://www.w3.org/2000/svg">
+                <g transform="translate(50,50)">
+                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#22d3ee" : "#111827"} transform="rotate(0) translate(0, -10)" opacity="0.95" />
+                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#06b6d4" : "#1f2937"} transform="rotate(60) translate(0, -10)" opacity="0.95" />
+                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#3b82f6" : "#374151"} transform="rotate(120) translate(0, -10)" opacity="0.95" />
+                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#60a5fa" : "#4b5563"} transform="rotate(180) translate(0, -10)" opacity="0.95" />
+                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#93c5fd" : "#6b7280"} transform="rotate(240) translate(0, -10)" opacity="0.95" />
+                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#e0f2fe" : "#9ca3af"} transform="rotate(300) translate(0, -10)" opacity="0.95" />
+                </g>
+            </svg>
+        </div>
       );
 
       // Rainbow Cyclone Loader Component
@@ -1015,7 +1030,7 @@
                       <div className="p-4 flex items-center justify-between border-b border-slate-100/50">
                           <div className="flex items-center gap-3 font-bold text-lg text-slate-800 tracking-tight">
                               <div className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center shadow-sm">
-                                  <BapkamLogo className="w-5 h-5"/>
+                                  <BapkamLogo className="w-5 h-5" isPro={isProMode} />
                               </div>
                               {chatbotName}
                           </div>
@@ -1145,7 +1160,7 @@
                               <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up px-4 sm:px-6">
                                   {/* Centered Logo (Higher up) */}
                                   <div className="mb-4 transform scale-125">
-                                      <BapkamLogo className="w-16 h-16" />
+                                      <BapkamLogo className="w-16 h-16" isPro={isProMode} />
                                   </div>
                                   
                                   <h2 className="text-4xl font-bold text-slate-900 mb-6 text-center tracking-tight">
