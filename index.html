@@ -25,73 +25,16 @@
                 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
                 'fade-in': 'fadeIn 0.3s ease-out forwards',
-                'fade-out': 'fadeOut 0.5s ease-out forwards',
-                'shimmer': 'shimmer 2s linear infinite',
-                'gradient-x': 'gradient-x 3s ease infinite',
                 'spin-slow': 'spin 3s linear infinite',
-                'spin-reverse': 'spin-reverse 4s linear infinite',
-                'slide-down': 'slideDown 0.3s ease-out forwards',
-                'wiggle': 'wiggle 1s ease-in-out infinite',
-                'scan-down': 'scanDown 2s ease-in-out forwards',
-                'pop-in': 'popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                'hud-scan': 'hudScan 8s linear infinite',
-                'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
             },
             keyframes: {
                 fadeInUp: {
-                    '0%': { opacity: '0', transform: 'translateY(20px)' },
+                    '0%': { opacity: '0', transform: 'translateY(10px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
                 fadeIn: {
                     '0%': { opacity: '0' },
                     '100%': { opacity: '1' },
-                },
-                fadeOut: {
-                    '0%': { opacity: '1' },
-                    '100%': { opacity: '0' },
-                },
-                slideDown: {
-                    '0%': { transform: 'translateY(-100%)', opacity: '0' },
-                    '100%': { transform: 'translateY(0)', opacity: '1' }
-                },
-                shimmer: {
-                    '0%': { backgroundPosition: '-1000px 0' },
-                    '100%': { backgroundPosition: '1000px 0' }
-                },
-                'gradient-x': {
-                    '0%, 100%': {
-                        'background-size': '200% 200%',
-                        'background-position': 'left center'
-                    },
-                    '50%': {
-                        'background-size': '200% 200%',
-                        'background-position': 'right center'
-                    },
-                },
-                'spin-reverse': {
-                    from: { transform: 'rotate(360deg)' },
-                    to: { transform: 'rotate(0deg)' }
-                },
-                wiggle: {
-                    '0%, 100%': { transform: 'rotate(-3deg)' },
-                    '50%': { transform: 'rotate(3deg)' },
-                },
-                scanDown: {
-                    '0%': { top: '0', opacity: '0' },
-                    '10%': { opacity: '1' },
-                    '90%': { opacity: '1' },
-                    '100%': { top: '100%', opacity: '0' }
-                },
-                popIn: {
-                    '0%': { transform: 'scale(0.9)', opacity: '0' },
-                    '50%': { transform: 'scale(1.05)', opacity: '1' },
-                    '100%': { transform: 'scale(1)', opacity: '1' }
-                },
-                hudScan: {
-                    '0%': { top: '-10%', opacity: '0' },
-                    '15%': { opacity: '0.3' },
-                    '85%': { opacity: '0.3' },
-                    '100%': { top: '110%', opacity: '0' }
                 }
             },
             colors: {
@@ -142,23 +85,9 @@
         
         /* Pro Mode Gradient Text */
         .pro-text-gradient {
-            background: linear-gradient(to right, #2563eb, #7c3aed, #db2777);
+            background: linear-gradient(to right, #0f172a, #334155);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        /* Pro Grid Background */
-        .pro-grid-bg {
-            background-size: 50px 50px;
-            background-image: 
-                linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
-        }
-        
-        .mask-radial-faded {
-            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
 
         /* Markdown Styles for Chat */
@@ -168,7 +97,7 @@
         .prose-content em { font-style: italic; }
         .prose-content h3 { font-size: 1.1rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #0f172a; }
         .prose-content h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0f172a; }
-        .prose-content p { margin-bottom: 0.75rem; }
+        .prose-content p { margin-bottom: 0.75rem; line-height: 1.6; }
         .prose-content p:last-child { margin-bottom: 0; }
     </style>
 <script type="importmap">
@@ -189,6 +118,7 @@
     <script type="text/babel" data-type="module" data-presets="typescript,react">
       import React, { useState, useEffect, useRef, useCallback } from 'react';
       import { createRoot } from 'react-dom/client';
+      import { GoogleGenAI } from "@google/genai";
 
       // --- ICONS ---
       const Icon = ({ d, className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>;
@@ -207,14 +137,17 @@
       const MagicWandIcon = (p) => <Icon d="M10.5 10.5 3 3m18 18-7.5-7.5M10.5 10.5l4-4m-4 4 5 5m.5-9.5L21 3l-4.5 4.5m-11 11 6.5-6.5" {...p} />;
       const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
       const TrashIcon = (p) => <Icon d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...p} />;
-
+      const PaletteIcon = (p) => <Icon d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" {...p} />;
+      const FolderIcon = (p) => <Icon d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" {...p} />;
+      const TemplateIcon = (p) => <Icon d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4" {...p} />;
+      const TextIcon = (p) => <Icon d="M4 7V4h16v3M9 20h6M12 4v16" {...p} />;
+      
       // --- SECURE CONFIGURATION ---
       // Gemini API Key (Obfuscated)
       const _secret = [65, 73, 122, 97, 83, 121, 68, 116, 121, 45, 49, 56, 107, 83, 115, 89, 74, 69, 113, 86, 103, 117, 78, 87, 90, 100, 86, 97, 87, 72, 89, 111, 53, 78, 102, 98, 79, 90, 69];
       const API_KEY = _secret.map(c => String.fromCharCode(c)).join('');
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${API_KEY}`;
-      const API_URL_ONESHOT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-
+      // Use the SDK in the App component, but exposing the key for direct fetch fallback where SDK might lag in preview features
+      
       // --- COMPONENTS ---
 
       // New "Rainbow Crystal Vortex" Logo - High Fidelity SVG
@@ -252,67 +185,6 @@
                    WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px + 1px))'
                }}>
           </div>
-      );
-
-      // --- ANIMATION COMPONENTS ---
-      
-      const ProModeTransition = () => (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
-            <div className="absolute inset-0 bg-indigo-500/10 backdrop-blur-[2px] animate-fade-in duration-300"></div>
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_20px_rgba(99,102,241,1)] animate-scan-down opacity-0"></div>
-            <div className="relative bg-white/10 border border-indigo-500/30 backdrop-blur-md p-8 rounded-2xl shadow-2xl animate-pop-in flex flex-col items-center gap-3">
-                 <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 filter drop-shadow-md">
-                    PRO MODE ACTIVATED
-                 </div>
-                 <div className="flex items-center gap-2 text-indigo-300 font-mono text-sm tracking-[0.2em] uppercase">
-                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></span>
-                     System Optimized
-                 </div>
-            </div>
-        </div>
-      );
-
-      const ProModeBackground = () => (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            {/* Darker base for pro mode contrast */}
-            <div className="absolute inset-0 bg-slate-900/5 transition-colors duration-1000"></div>
-            
-            {/* Grid Pattern */}
-            <div className="absolute inset-0 pro-grid-bg mask-radial-faded opacity-60"></div>
-
-            {/* Moving Glows */}
-            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-3xl animate-pulse-slow"></div>
-            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-3xl animate-pulse-slow" style={{animationDelay: '1s'}}></div>
-            <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-cyan-600/5 rounded-full blur-3xl animate-spin-slow opacity-30"></div>
-        </div>
-      );
-
-      const ProModeHUD = () => (
-        <div className="fixed inset-0 pointer-events-none z-[5] overflow-hidden">
-            {/* Scaning Line */}
-            <div className="absolute inset-x-0 h-[2px] bg-indigo-500/10 blur-[1px] animate-hud-scan"></div>
-            
-            {/* Corner Brackets */}
-            <div className="absolute top-6 left-6 w-16 h-16 border-l-2 border-t-2 border-indigo-300/20 rounded-tl-2xl"></div>
-            <div className="absolute top-6 right-6 w-16 h-16 border-r-2 border-t-2 border-indigo-300/20 rounded-tr-2xl"></div>
-            <div className="absolute bottom-6 left-6 w-16 h-16 border-l-2 border-b-2 border-indigo-300/20 rounded-bl-2xl"></div>
-            <div className="absolute bottom-6 right-6 w-16 h-16 border-r-2 border-b-2 border-indigo-300/20 rounded-br-2xl"></div>
-
-            {/* System Status Indicators */}
-            <div className="absolute top-8 left-10 text-[10px] font-mono text-indigo-400/40 tracking-[0.2em] flex flex-col gap-1.5">
-                <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>SYS.STATUS: OPTIMAL</span>
-                <span>MEM.ALLOC: 84%</span>
-                <span>SECURE.CONN: TRUE</span>
-            </div>
-
-             {/* Decorative Data Bars */}
-            <div className="absolute bottom-10 right-10 flex items-end gap-1 opacity-40">
-                <div className="w-1 h-3 bg-indigo-500/50 animate-[pulse_1s_ease-in-out_infinite]"></div>
-                <div className="w-1 h-5 bg-indigo-500/50 animate-[pulse_1.2s_ease-in-out_infinite]"></div>
-                <div className="w-1 h-8 bg-indigo-500/50 animate-[pulse_0.8s_ease-in-out_infinite]"></div>
-                <div className="w-1 h-4 bg-indigo-500/50 animate-[pulse_1.5s_ease-in-out_infinite]"></div>
-            </div>
-        </div>
       );
 
       const CodeBlock = ({ language, code }) => {
@@ -363,25 +235,19 @@
           );
       };
 
-      // Improved Text formatting component for better mobile reading
       const MarkdownText = ({ text }) => {
-          // Simple parser for Bold, Italics, and Headers to improve readability without heavy libraries
           const formatText = (input) => {
               if (!input) return null;
               
-              // Split by double newline for paragraphs
               const paragraphs = input.split(/\n\n+/);
               
               return paragraphs.map((paragraph, i) => {
-                  // Headers
                   if (paragraph.startsWith('### ')) {
                       return <h3 key={i} className="text-lg font-bold mt-4 mb-2 text-slate-900">{paragraph.replace('### ', '')}</h3>;
                   }
                   if (paragraph.startsWith('## ')) {
                       return <h2 key={i} className="text-xl font-bold mt-6 mb-3 text-slate-900">{paragraph.replace('## ', '')}</h2>;
                   }
-                  
-                  // Lists
                   if (paragraph.match(/^[-•] /m)) {
                       const items = paragraph.split(/\n/).filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'));
                       if (items.length > 0) {
@@ -402,11 +268,9 @@
                       }
                   }
 
-                  // Standard paragraph with bold/italic parsing
                   const htmlContent = paragraph
                       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                       .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      // Convert single newlines to breaks within a paragraph, but not if it looks like a list
                       .replace(/\n(?![-\d])/g, '<br/>');
 
                   return <p key={i} className="mb-3 last:mb-0 leading-relaxed text-[16px] text-slate-800" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
@@ -444,7 +308,9 @@
                 return (
                     <div className="flex items-center gap-3 text-slate-500 text-sm py-2">
                          <RainbowCyclone className="w-5 h-5" />
-                         <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">Thinking...</span>
+                         <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">
+                            {msg.statusMessage || "Thinking..."}
+                         </span>
                     </div>
                 );
             }
@@ -457,38 +323,21 @@
                         <div className="flex flex-wrap gap-2 mb-2 justify-end">
                             {msg.images.map((img, i) => (
                                 <div key={i} className="relative group">
-                                    <img src={img} className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90" onClick={() => window.open(img, '_blank')} />
+                                    <img src={img} className="w-full h-auto object-cover rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90" onClick={() => window.open(img, '_blank')} />
                                 </div>
                             ))}
                         </div>
                     )}
                     
                     {parts.map((part, index) => {
-                        // Text parts
                         if (index % 3 === 0 && part.trim()) {
                             return <MarkdownText key={index} text={part} />;
                         }
-                        // Code blocks
                         if (index % 3 === 2) return <CodeBlock key={index} language={parts[index - 1]} code={part} />;
                     })}
                 </div>
             );
           };
-
-          if (!isUser && !msg.content.trim() && isLoading && isLatest) {
-             return (
-                <div className={`flex w-full mb-6 justify-start animate-fade-in`}>
-                    <div className={`flex w-full flex-row gap-4`}>
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1`}>
-                             <RainbowCyclone className="w-6 h-6" />
-                          </div>
-                          <div className="flex items-center pt-2">
-                               <RainbowCyclone className="w-5 h-5" />
-                          </div>
-                    </div>
-                </div>
-             )
-          }
 
           return (
               <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
@@ -509,6 +358,11 @@
                                 <button onClick={handleShare} className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-all">
                                     <ShareIcon className="w-3.5 h-3.5" /> Share
                                 </button>
+                                {isPro && (
+                                    <span className="text-[10px] text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 uppercase tracking-wide font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Pro Mode Response
+                                    </span>
+                                )}
                             </div>
                         )}
                       </div>
@@ -524,26 +378,95 @@
         </button>
       );
 
-      const ENGINES_TEXT = [
-          { id: 'SOI', name: 'Searching on SOI', desc: 'Gathering world knowledge...' },
-          { id: 'TD', name: 'Thinking Deep on TD', desc: 'Connecting complex ideas...' },
-          { id: 'RCA', name: 'Reviewing on RCA', desc: 'Fact-checking & Logic...' },
-          { id: 'RWA', name: 'Rewriting on RWA', desc: 'Refining emotional tone...' },
-          { id: 'AA', name: 'Analysing on AA', desc: 'Final Polish (100/100 Quality)...' }
-      ];
-      const ENGINES_IMAGE = [
-          { id: 'UP', name: 'Understanding on UP', desc: 'Scanning pixels & mood...' },
-          { id: 'TD', name: 'Thinking Deep on TD', desc: 'Decoding visual intent...' },
-          { id: 'API', name: 'Analysing on API', desc: 'Generating World Class analysis...' }
-      ];
-      const ENGINES_CODE = [
-          { id: 'UP', name: 'Understanding on UP', desc: 'Architecting solution...' },
-          { id: 'TD', name: 'Thinking Deep on TD', desc: 'Optimizing algorithms...' },
-          { id: 'GC', name: 'Generating on GC', desc: 'Writing Enterprise Code...' },
-          { id: 'RCA', name: 'Reviewing on RCA', desc: 'Security & Scalability check...' },
-          { id: 'RWA', name: 'Rewriting on RWA', desc: 'Applying Best Practices...' },
-          { id: 'CFE', name: 'Checking on CFE', desc: 'Final compilation check...' }
-      ];
+      const PromptTemplateModal = ({ isOpen, onClose, onSelect }) => {
+          if(!isOpen) return null;
+          const templates = [
+              { name: "Summarize Document", prompt: "Summarize this text in 3 concise bullet points:", icon: TextIcon },
+              { name: "Fix My Code", prompt: "Debug this code, explain the error, and provide the fixed version:", icon: CodeIcon },
+              { name: "Write Professional Email", prompt: "Write a polite and professional email about:", icon: SendIcon },
+              { name: "Simplify Complex Topic", prompt: "Explain this concept like I'm 10 years old:", icon: SparklesIcon },
+              { name: "Creative Story", prompt: "Write a short story with a twist ending about:", icon: PaletteIcon }
+          ];
+
+          return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+                  <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-bold text-slate-800">Quick Templates</h3>
+                          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><CloseIcon className="w-5 h-5 text-slate-500"/></button>
+                      </div>
+                      <div className="grid gap-3">
+                          {templates.map((t, i) => (
+                              <button key={i} onClick={() => onSelect(t.prompt)} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all text-left group">
+                                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                                      <t.icon className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                      <div className="font-semibold text-slate-800 text-sm">{t.name}</div>
+                                      <div className="text-xs text-slate-500 truncate">{t.prompt}</div>
+                                  </div>
+                              </button>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+          )
+      };
+
+      const ImageGenerationModal = ({ isOpen, onClose, onGenerate }) => {
+        const [prompt, setPrompt] = useState("");
+        const inputRef = useRef(null);
+        
+        useEffect(() => {
+            if(isOpen && inputRef.current) inputRef.current.focus();
+        }, [isOpen]);
+
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+                <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-fade-in-up border border-slate-100" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                                <PaletteIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 leading-tight">Hyper-Real Studio</h3>
+                                <p className="text-xs text-slate-500">Powered by Gemini 3 Pro Vision</p>
+                            </div>
+                         </div>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors"><CloseIcon className="w-5 h-5 text-slate-400"/></button>
+                    </div>
+                    
+                    <div className="relative mb-6">
+                        <textarea 
+                            ref={inputRef}
+                            className="w-full bg-slate-50 rounded-2xl p-4 text-slate-800 placeholder-slate-400 outline-none border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none h-32 text-base leading-relaxed"
+                            placeholder="Describe your imagination in detail... (e.g., A futuristic city with neon lights in rain, 8k realism)"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                        />
+                         <div className="absolute bottom-3 right-3 text-xs text-slate-400 font-medium">
+                            {prompt.length} chars
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                         <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors">Cancel</button>
+                         <button 
+                            onClick={() => { onGenerate(prompt); onClose(); setPrompt(""); }} 
+                            disabled={!prompt.trim()}
+                            className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                         >
+                            <SparklesIcon className="w-4 h-4 text-yellow-300" />
+                            Generate Masterpiece
+                         </button>
+                    </div>
+                </div>
+            </div>
+        );
+      };
 
       const App = () => {
           // Replaced Clerk hooks with local state
@@ -563,14 +486,18 @@
           const [isStreaming, setIsStreaming] = useState(false);
           const [selectedImage, setSelectedImage] = useState(null);
           const [isProMode, setIsProMode] = useState(false);
-          const [proStatus, setProStatus] = useState(null); 
           const [isDataLoaded, setIsDataLoaded] = useState(false);
           const [isMagicLoading, setIsMagicLoading] = useState(false);
           const [isMagicActive, setIsMagicActive] = useState(false);
           const [toastMessage, setToastMessage] = useState(null);
           
-          // NEW STATE: Pro Transition Animation
-          const [showProTransition, setShowProTransition] = useState(false);
+          // Projects State
+          const [projects, setProjects] = useState(['General', 'Work', 'Creative']);
+          const [activeProject, setActiveProject] = useState('General');
+
+          // Template Modal
+          const [showTemplates, setShowTemplates] = useState(false);
+          const [showImageGenModal, setShowImageGenModal] = useState(false);
           
           // Plus Menu State
           const [showPlusMenu, setShowPlusMenu] = useState(false);
@@ -579,6 +506,9 @@
           const inputRef = useRef(null);
           const fileInputRef = useRef(null);
           const plusMenuRef = useRef(null);
+
+          // Initialize API client
+          const ai = useRef(new GoogleGenAI({ apiKey: API_KEY })).current;
 
           const isMagicActiveRef = useRef(isMagicActive);
           useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
@@ -642,7 +572,7 @@
               }
           }, [sessions, isSignedIn, user, isDataLoaded]);
 
-          useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [sessions, isStreaming, proStatus]);
+          useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [sessions, isStreaming]);
 
           // Magic Wand Logic
           useEffect(() => {
@@ -682,11 +612,12 @@
 
           const currentSession = sessions.find(s => s.id === activeId) || { messages: [] };
 
-          const createSession = () => {
+          const createSession = (project = 'General') => {
               const id = Date.now().toString();
-              const newSession = { id, title: 'New Chat', messages: [] };
+              const newSession = { id, title: 'New Chat', messages: [], project: project };
               setSessions(prev => [newSession, ...prev]);
               setActiveId(id);
+              setActiveProject(project);
               if (window.innerWidth < 1024) setIsSidebarOpen(false);
           };
           
@@ -697,7 +628,7 @@
             
             if (newSessions.length === 0) {
                 const id = Date.now().toString();
-                const newSession = { id, title: 'New Chat', messages: [] };
+                const newSession = { id, title: 'New Chat', messages: [], project: activeProject };
                 setSessions([newSession]);
                 setActiveId(id);
             } else if (activeId === sessionId) {
@@ -730,14 +661,9 @@
              setIsMagicActive(!isMagicActive);
           };
 
-          // --- MODIFIED: Handle Toggle Pro ---
+          // Simple instant toggle
           const handleTogglePro = () => {
-              const nextState = !isProMode;
-              setIsProMode(nextState);
-              if (nextState) {
-                  setShowProTransition(true);
-                  setTimeout(() => setShowProTransition(false), 2000); // 2 second animation
-              }
+              setIsProMode(!isProMode);
           };
 
           const handleEnhancePrompt = async () => {
@@ -746,22 +672,19 @@
               try {
                   const systemPrompt = "You are an APEX PROMPT ENGINEER. Your goal is to rewrite the user's raw input into a 'God-Tier' prompt using advanced techniques like Chain of Thought, Persona adoption, and Context optimization. Output ONLY the optimized prompt text. Do not add explanations. Keep it concise but professional.";
                   
-                  const response = await fetch(API_URL_ONESHOT, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                          contents: [{ parts: [{ text: input }] }],
-                          systemInstruction: { parts: [{ text: systemPrompt }] },
-                          generationConfig: { temperature: 0.7 }
-                      })
+                  const response = await ai.models.generateContent({
+                      model: 'gemini-2.5-flash',
+                      contents: input,
+                      config: {
+                          systemInstruction: systemPrompt,
+                          temperature: 0.7 
+                      }
                   });
-                  const data = await response.json();
 
-                  // DOUBLE CHECK: If active flag is off OR input is cleared, do not update.
                   if (!isMagicActiveRef.current) return;
                   if (!inputRef.current || inputRef.current.value === '') return;
 
-                  const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                  const enhancedText = response.text;
                   if (enhancedText) {
                       setInput(enhancedText.trim());
                   }
@@ -772,16 +695,116 @@
               }
           };
 
-          const runProModeSequence = async (type) => {
-              let sequence = ENGINES_TEXT;
-              if (type === 'image') sequence = ENGINES_IMAGE;
-              if (type === 'code') sequence = ENGINES_CODE;
-
-              for (const step of sequence) {
-                  setProStatus(step);
-                  await new Promise(r => setTimeout(r, Math.floor(Math.random() * 500) + 500));
+          // NANO BANANA 2 (Gemini 3 Pro) Image Generation Logic with Smart Fallback
+          const handleGenerateRealImage = async (promptOverride = null) => {
+              const textToUse = promptOverride || input;
+              if (!textToUse.trim()) {
+                  // If no input, open the modal instead of doing nothing
+                  setShowImageGenModal(true);
+                  setShowPlusMenu(false);
+                  return;
               }
-              setProStatus(null);
+              
+              setIsStreaming(true);
+              setShowPlusMenu(false);
+              setInput(''); 
+
+              const userMsg = { role: 'user', content: `Generate Hyper-Real Image: ${textToUse}` };
+              let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg] } : s);
+              setSessions(updatedSessions);
+              
+              // Add placeholder for the image response
+              setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', statusMessage: 'Analyzing scene composition...' }] } : s));
+
+              try {
+                  // Step 1: Deep Analysis & Prompt Rewriting for Realism
+                  // We simulate the "Research Institute" analysis here using the text model
+                  const analysisPrompt = `
+                      You are an expert Photography Director and Visual Artist. 
+                      Your task is to take this simple user request: "${textToUse}" 
+                      and rewrite it into a "God-Tier" image generation prompt.
+                      
+                      Requirements:
+                      - Use photorealistic terms (e.g., "8k resolution", "cinematic lighting", "35mm lens", "depth of field").
+                      - Specify lighting, composition, texture, and mood.
+                      - Make it sound like a request to a professional photographer.
+                      - Output ONLY the prompt.
+                  `;
+                  
+                  // Use Flash for fast prompt engineering
+                  const analysisResponse = await ai.models.generateContent({
+                      model: 'gemini-2.5-flash',
+                      contents: analysisPrompt,
+                      config: { temperature: 0.8 }
+                  });
+                  
+                  const enhancedPrompt = analysisResponse.text || textToUse;
+                  
+                   // Update status
+                   setSessions(prev => prev.map(s => s.id === activeId ? { 
+                       ...s, 
+                       messages: s.messages.map((m, i) => i === s.messages.length - 1 ? { ...m, statusMessage: 'Rendering high-fidelity visuals...' } : m)
+                   } : s));
+
+                   let imageUri = null;
+                   let usedPrompt = enhancedPrompt;
+
+                  // Step 2: Try Premium Model (Nano Banana 2) first
+                  try {
+                       const imgResponse = await ai.models.generateContent({
+                            model: 'gemini-3-pro-image-preview',
+                            contents: { parts: [{ text: enhancedPrompt }] },
+                            config: { 
+                                 imageConfig: { aspectRatio: "16:9" }
+                            }
+                       });
+                       
+                       // Extract image
+                       if (imgResponse.candidates?.[0]?.content?.parts) {
+                           for (const part of imgResponse.candidates[0].content.parts) {
+                               if (part.inlineData) {
+                                   imageUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                               }
+                           }
+                       }
+                  } catch (proError) {
+                      console.warn("Pro model failed, attempting fallback to Flash", proError);
+                      // Fallback to Flash Image if Pro fails
+                      try {
+                          const fallbackResponse = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash-image',
+                            contents: { parts: [{ text: enhancedPrompt }] },
+                            config: { 
+                                 imageConfig: { aspectRatio: "16:9" }
+                            }
+                          });
+
+                           if (fallbackResponse.candidates?.[0]?.content?.parts) {
+                               for (const part of fallbackResponse.candidates[0].content.parts) {
+                                   if (part.inlineData) {
+                                       imageUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                                   }
+                               }
+                           }
+                      } catch (fallbackError) {
+                          throw new Error("All image generation models failed.");
+                      }
+                  }
+
+                   if (imageUri) {
+                        setSessions(prev => prev.map(s => s.id === activeId ? { 
+                            ...s, 
+                            messages: [...s.messages.slice(0, -1), { role: 'model', content: usedPrompt, images: [imageUri] }] 
+                        } : s));
+                   } else {
+                       throw new Error("Image generation failed.");
+                   }
+
+              } catch (e) {
+                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "⚠️ System Error: Unable to generate image. Please try again." }] } : s));
+              } finally {
+                  setIsStreaming(false);
+              }
           };
 
           const handleSend = async (textOverride = null) => {
@@ -789,71 +812,63 @@
               if ((!textToSend.trim() && !selectedImage) || isStreaming) return;
               
               const imagePayload = selectedImage;
-              const isCodeRequest = /code|function|script|html|css|react|python|java|app|website|debug|error/i.test(textToSend);
-              const requestType = imagePayload ? 'image' : (isCodeRequest ? 'code' : 'text');
 
               setInput(''); setSelectedImage(null); setIsStreaming(true);
               setIsMagicActive(false); 
-              isMagicActiveRef.current = false; // Immediately disable magic prompt updates to prevent race condition
+              isMagicActiveRef.current = false; 
               
               const userMsg = { role: 'user', content: textToSend, images: imagePayload ? [imagePayload] : [] };
-              let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'Image Analysis') : currentSession.title;
+              let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'New Analysis') : currentSession.title;
 
               let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg], title: newTitle } : s);
               updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: chatbotName }] } : s);
               setSessions(updatedSessions);
 
-              if (isProMode) {
-                  await runProModeSequence(requestType);
-              }
-
-              const contents = updatedSessions.find(s => s.id === activeId).messages.slice(0, -1).map(m => ({
-                  role: m.role === 'user' ? 'user' : 'model',
-                  parts: [...(m.images || []).map(img => ({ inlineData: { mimeType: img.split(';')[0].split(':')[1], data: img.split(',')[1] } })), { text: m.content || '' }]
-              }));
-              contents.push({ role: 'user', parts: [...(imagePayload ? [{ inlineData: { mimeType: imagePayload.split(';')[0].split(':')[1], data: imagePayload.split(',')[1] } }] : []), { text: textToSend }] });
+              const parts = [];
+              if (imagePayload) parts.push({ inlineData: { mimeType: imagePayload.split(';')[0].split(':')[1], data: imagePayload.split(',')[1] } });
+              parts.push({ text: textToSend });
+              
+              const contents = { role: 'user', parts: parts };
 
               const botIdentity = chatbotName || "Bapkam";
+              
+              // PRO MODE: DEEP SYNTHESIS SYSTEM PROMPT
               const systemPrompt = isProMode 
-                ? `You are ${botIdentity} (Pro Mode). Your mission is perfection. Persona: Senior Principal Architect & Pulitzer-Winning Author. Score: 100/100.
-                   CRITICAL RULES:
-                   1. PRE-COMPUTATION: Before answering, strictly grade your potential response. If it's not 100/100, discard and refine until it is.
-                   2. IF CODE: Provide PRODUCTION-READY code. Modular, Scalable, Secure. Include file structure tree. No placeholders.
-                   3. IF TEXT: Use 'First Principles' thinking. Analyze subtext. Be deeply insightful. Format with Markdown (Bold, Lists, Headers) for readability.
-                   4. EMOTIONAL RESONANCE: Connect deeply with the user's intent.`
-                : `You are ${botIdentity}. Friendly, smart, helpful assistant. Format your response nicely using Markdown (bold for emphasis, bullet points for lists) to make it easy to read on mobile.`;
+                ? `You are an advanced Synthesis Engine running on Pro Mode. 
+                   GOAL: Simulate a consensus between a high-reasoning analytical model (like DeepSeek R1) and a highly fluent creative model (like GPT-4o).
+                   PROCESS:
+                   1. Internally analyze the query using deep logic, first principles, and step-by-step reasoning.
+                   2. Synthesize the best points from this analysis.
+                   3. OUTPUT FORMAT: Present the answer in a "Standard Width", highly readable, conversational manner. 
+                      - Do NOT use an outline/note-taking style unless asked.
+                      - Do NOT use excessive bullet points. 
+                      - Write in clear, flowing paragraphs.
+                      - Be professional, insightful, and comprehensive but NOT overwhelming.
+                   4. Do not mention your internal process. Just give the perfect answer.`
+                : `You are ${botIdentity}. Friendly, smart, helpful assistant. Format your response nicely using Markdown. Be concise and human-like.`;
+
+              // Pro Mode Tools (Grounding)
+              const tools = isProMode ? [{ googleSearch: {} }] : [];
 
               try {
-                  const response = await fetch(API_URL, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                          contents,
-                          systemInstruction: { parts: [{ text: systemPrompt }] },
-                          generationConfig: { 
-                              temperature: isProMode ? 0.4 : 0.7, 
-                              maxOutputTokens: isProMode ? 8192 : 4096,
-                              topK: isProMode ? 64 : 40,
-                              topP: 0.95
-                          }
-                      })
-                  });
-                  if (!response.ok) throw new Error("Connection Error.");
-                  
-                  const reader = response.body.getReader();
-                  const decoder = new TextDecoder();
-                  let assistantText = '';
-
-                  while (true) {
-                      const { done, value } = await reader.read();
-                      if (done) break;
-                      const chunk = decoder.decode(value, { stream: true });
-                      const matchText = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
-                      let match;
-                      while ((match = matchText.exec(chunk)) !== null) {
-                           try { assistantText += JSON.parse(`"${match[1]}"`); } catch(e) {}
+                  const streamResult = await ai.models.generateContentStream({
+                      model: 'gemini-2.5-flash',
+                      contents: [contents], // Streaming usually takes array of contents or simple content
+                      config: {
+                          systemInstruction: systemPrompt,
+                          tools: tools,
+                          temperature: isProMode ? 0.5 : 0.7,
+                          maxOutputTokens: 8192,
                       }
-                      setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
+                  });
+
+                  let assistantText = '';
+                  for await (const chunk of streamResult) {
+                      const chunkText = chunk.text; // Fixed: Use property access, not method call
+                      if (chunkText) {
+                          assistantText += chunkText;
+                          setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
+                      }
                   }
               } catch (error) {
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: `⚠️ ${error.message}` }] } : s));
@@ -920,7 +935,7 @@
           
           const isNewChat = currentSession.messages.length === 0;
           return (
-              <div className={`flex h-full w-full font-sans transition-colors duration-700 ${isProMode ? 'bg-slate-50' : 'bg-white'}`}>
+              <div className={`flex h-full w-full font-sans transition-colors duration-700 ${isProMode ? 'bg-[#f8f9fa]' : 'bg-white'}`}>
                   {/* Sidebar */}
                   {isSidebarOpen && <div className="fixed inset-0 bg-black/20 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>}
                   <aside className={`fixed lg:relative inset-y-0 left-0 w-[280px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
@@ -934,35 +949,50 @@
                           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-5 h-5 text-slate-500"/></button>
                       </div>
                       
+                      {/* Pro Mode Toggle - Simplified/Professional */}
                       <div className="px-4 mt-4 mb-2">
-                        <div className={`relative overflow-hidden flex items-center justify-between p-3 rounded-xl border shadow-sm transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 border-slate-800 shadow-indigo-500/20' : 'bg-white border-slate-200'}`}>
-                            {isProMode && <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 animate-shimmer"></div>}
-                            <div className="flex items-center gap-3 relative z-10">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isProMode ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
+                        <div className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${isProMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isProMode ? 'bg-slate-800 text-green-400' : 'bg-slate-100 text-slate-500'}`}>
                                     <ZapIcon className="w-4 h-4" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className={`text-sm font-bold ${isProMode ? 'text-white' : 'text-slate-800'}`}>Pro Mode</span>
+                                    <span className="text-sm font-bold">Pro Mode</span>
                                 </div>
                             </div>
                             <button 
                                 onClick={handleTogglePro}
-                                className={`w-10 h-6 rounded-full p-1 transition-colors relative z-10 ${isProMode ? 'bg-indigo-500' : 'bg-slate-200'}`}
+                                className={`w-10 h-6 rounded-full p-1 transition-colors relative ${isProMode ? 'bg-green-500' : 'bg-slate-200'}`}
                             >
                                 <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isProMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
                             </button>
                         </div>
                       </div>
 
-                      <div className="px-4 pb-4 mt-2"><button onClick={createSession} className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-xl transition-all text-sm font-semibold text-slate-700 group"><div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors"><PlusIcon className="w-4 h-4"/></div>New Chat</button></div>
+                      {/* Project Spaces (Mock functionality for UI) */}
+                      <div className="px-4 mt-2 mb-2">
+                           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Project Spaces</div>
+                           <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
+                               {projects.map(p => (
+                                   <button 
+                                      key={p} 
+                                      onClick={() => { setActiveProject(p); createSession(p); }}
+                                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeProject === p ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                   >
+                                      {p}
+                                   </button>
+                               ))}
+                           </div>
+                      </div>
+
+                      <div className="px-4 pb-4"><button onClick={() => createSession(activeProject)} className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-xl transition-all text-sm font-semibold text-slate-700 group"><div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors"><PlusIcon className="w-4 h-4"/></div>New Chat</button></div>
                       
                       <div className="flex-1 overflow-y-auto px-2 custom-scroll space-y-0.5">
-                          <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Recent</div>
                           {sessions.map(s => (
-                              <div key={s.id} className={`group relative w-full rounded-lg transition-all ${activeId===s.id ? 'bg-white shadow-sm ring-1 ring-slate-200' : 'hover:bg-slate-100'}`}>
+                              <div key={s.id} className={`group relative w-full rounded-lg transition-all ${activeId===s.id ? 'bg-slate-100' : 'hover:bg-slate-50'}`}>
                                   <button 
                                       onClick={() => { setActiveId(s.id); if(window.innerWidth<1024) setIsSidebarOpen(false); }} 
-                                      className={`w-full text-left px-4 py-3 pr-10 rounded-lg text-sm truncate transition-all ${activeId===s.id ? 'text-indigo-700 font-medium' : 'text-slate-600'}`}
+                                      className={`w-full text-left px-4 py-3 pr-10 rounded-lg text-sm truncate transition-all ${activeId===s.id ? 'text-slate-900 font-medium' : 'text-slate-600'}`}
                                   >
                                       {s.title}
                                   </button>
@@ -976,10 +1006,12 @@
                               </div>
                           ))}
                       </div>
+                      
                       <div className="p-4 border-t border-slate-100">
+                           {/* User Profile */}
                           <div className="flex items-center justify-between w-full p-2 rounded-xl bg-slate-50 border border-slate-100">
                               <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold text-xs">
+                                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
                                       {user?.firstName?.charAt(0) || 'G'}
                                   </div>
                                   <div className="flex flex-col">
@@ -996,37 +1028,29 @@
 
                   {/* Main */}
                   <main className="flex-1 flex flex-col h-full relative min-w-0 bg-[#fcfcfc]">
-                      {/* --- Pro Mode Ambient Background --- */}
-                      {isProMode && <ProModeBackground />}
-                      
-                      {/* --- Pro Mode HUD Overlay --- */}
-                      {isProMode && <ProModeHUD />}
 
-                      {/* --- Pro Mode Transition Overlay --- */}
-                      {showProTransition && <ProModeTransition />}
-
-                      <header className={`h-14 lg:h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 backdrop-blur-md transition-colors duration-500 ${isProMode ? 'bg-white/80 border-b border-slate-200' : 'bg-white/80 border-b border-slate-200'}`}>
+                      <header className={`h-14 lg:h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 backdrop-blur-md transition-colors duration-500 bg-white/90 border-b border-slate-200`}>
                           <div className="flex items-center gap-3">
                               <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 text-slate-700`}><MenuIcon className="w-6 h-6"/></button>
                               <span className={`font-bold text-lg lg:hidden text-slate-800`}>{chatbotName}</span>
                           </div>
                           <div className={`hidden lg:flex items-center gap-2.5 px-4 py-1.5 rounded-full border shadow-sm transition-all ${isProMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                              <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${isProMode ? 'bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-indigo-500'}`}></span>
-                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'APEX ENGINE: ONLINE' : `${chatbotName} Engine v2.5`}</span>
+                              <span className={`w-2 h-2 rounded-full ${isProMode ? 'bg-green-400' : 'bg-slate-400'}`}></span>
+                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'PRO MODE: DEEP SYNTHESIS' : 'Standard Mode'}</span>
                           </div>
                       </header>
                       
                       <div className="flex-1 overflow-y-auto custom-scroll scroll-smooth p-0 relative z-10" ref={chatRef}>
                           {isNewChat ? (
                               <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[50vh] animate-fade-in-up px-4 sm:px-6 pb-20">
-                                  <div className={`mb-6 p-4 rounded-[1.5rem] shadow-lg flex items-center justify-center transition-all duration-500 ${isProMode ? 'bg-gradient-to-br from-slate-900 to-slate-800 shadow-indigo-500/30' : 'bg-white shadow-slate-200 border border-slate-100'}`}>
+                                  <div className="mb-6 p-4 rounded-[1.5rem] shadow-sm flex items-center justify-center bg-white border border-slate-100">
                                       <BapkamLogo className="w-12 h-12" />
                                   </div>
                                   <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 text-center tracking-tight">
-                                      {isProMode ? <span className="pro-text-gradient">Pro Mode Active</span> : `Hello, ${user?.firstName || 'Friend'}.`}
+                                      {isProMode ? <span className="pro-text-gradient">Deep Research Active</span> : `Hello, ${user?.firstName || 'Friend'}.`}
                                   </h2>
                                   <p className="text-slate-500 text-center mb-8 max-w-sm text-base">
-                                      {isProMode ? 'Running on highest cognitive settings.' : `I'm ${chatbotName}. How can I help you today?`}
+                                      {isProMode ? 'Consulting multiple reasoning engines for synthesis.' : `I'm ${chatbotName}. How can I help you today?`}
                                   </p>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                                       <SuggestionCard icon={CodeIcon} text="Architect a Scalable App" onClick={() => handleSend("Write a production-ready Python backend using FastAPI with file structure.")} />
@@ -1041,23 +1065,10 @@
                               </div>
                           )}
                       </div>
-                      
-                      {/* Pro Mode Status Bar */}
-                      {proStatus && (
-                        <div className="absolute bottom-24 left-0 right-0 flex justify-center z-30 pointer-events-none">
-                            <div className="bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/50 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in-up">
-                                <RainbowCyclone className="w-5 h-5" />
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-indigo-400 tracking-wider uppercase">{proStatus.name}</span>
-                                    <span className="text-[10px] text-slate-300">{proStatus.desc}</span>
-                                </div>
-                            </div>
-                        </div>
-                      )}
 
                       {/* Input Area */}
-                      <div className={`p-4 lg:p-6 transition-all duration-500 z-20 ${isProMode ? 'bg-white/80' : 'bg-white/80'} backdrop-blur-md`}>
-                          <div className={`max-w-4xl mx-auto relative flex items-end gap-2 bg-white border shadow-sm rounded-3xl p-2 transition-all focus-within:ring-2 focus-within:ring-indigo-100 ${isProMode ? 'border-indigo-200 shadow-indigo-500/10' : 'border-slate-200'}`}>
+                      <div className={`p-4 lg:p-6 transition-all duration-500 z-20 bg-white/90 backdrop-blur-md`}>
+                          <div className={`max-w-4xl mx-auto relative flex items-end gap-2 bg-white border shadow-sm rounded-3xl p-2 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
                               
                               {/* Plus Menu */}
                               <div className="relative" ref={plusMenuRef}>
@@ -1069,19 +1080,31 @@
                                   </button>
                                   
                                   {showPlusMenu && (
-                                      <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-fade-in-up">
+                                      <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-fade-in-up">
                                           <button onClick={() => fileInputRef.current.click()} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-600 text-sm font-medium transition-colors">
                                               <ImageUploadIcon className="w-4 h-4" /> Upload Image
                                           </button>
+                                          <button onClick={() => { setShowTemplates(true); setShowPlusMenu(false); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-600 text-sm font-medium transition-colors">
+                                              <TemplateIcon className="w-4 h-4" /> Prompt Templates
+                                          </button>
                                           
                                           {isProMode && (
-                                            <button 
-                                                onClick={() => { handleToggleMagic(); setShowPlusMenu(false); }} 
-                                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isMagicActive ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-50 text-slate-600'}`}
-                                            >
-                                                <MagicWandIcon className={`w-4 h-4 ${isMagicActive ? 'text-indigo-600' : ''}`} /> 
-                                                {isMagicActive ? 'Disable Magic' : 'Enable Magic'}
-                                            </button>
+                                            <>
+                                                <div className="h-px bg-slate-100 my-1"></div>
+                                                <button 
+                                                    onClick={() => handleGenerateRealImage()} 
+                                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-indigo-600 text-sm font-bold transition-colors"
+                                                >
+                                                    <PaletteIcon className="w-4 h-4" /> Generate Hyper-Real Image
+                                                </button>
+                                                <button 
+                                                    onClick={() => { handleToggleMagic(); setShowPlusMenu(false); }} 
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isMagicActive ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-50 text-slate-600'}`}
+                                                >
+                                                    <MagicWandIcon className={`w-4 h-4 ${isMagicActive ? 'text-indigo-600' : ''}`} /> 
+                                                    {isMagicActive ? 'Disable Magic Prompt' : 'Enable Magic Prompt'}
+                                                </button>
+                                            </>
                                           )}
                                       </div>
                                   )}
@@ -1100,7 +1123,7 @@
                                        value={input}
                                        onChange={(e) => setInput(e.target.value)}
                                        onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                                       placeholder={isProMode ? "Enter complex command sequence..." : "Message Bapkam..."}
+                                       placeholder={isProMode ? "Ask Deep Research..." : "Message..."}
                                        className={`w-full bg-transparent outline-none resize-none max-h-32 text-slate-800 placeholder-slate-400 py-2.5 px-2 ${isMagicActive ? 'text-indigo-700 font-medium' : ''}`}
                                        rows={1}
                                        style={{ height: 'auto', minHeight: '24px' }}
@@ -1119,20 +1142,32 @@
                               <button 
                                   onClick={() => handleSend()} 
                                   disabled={!input.trim() && !selectedImage}
-                                  className={`p-3 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 ${input.trim() || selectedImage ? (isProMode ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-900 text-white shadow-md') : 'bg-slate-100 text-slate-400'}`}
+                                  className={`p-3 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 ${input.trim() || selectedImage ? (isProMode ? 'bg-slate-900 text-white' : 'bg-slate-900 text-white shadow-md') : 'bg-slate-100 text-slate-400'}`}
                               >
                                   {isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SendIcon className="w-5 h-5" />}
                               </button>
                           </div>
                           <div className="text-center mt-3">
                               <p className="text-[10px] text-slate-400">
-                                  {isProMode ? 'Pro Mode Active. System outputs may vary based on complexity.' : 'AI can make mistakes. Check important info.'}
+                                  {isProMode ? 'Synthesizing insights from multiple analytical frameworks.' : 'AI can make mistakes. Check important info.'}
                               </p>
                           </div>
                       </div>
 
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                       
+                      <PromptTemplateModal 
+                          isOpen={showTemplates} 
+                          onClose={() => setShowTemplates(false)} 
+                          onSelect={(txt) => { setInput(txt); setShowTemplates(false); inputRef.current.focus(); }} 
+                      />
+
+                      <ImageGenerationModal
+                          isOpen={showImageGenModal}
+                          onClose={() => setShowImageGenModal(false)}
+                          onGenerate={handleGenerateRealImage}
+                      />
+
                       {/* Toast Notification */}
                       {toastMessage && (
                           <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-full shadow-xl backdrop-blur-md z-[60] text-sm font-medium animate-fade-in-up flex items-center gap-2">
