@@ -52,8 +52,13 @@
       }
     </script>
     
-    <!-- Console Suppression -->
+    <!-- Environment & Console Polyfills -->
     <script>
+        // Polyfill process.env for browser environments to prevent crashes
+        if (typeof process === 'undefined') {
+            window.process = { env: {} };
+        }
+    
         const originalWarn = console.warn;
         const originalError = console.error;
 
@@ -133,7 +138,7 @@
   <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-type="module" data-presets="typescript,react">
+    <script type="text/babel" data-type="module">
       import React, { useState, useEffect, useRef, useCallback } from 'react';
       import { createRoot } from 'react-dom/client';
       import { GoogleGenAI } from "@google/genai";
@@ -520,7 +525,9 @@
           const plusMenuRef = useRef(null);
 
           // Initialize API client securely with environment variable
-          const ai = useRef(new GoogleGenAI({ apiKey: process.env.API_KEY })).current;
+          // Safe access to process.env to prevent crashes in standalone browser
+          const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+          const ai = useRef(new GoogleGenAI({ apiKey })).current;
 
           const isMagicActiveRef = useRef(isMagicActive);
           useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
@@ -539,11 +546,13 @@
           // Simulate Auth Load
           useEffect(() => {
               const timer = setTimeout(() => {
-                const storedAuth = localStorage.getItem('bapkam_auth_token');
-                if (storedAuth) {
-                    setIsSignedIn(true);
-                    setUser({ id: 'guest_user', firstName: 'Guest' });
-                }
+                try {
+                    const storedAuth = localStorage.getItem('bapkam_auth_token');
+                    if (storedAuth) {
+                        setIsSignedIn(true);
+                        setUser({ id: 'guest_user', firstName: 'Guest' });
+                    }
+                } catch(e) { console.debug("Storage access error", e); }
                 setIsLoaded(true);
               }, 800);
               return () => clearTimeout(timer);
@@ -552,20 +561,22 @@
           // Load sessions and bot name when user is loaded
           useEffect(() => {
               if (isLoaded && isSignedIn && user) {
-                  const savedName = localStorage.getItem(`bapkam_bot_name_${user.id}`);
-                  if (savedName) {
-                      setChatbotName(savedName);
-                      setIsSetupComplete(true);
-                  }
+                  try {
+                      const savedName = localStorage.getItem(`bapkam_bot_name_${user.id}`);
+                      if (savedName) {
+                          setChatbotName(savedName);
+                          setIsSetupComplete(true);
+                      }
 
-                  const savedChats = localStorage.getItem(`bapkam_chats_${user.id}`);
-                  if (savedChats) {
-                      const parsed = JSON.parse(savedChats);
-                      setSessions(parsed);
-                      setActiveId(parsed[0]?.id || null);
-                  } else {
-                      setSessions([]);
-                  }
+                      const savedChats = localStorage.getItem(`bapkam_chats_${user.id}`);
+                      if (savedChats) {
+                          const parsed = JSON.parse(savedChats);
+                          setSessions(parsed);
+                          setActiveId(parsed[0]?.id || null);
+                      } else {
+                          setSessions([]);
+                      }
+                  } catch(e) { console.debug("Storage load error", e); setSessions([]); }
                   setIsDataLoaded(true);
               }
           }, [isLoaded, isSignedIn, user]);
@@ -580,7 +591,9 @@
           // Save chats
           useEffect(() => {
               if (isSignedIn && user && isDataLoaded) {
-                  localStorage.setItem(`bapkam_chats_${user.id}`, JSON.stringify(sessions));
+                  try {
+                    localStorage.setItem(`bapkam_chats_${user.id}`, JSON.stringify(sessions));
+                  } catch(e) {}
               }
           }, [sessions, isSignedIn, user, isDataLoaded]);
 
@@ -608,14 +621,14 @@
           const showToast = (msg) => setToastMessage(msg);
 
           const handleLogin = (e) => {
-              e.preventDefault(); // prevent form submit refresh if applicable
-              localStorage.setItem('bapkam_auth_token', 'guest_access_granted');
+              e.preventDefault(); 
+              try { localStorage.setItem('bapkam_auth_token', 'guest_access_granted'); } catch(e) {}
               setIsSignedIn(true);
               setUser({ id: 'guest_user', firstName: 'Guest' });
           };
 
           const handleLogout = () => {
-              localStorage.removeItem('bapkam_auth_token');
+              try { localStorage.removeItem('bapkam_auth_token'); } catch(e) {}
               setIsSignedIn(false);
               setUser(null);
               setSessions([]);
@@ -659,7 +672,7 @@
 
           const handleBotSetup = (name) => {
               if (!name.trim()) return;
-              localStorage.setItem(`bapkam_bot_name_${user.id}`, name);
+              try { localStorage.setItem(`bapkam_bot_name_${user.id}`, name); } catch(e) {}
               setChatbotName(name);
               setIsSetupComplete(true);
               createSession();
