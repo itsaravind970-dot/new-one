@@ -52,13 +52,12 @@
       }
     </script>
     
-    <!-- Environment & Console Polyfills -->
+    <!-- Environment & Console Polyfills (CRITICAL: Must run before other scripts) -->
     <script>
         // Polyfill process.env for browser environments to prevent crashes
-        if (typeof process === 'undefined') {
-            window.process = { env: {} };
-        }
-    
+        window.process = window.process || {};
+        window.process.env = window.process.env || {};
+
         const originalWarn = console.warn;
         const originalError = console.error;
 
@@ -139,9 +138,40 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-      import React, { useState, useEffect, useRef, useCallback } from 'react';
+      import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
       import { createRoot } from 'react-dom/client';
       import { GoogleGenAI } from "@google/genai";
+
+      // --- ERROR BOUNDARY ---
+      class ErrorBoundary extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { hasError: false, error: null };
+        }
+
+        static getDerivedStateFromError(error) {
+          return { hasError: true, error };
+        }
+
+        componentDidCatch(error, errorInfo) {
+          console.error("Uncaught Error:", error, errorInfo);
+        }
+
+        render() {
+          if (this.state.hasError) {
+            return (
+              <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 text-center">
+                 <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 text-3xl">!</div>
+                 <h1 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h1>
+                 <p className="text-slate-600 mb-4 max-w-md">The application encountered an unexpected error. Please refresh the page.</p>
+                 <pre className="text-xs bg-slate-200 p-2 rounded text-left overflow-auto max-w-full">{this.state.error?.toString()}</pre>
+                 <button onClick={() => window.location.reload()} className="mt-6 px-4 py-2 bg-slate-900 text-white rounded-lg">Refresh App</button>
+              </div>
+            );
+          }
+          return this.props.children;
+        }
+      }
 
       // --- ICONS ---
       const Icon = ({ d, className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>;
@@ -499,7 +529,7 @@
           const [sessions, setSessions] = useState([]);
           const [activeId, setActiveId] = useState(null);
           const [input, setInput] = useState('');
-          const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+          const [isSidebarOpen, setIsSidebarOpen] = useState(false);
           const [isStreaming, setIsStreaming] = useState(false);
           const [selectedImage, setSelectedImage] = useState(null);
           const [isProMode, setIsProMode] = useState(false);
@@ -524,10 +554,16 @@
           const fileInputRef = useRef(null);
           const plusMenuRef = useRef(null);
 
-          // Initialize API client securely with environment variable
-          // Safe access to process.env to prevent crashes in standalone browser
-          const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
-          const ai = useRef(new GoogleGenAI({ apiKey })).current;
+          // Initialize API client securely with environment variable and lazy loading
+          const ai = useMemo(() => {
+              try {
+                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
+                  return new GoogleGenAI({ apiKey: key || 'dummy_key' });
+              } catch (e) {
+                  console.error("Failed to initialize AI client:", e);
+                  return null;
+              }
+          }, []);
 
           const isMagicActiveRef = useRef(isMagicActive);
           useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
@@ -692,7 +728,7 @@
           };
 
           const handleEnhancePrompt = async () => {
-              if (!input.trim()) return;
+              if (!input.trim() || !ai) return;
               setIsMagicLoading(true);
               try {
                   const systemPrompt = "You are an APEX PROMPT ENGINEER. Your goal is to rewrite the user's raw input into a 'God-Tier' prompt using advanced techniques like Chain of Thought, Persona adoption, and Context optimization. Output ONLY the optimized prompt text. Do not add explanations. Keep it concise but professional.";
@@ -723,6 +759,7 @@
 
           // NANO BANANA 2 (Imagen 3 / Gemini 3 Pro) Image Generation Logic with Smart Fallback
           const handleGenerateRealImage = async (promptOverride = null) => {
+              if (!ai) { showToast("AI service unavailable."); return; }
               const textToUse = promptOverride || input;
               if (!textToUse.trim()) {
                   setShowImageGenModal(true);
@@ -862,6 +899,7 @@
           };
 
           const handleSend = async (textOverride = null) => {
+              if (!ai) { showToast("AI service error. Please refresh."); return; }
               const textToSend = textOverride || input;
               if ((!textToSend.trim() && !selectedImage) || isStreaming) return;
               
@@ -1237,7 +1275,11 @@
       };
 
       const root = createRoot(document.getElementById('root'));
-      root.render(<App />);
+      root.render(
+        <ErrorBoundary>
+            <App />
+        </ErrorBoundary>
+      );
     </script>
   </body>
 </html>
