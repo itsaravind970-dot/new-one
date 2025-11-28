@@ -557,17 +557,6 @@
           const inputRef = useRef(null);
           const fileInputRef = useRef(null);
 
-          // Initialize API client securely with environment variable and lazy loading
-          const ai = useMemo(() => {
-              try {
-                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
-                  return new GoogleGenAI({ apiKey: key || 'dummy_key' });
-              } catch (e) {
-                  console.error("Failed to initialize AI client:", e);
-                  return null;
-              }
-          }, []);
-
           const isMagicActiveRef = useRef(isMagicActive);
           useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
 
@@ -720,9 +709,12 @@
           };
 
           const handleEnhancePrompt = async () => {
-              if (!input.trim() || !ai) return;
+              if (!input.trim()) return;
               setIsMagicLoading(true);
               try {
+                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
+                  const ai = new GoogleGenAI({ apiKey: key || 'dummy_key' });
+                  
                   const systemPrompt = "You are an APEX PROMPT ENGINEER. Your goal is to rewrite the user's raw input into a 'God-Tier' prompt using advanced techniques like Chain of Thought, Persona adoption, and Context optimization. Output ONLY the optimized prompt text. Do not add explanations. Keep it concise but professional.";
                   
                   const response = await ai.models.generateContent({
@@ -751,7 +743,6 @@
 
           // NANO BANANA 2 (Imagen 3 / Gemini 3 Pro) Image Generation Logic with Smart Fallback
           const handleGenerateRealImage = async (promptOverride = null) => {
-              if (!ai) { showToast("AI service unavailable."); return; }
               const textToUse = promptOverride || input;
               if (!textToUse.trim()) {
                   setShowImageGenModal(true);
@@ -776,6 +767,9 @@
               setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', statusMessage: 'Initializing Quantum Engine...' }] } : s));
 
               try {
+                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
+                  const ai = new GoogleGenAI({ apiKey: key || 'dummy_key' });
+
                   // Step 1: Deep Analysis & Prompt Rewriting for Realism
                   updateStatus('Deep Logic Analysis: Architecting Composition...');
                   const analysisPrompt = `
@@ -889,7 +883,6 @@
           };
 
           const handleSend = async (textOverride = null) => {
-              if (!ai) { showToast("AI service error. Please refresh."); return; }
               const textToSend = textOverride || input;
               if ((!textToSend.trim() && !selectedImage) || isStreaming) return;
               
@@ -906,11 +899,33 @@
               updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: chatbotName }] } : s);
               setSessions(updatedSessions);
 
-              const parts = [];
-              if (imagePayload) parts.push({ inlineData: { mimeType: imagePayload.split(';')[0].split(':')[1], data: imagePayload.split(',')[1] } });
-              parts.push({ text: textToSend });
+              // 1. CONSTRUCT FULL HISTORY (Fix for "Isn't responding" / Amnesia)
+              const historyParts = currentSession.messages
+                  .filter(m => m.content && !m.statusMessage) // Filter out temporary status messages
+                  .map(m => {
+                      const parts = [];
+                      if (m.images && m.images.length > 0) {
+                          m.images.forEach(img => {
+                              try {
+                                  parts.push({ inlineData: { mimeType: 'image/jpeg', data: img.split(',')[1] } });
+                              } catch(e) {}
+                          });
+                      }
+                      if (m.content) parts.push({ text: m.content });
+                      return { role: m.role === 'user' ? 'user' : 'model', parts: parts };
+                  });
+
+              // 2. ADD CURRENT MESSAGE
+              const currentParts = [];
+              if (imagePayload) {
+                   try {
+                       currentParts.push({ inlineData: { mimeType: 'image/jpeg', data: imagePayload.split(',')[1] } });
+                   } catch(e) {}
+              }
+              currentParts.push({ text: textToSend });
               
-              const contents = { role: 'user', parts: parts };
+              // Combine history + current message
+              const finalContents = [...historyParts, { role: 'user', parts: currentParts }];
 
               const botIdentity = chatbotName || "Bapkam";
               
@@ -935,9 +950,15 @@
               const tools = isProMode ? [{ googleSearch: {} }] : [];
 
               try {
+                  // 3. INITIALIZE AI CLIENT INSIDE SEND (Fix for "Connection Problem" if key is lazy loaded)
+                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
+                  if (!key || key === 'undefined') throw new Error("API Key missing");
+                  
+                  const ai = new GoogleGenAI({ apiKey: key });
+
                   const streamResult = await ai.models.generateContentStream({
                       model: 'gemini-2.5-flash',
-                      contents: [contents], 
+                      contents: finalContents, 
                       config: {
                           systemInstruction: systemPrompt,
                           tools: tools,
@@ -955,9 +976,15 @@
                       }
                   }
               } catch (error) {
-                  // SILENT FAIL
+                  // SILENT FAIL with specific error message
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
-                  showToast("Connection issue. Please retry.");
+                  
+                  let errorMessage = "Connection issue. Please retry.";
+                  if (error.message.includes('API Key')) errorMessage = "System Configuration Error (Key Missing).";
+                  if (error.message.includes('400')) errorMessage = "Request couldn't be processed. Try a simpler prompt.";
+                  
+                  showToast(errorMessage);
+                  console.error("AI Error:", error);
               } finally { setIsStreaming(false); }
           };
           
