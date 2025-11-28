@@ -28,6 +28,7 @@
                 'spin-slow': 'spin 3s linear infinite',
                 'spin-slower': 'spin 12s linear infinite', 
                 'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                'shimmer': 'shimmer 2s linear infinite',
             },
             keyframes: {
                 fadeInUp: {
@@ -37,6 +38,10 @@
                 fadeIn: {
                     '0%': { opacity: '0' },
                     '100%': { opacity: '1' },
+                },
+                shimmer: {
+                    '0%': { backgroundPosition: '200% 0' },
+                    '100%': { backgroundPosition: '-200% 0' }
                 }
             },
             colors: {
@@ -523,6 +528,7 @@
           const [isMagicActive, setIsMagicActive] = useState(false);
           const [toastMessage, setToastMessage] = useState(null);
           const [searchQuery, setSearchQuery] = useState('');
+          const [engineStatus, setEngineStatus] = useState('');
 
           const [projects, setProjects] = useState(['General', 'Work', 'Creative']);
           const [activeProject, setActiveProject] = useState('General');
@@ -811,6 +817,28 @@
               setIsMagicActive(false); 
               isMagicActiveRef.current = false; 
               
+              if (isProMode) {
+                  // Simulate Multi-Engine Activation
+                  const engines = [
+                      "⚡ Deep Logic: Analyzing Complexity...",
+                      "🧠 Creative Engine: Synthesizing Tone...",
+                      "📚 Knowledge Base: Fact Checking...",
+                      "✨ Formatting Core: Polishing Output...",
+                      "🚀 Generating Final Response..."
+                  ];
+                  let i = 0;
+                  setEngineStatus(engines[0]);
+                  const interval = setInterval(() => {
+                      i++;
+                      if (i < engines.length) {
+                          setEngineStatus(engines[i]);
+                      } else {
+                          clearInterval(interval);
+                          setEngineStatus('');
+                      }
+                  }, 800);
+              }
+
               const userMsg = { role: 'user', content: textToSend, images: imagePayload ? [imagePayload] : [] };
               let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'New Analysis') : currentSession.title;
 
@@ -847,7 +875,9 @@
 
               const botIdentity = chatbotName || "Bapkam";
               const baseIdentity = `You are Bapkam, created by Arvind and Afridi. Friendly, concise, helpful.`;
-              const proInstructions = `Running in Pro Mode. Deep logic + High Fluency.`;
+              // Updated Pro Mode Instruction for "Excellent" Answers
+              const proInstructions = `You are running in PRO MODE. Act as a consensus of expert engines. Combine 'Deep Logic' (for accuracy), 'Creative Spirit' (for engaging writing), and 'Formatting Core' (to structure the answer beautifully with markdown). Your goal is to provide an answer that is excellent, attractive, and highly comprehensive.`;
+              
               const systemPrompt = isProMode ? baseIdentity + "\n" + proInstructions : baseIdentity;
               const tools = isProMode ? [{ googleSearch: {} }] : [];
 
@@ -895,7 +925,10 @@
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
                   showToast("Connection failed. Auto-healing attempt exhausted.");
                   console.error("Critical AI Error:", error);
-              } finally { setIsStreaming(false); }
+              } finally { 
+                  setIsStreaming(false); 
+                  setEngineStatus('');
+              }
           };
           
           const filteredSessions = sessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -1048,19 +1081,30 @@
                       </div>
 
                       <div className={`p-4 lg:p-6 transition-all duration-500 z-20 bg-white/90 backdrop-blur-md`}>
-                          <div className={`max-w-2xl mx-auto relative flex items-end gap-2 bg-slate-50 border shadow-sm rounded-[24px] p-1.5 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
-                              <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5" /></button>
-                              <div className="flex-1 flex flex-col justify-center min-h-[40px]">
-                                   {selectedImage && (
-                                      <div className="flex items-center gap-2 mb-1 p-1 bg-white rounded-lg w-fit border border-slate-200">
-                                          <img src={selectedImage} className="w-8 h-8 object-cover rounded-md" />
-                                          <button onClick={() => setSelectedImage(null)} className="p-0.5 hover:bg-slate-100 rounded-full"><CloseIcon className="w-3 h-3 text-slate-500"/></button>
+                          <div className={`max-w-2xl mx-auto relative flex flex-col items-stretch gap-2 bg-slate-50 border shadow-sm rounded-[24px] p-1.5 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
+                              {/* Engine Status Indicator for Pro Mode */}
+                              {engineStatus && (
+                                  <div className="absolute -top-7 left-0 w-full flex justify-center animate-fade-in">
+                                      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                          {engineStatus}
                                       </div>
-                                   )}
-                                   <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={isProMode ? "Ask Deep Research..." : "Message bapkam..."} className={`w-full bg-transparent outline-none resize-none max-h-32 text-slate-800 placeholder-slate-400 py-2 px-1 text-sm ${isMagicActive ? 'text-indigo-700 font-medium' : ''}`} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
+                                  </div>
+                              )}
+                              <div className="flex items-end gap-2">
+                                  <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5" /></button>
+                                  <div className="flex-1 flex flex-col justify-center min-h-[40px]">
+                                       {selectedImage && (
+                                          <div className="flex items-center gap-2 mb-1 p-1 bg-white rounded-lg w-fit border border-slate-200">
+                                              <img src={selectedImage} className="w-8 h-8 object-cover rounded-md" />
+                                              <button onClick={() => setSelectedImage(null)} className="p-0.5 hover:bg-slate-100 rounded-full"><CloseIcon className="w-3 h-3 text-slate-500"/></button>
+                                          </div>
+                                       )}
+                                       <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={isProMode ? "Ask Deep Research..." : "Message bapkam..."} className={`w-full bg-transparent outline-none resize-none max-h-32 text-slate-800 placeholder-slate-400 py-2 px-1 text-sm ${isMagicActive ? 'text-indigo-700 font-medium' : ''}`} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
+                                  </div>
+                                  {isMagicLoading && <div className="absolute right-14 bottom-3"><RainbowCyclone className="w-4 h-4 opacity-50" /></div>}
+                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-2.5 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() || selectedImage ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'}`}>{isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SendIcon className="w-5 h-5" />}</button>
                               </div>
-                              {isMagicLoading && <div className="absolute right-14 bottom-3"><RainbowCyclone className="w-4 h-4 opacity-50" /></div>}
-                              <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-2.5 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() || selectedImage ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'}`}>{isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SendIcon className="w-5 h-5" />}</button>
                           </div>
                           <div className="text-center mt-3">
                               <p className="text-[10px] text-slate-400">By messaging bapkam.ai, you agree to our <a href="#" className="underline hover:text-slate-600">Terms</a> and <a href="#" className="underline hover:text-slate-600">Privacy Policy</a>.</p>
