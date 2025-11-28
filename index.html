@@ -818,7 +818,6 @@
               isMagicActiveRef.current = false; 
               
               if (isProMode) {
-                  // Simulate Multi-Engine Activation
                   const engines = [
                       "⚡ Deep Logic: Analyzing Complexity...",
                       "🧠 Creative Engine: Synthesizing Tone...",
@@ -830,12 +829,8 @@
                   setEngineStatus(engines[0]);
                   const interval = setInterval(() => {
                       i++;
-                      if (i < engines.length) {
-                          setEngineStatus(engines[i]);
-                      } else {
-                          clearInterval(interval);
-                          setEngineStatus('');
-                      }
+                      if (i < engines.length) setEngineStatus(engines[i]);
+                      else { clearInterval(interval); setEngineStatus(''); }
                   }, 800);
               }
 
@@ -875,11 +870,9 @@
 
               const botIdentity = chatbotName || "Bapkam";
               const baseIdentity = `You are Bapkam, created by Arvind and Afridi. Friendly, concise, helpful.`;
-              // Updated Pro Mode Instruction for "Excellent" Answers
               const proInstructions = `You are running in PRO MODE. Act as a consensus of expert engines. Combine 'Deep Logic' (for accuracy), 'Creative Spirit' (for engaging writing), and 'Formatting Core' (to structure the answer beautifully with markdown). Your goal is to provide an answer that is excellent, attractive, and highly comprehensive.`;
               
               const systemPrompt = isProMode ? baseIdentity + "\n" + proInstructions : baseIdentity;
-              const tools = isProMode ? [{ googleSearch: {} }] : [];
 
               try {
                   const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
@@ -887,43 +880,56 @@
                   
                   const ai = new GoogleGenAI({ apiKey: key });
 
-                  // AUTO-HEALING RETRY LOOP
-                  let streamResult = null;
+                  // ROBUST RETRY & FALLBACK LOOP
                   let attempts = 0;
                   const maxAttempts = 3;
 
                   while (attempts < maxAttempts) {
                       try {
-                          streamResult = await ai.models.generateContentStream({
+                          const config = {
+                              systemInstruction: systemPrompt,
+                              temperature: isProMode ? 0.6 : 0.7,
+                          };
+                          // Only add complex configs if attempting Pro Mode features
+                          if (isProMode && attempts === 0) {
+                              config.tools = [{ googleSearch: {} }];
+                              config.thinkingConfig = { thinkingBudget: 1024 };
+                          }
+                          
+                          const streamResult = await ai.models.generateContentStream({
                               model: 'gemini-2.5-flash',
                               contents: finalContents, 
-                              config: {
-                                  systemInstruction: systemPrompt,
-                                  tools: tools,
-                                  temperature: isProMode ? 0.6 : 0.7,
-                                  thinkingConfig: isProMode ? { thinkingBudget: 1024 } : { thinkingBudget: 0 }, 
-                              }
+                              config: config
                           });
+                          
+                          let assistantText = '';
+                          for await (const chunk of streamResult) {
+                              const chunkText = chunk.text;
+                              if (chunkText) {
+                                  assistantText += chunkText;
+                                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
+                              }
+                          }
                           break; // Success
                       } catch (err) {
                           attempts++;
-                          console.warn(`Attempt ${attempts} failed. Retrying...`);
+                          console.warn(`Attempt ${attempts} failed.`, err);
+                          
                           if (attempts >= maxAttempts) throw err;
-                          await new Promise(r => setTimeout(r, 1000));
-                      }
-                  }
-
-                  let assistantText = '';
-                  for await (const chunk of streamResult) {
-                      const chunkText = chunk.text;
-                      if (chunkText) {
-                          assistantText += chunkText;
-                          setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
+                          
+                          // Smart Fallback: Disable Pro tools on retry for stability
+                          if (attempts === 1) {
+                              // Fast retry without tools
+                              await new Promise(r => setTimeout(r, 500));
+                          } else {
+                              // Slower retry
+                              await new Promise(r => setTimeout(r, 1000));
+                          }
                       }
                   }
               } catch (error) {
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
-                  showToast("Connection failed. Auto-healing attempt exhausted.");
+                  showToast("Network is struggling. Please try again.");
                   console.error("Critical AI Error:", error);
               } finally { 
                   setIsStreaming(false); 
