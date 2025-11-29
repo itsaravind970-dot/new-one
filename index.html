@@ -192,6 +192,7 @@
       const TemplateIcon = (p) => <Icon d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4" {...p} />;
       const TextIcon = (p) => <Icon d="M4 7V4h16v3M9 20h6M12 4v16" {...p} />;
       const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
+      const VideoIcon = (p) => <Icon d="M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" {...p} />;
       
       // --- COMPONENTS ---
 
@@ -341,7 +342,7 @@
           };
 
           const renderContent = () => {
-            const hasImages = msg.images && msg.images.length > 0;
+            const hasAttachments = msg.attachments && msg.attachments.length > 0;
             const rawContent = msg.content || '';
             
             if (!isUser && !rawContent.trim() && isLoading && isLatest) {
@@ -359,11 +360,18 @@
             
             return (
                 <div className="flex flex-col gap-2 w-full overflow-hidden">
-                    {hasImages && (
+                    {hasAttachments && (
                         <div className="flex flex-wrap gap-2 mb-2 justify-end">
-                            {msg.images.map((img, i) => (
-                                <div key={i} className="relative group">
-                                    <img src={img} className="w-full h-auto object-cover rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90" onClick={() => window.open(img, '_blank')} />
+                            {msg.attachments.map((att, i) => (
+                                <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm max-w-[200px]">
+                                    {att.type === 'video' ? (
+                                        <div className="relative">
+                                            <video src={att.uri} className="w-full h-auto" controls />
+                                            <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1"><VideoIcon className="w-3 h-3"/> Video</div>
+                                        </div>
+                                    ) : (
+                                        <img src={att.uri} className="w-full h-auto object-cover cursor-pointer hover:opacity-90" onClick={() => window.open(att.uri, '_blank')} />
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -521,7 +529,10 @@
           const [input, setInput] = useState('');
           const [isSidebarOpen, setIsSidebarOpen] = useState(false);
           const [isStreaming, setIsStreaming] = useState(false);
-          const [selectedImage, setSelectedImage] = useState(null);
+          
+          // Enhanced Attachment State: { uri: string, mimeType: string, type: 'image'|'video' }
+          const [selectedAttachment, setSelectedAttachment] = useState(null);
+          
           const [isProMode, setIsProMode] = useState(false);
           const [isDataLoaded, setIsDataLoaded] = useState(false);
           const [isMagicLoading, setIsMagicLoading] = useState(false);
@@ -660,7 +671,14 @@
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onloadend = () => setSelectedImage(reader.result);
+                reader.onloadend = () => {
+                    const isVideo = file.type.startsWith('video/');
+                    setSelectedAttachment({
+                        uri: reader.result,
+                        mimeType: file.type,
+                        type: isVideo ? 'video' : 'image'
+                    });
+                };
                 reader.readAsDataURL(file);
             }
           };
@@ -809,11 +827,11 @@
 
           const handleSend = async (textOverride = null) => {
               const textToSend = textOverride || input;
-              if ((!textToSend.trim() && !selectedImage) || isStreaming) return;
+              if ((!textToSend.trim() && !selectedAttachment) || isStreaming) return;
               
-              const imagePayload = selectedImage;
+              const attachmentPayload = selectedAttachment; // Capture current attachment
 
-              setInput(''); setSelectedImage(null); setIsStreaming(true);
+              setInput(''); setSelectedAttachment(null); setIsStreaming(true);
               setIsMagicActive(false); 
               isMagicActiveRef.current = false; 
               
@@ -834,7 +852,7 @@
                   }, 800);
               }
 
-              const userMsg = { role: 'user', content: textToSend, images: imagePayload ? [imagePayload] : [] };
+              const userMsg = { role: 'user', content: textToSend, attachments: attachmentPayload ? [attachmentPayload] : [] };
               let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'New Analysis') : currentSession.title;
 
               let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg], title: newTitle } : s);
@@ -845,11 +863,11 @@
                   .filter(m => !m.statusMessage)
                   .map(m => {
                       const parts = [];
-                      if (m.images && m.images.length > 0) {
-                          m.images.forEach(img => {
+                      if (m.attachments && m.attachments.length > 0) {
+                          m.attachments.forEach(att => {
                               try {
-                                  if (img.includes('base64,')) {
-                                      parts.push({ inlineData: { mimeType: 'image/jpeg', data: img.split('base64,')[1] } });
+                                  if (att.uri.includes('base64,')) {
+                                      parts.push({ inlineData: { mimeType: att.mimeType, data: att.uri.split('base64,')[1] } });
                                   }
                               } catch(e) {}
                           });
@@ -860,9 +878,9 @@
                   .filter(Boolean);
 
               const currentParts = [];
-              if (imagePayload) {
+              if (attachmentPayload) {
                    try {
-                       currentParts.push({ inlineData: { mimeType: 'image/jpeg', data: imagePayload.split('base64,')[1] } });
+                       currentParts.push({ inlineData: { mimeType: attachmentPayload.mimeType, data: attachmentPayload.uri.split('base64,')[1] } });
                    } catch(e) {}
               }
               currentParts.push({ text: textToSend });
@@ -1111,16 +1129,20 @@
                               <div className="flex items-end gap-2">
                                   <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5" /></button>
                                   <div className="flex-1 flex flex-col justify-center min-h-[40px]">
-                                       {selectedImage && (
+                                       {selectedAttachment && (
                                           <div className="flex items-center gap-2 mb-1 p-1 bg-white rounded-lg w-fit border border-slate-200">
-                                              <img src={selectedImage} className="w-8 h-8 object-cover rounded-md" />
-                                              <button onClick={() => setSelectedImage(null)} className="p-0.5 hover:bg-slate-100 rounded-full"><CloseIcon className="w-3 h-3 text-slate-500"/></button>
+                                              {selectedAttachment.type === 'video' ? (
+                                                  <div className="w-8 h-8 bg-black rounded-md flex items-center justify-center text-white"><VideoIcon className="w-4 h-4"/></div>
+                                              ) : (
+                                                  <img src={selectedAttachment.uri} className="w-8 h-8 object-cover rounded-md" />
+                                              )}
+                                              <button onClick={() => setSelectedAttachment(null)} className="p-0.5 hover:bg-slate-100 rounded-full"><CloseIcon className="w-3 h-3 text-slate-500"/></button>
                                           </div>
                                        )}
-                                       <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={isProMode ? "Ask Deep Research..." : "Message bapkam..."} className={`w-full bg-transparent outline-none resize-none max-h-32 text-slate-800 placeholder-slate-400 py-2 px-1 text-sm ${isMagicActive ? 'text-indigo-700 font-medium' : ''}`} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
+                                       <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={isProMode ? "Ask Deep Research or Upload Video..." : "Message bapkam..."} className={`w-full bg-transparent outline-none resize-none max-h-32 text-slate-800 placeholder-slate-400 py-2 px-1 text-sm ${isMagicActive ? 'text-indigo-700 font-medium' : ''}`} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
                                   </div>
                                   {isMagicLoading && <div className="absolute right-14 bottom-3"><RainbowCyclone className="w-4 h-4 opacity-50" /></div>}
-                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedImage} className={`p-2.5 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() || selectedImage ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'}`}>{isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SendIcon className="w-5 h-5" />}</button>
+                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedAttachment} className={`p-2.5 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() || selectedAttachment ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'}`}>{isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SendIcon className="w-5 h-5" />}</button>
                               </div>
                           </div>
                           <div className="text-center mt-3">
@@ -1128,7 +1150,7 @@
                           </div>
                       </div>
 
-                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/mp4,video/webm" onChange={handleFileChange} />
                       <PromptTemplateModal isOpen={showTemplates} onClose={() => setShowTemplates(false)} onSelect={(txt) => { setInput(txt); setShowTemplates(false); inputRef.current.focus(); }} />
                       <ImageGenerationModal isOpen={showImageGenModal} onClose={() => setShowImageGenModal(false)} onGenerate={handleGenerateRealImage} />
                       {toastMessage && <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-full shadow-xl backdrop-blur-md z-[60] text-sm font-medium animate-fade-in-up flex items-center gap-2"><SparklesIcon className="w-4 h-4 text-yellow-400" />{toastMessage}</div>}
