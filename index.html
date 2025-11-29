@@ -29,6 +29,8 @@
                 'spin-slower': 'spin 12s linear infinite', 
                 'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
                 'shimmer': 'shimmer 2s linear infinite',
+                'float': 'float 3s ease-in-out infinite',
+                'rotate-3d': 'rotate3d 4s linear infinite',
             },
             keyframes: {
                 fadeInUp: {
@@ -42,6 +44,14 @@
                 shimmer: {
                     '0%': { backgroundPosition: '200% 0' },
                     '100%': { backgroundPosition: '-200% 0' }
+                },
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-5px)' },
+                },
+                rotate3d: {
+                    '0%': { transform: 'rotateX(60deg) rotateZ(0deg)' },
+                    '100%': { transform: 'rotateX(60deg) rotateZ(360deg)' }
                 }
             },
             colors: {
@@ -56,6 +66,7 @@
             },
             dropShadow: {
                 'cyan': '0 0 8px rgba(34, 211, 238, 0.5)',
+                'gold': '0 0 10px rgba(251, 191, 36, 0.6)',
             }
           }
         }
@@ -127,6 +138,10 @@
         .prose-content h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0f172a; }
         .prose-content p { margin-bottom: 0.75rem; line-height: 1.6; }
         .prose-content p:last-child { margin-bottom: 0; }
+        
+        /* 3D Engine Perspective */
+        .perspective-1000 { perspective: 1000px; }
+        .preserve-3d { transform-style: preserve-3d; }
     </style>
 <script type="importmap">
 {
@@ -222,6 +237,44 @@
             </svg>
         </div>
       );
+
+      // --- HYPER REAL ENGINE HUD ---
+      const EngineHUD = ({ status, activeColor = "text-cyan-400" }) => {
+          if (!status) return null;
+          
+          return (
+            <div className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-40 h-28 z-50 animate-fade-in-up pointer-events-none">
+                 <div className="w-full h-full relative flex flex-col items-center justify-center">
+                    {/* Glass Container */}
+                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-2xl"></div>
+                    
+                    {/* 3D Holographic Ring */}
+                    <div className="perspective-1000 w-12 h-12 relative mb-2">
+                        <div className={`w-full h-full rounded-full border-2 border-dotted ${activeColor} opacity-80 animate-rotate-3d preserve-3d absolute inset-0`}></div>
+                        <div className={`w-full h-full rounded-full border border-white/20 animate-spin-slow absolute inset-0`}></div>
+                        {/* Core Energy */}
+                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ${activeColor.replace('text', 'bg')} blur-md animate-pulse`}></div>
+                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-lg`}></div>
+                    </div>
+                    
+                    {/* Scanning Line */}
+                    <div className="absolute top-4 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent animate-float opacity-30"></div>
+
+                    {/* Status Text */}
+                    <div className="relative z-10 text-center px-2">
+                         <div className={`text-[10px] font-mono uppercase tracking-widest ${activeColor} mb-1 opacity-80`}>Engine Active</div>
+                         <div className="text-xs font-bold text-white leading-tight animate-pulse">{status}</div>
+                    </div>
+                    
+                    {/* Tech Corners */}
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/30 rounded-tl-lg"></div>
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/30 rounded-tr-lg"></div>
+                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/30 rounded-bl-lg"></div>
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/30 rounded-br-lg"></div>
+                 </div>
+            </div>
+          );
+      };
 
       const RainbowCyclone = ({ className = "w-6 h-6" }) => (
           <div className={`${className} rounded-full animate-spin-slow`} 
@@ -553,7 +606,10 @@
           const [isMagicActive, setIsMagicActive] = useState(false);
           const [toastMessage, setToastMessage] = useState(null);
           const [searchQuery, setSearchQuery] = useState('');
+          
+          // --- ENGINE HUD STATE ---
           const [engineStatus, setEngineStatus] = useState('');
+          const [engineColor, setEngineColor] = useState('text-cyan-400');
 
           const [projects, setProjects] = useState(['General', 'Work', 'Creative']);
           const [activeProject, setActiveProject] = useState('General');
@@ -750,6 +806,27 @@
                   setIsMagicLoading(false);
               }
           };
+          
+          // --- SIMULATE ENGINE SEQUENCE ---
+          const runEngineSequence = async (type = 'text') => {
+              const phases = type === 'image' 
+                  ? [
+                      { text: "Neural Architect", color: "text-purple-400" },
+                      { text: "Quantum Render", color: "text-amber-400" },
+                      { text: "Final Polish", color: "text-cyan-400" }
+                    ]
+                  : [
+                      { text: "Deep Logic", color: "text-cyan-400" },
+                      { text: "Fact Check", color: "text-emerald-400" },
+                      { text: "Creative Core", color: "text-purple-400" }
+                    ];
+
+              for (const phase of phases) {
+                  setEngineStatus(phase.text);
+                  setEngineColor(phase.color);
+                  await new Promise(r => setTimeout(r, 800)); // Visible delay for effect
+              }
+          };
 
           const handleGenerateRealImage = async (promptOverride = null) => {
               const textToUse = promptOverride || input;
@@ -771,31 +848,27 @@
               let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg] } : s);
               setSessions(updatedSessions);
               
-              const updateStatus = (msg) => {
-                  setSessions(prev => prev.map(s => s.id === activeId ? { 
-                      ...s, 
-                      messages: s.messages.map((m, i) => i === s.messages.length - 1 ? { ...m, statusMessage: msg } : m)
-                  } : s));
-              };
-
+              // Start Engine Visualization
               setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', statusMessage: 'Initializing Quantum Engine...' }] } : s));
+              
+              // Run the animation sequence before real API call (for effect)
+              await runEngineSequence('image');
 
               try {
                   const ai = new GoogleGenAI({ apiKey: key });
 
-                  updateStatus('Deep Logic Analysis: Architecting Composition...');
+                  setEngineStatus('Architecting...');
                   const analysisResponse = await ai.models.generateContent({
                       model: 'gemini-2.5-flash',
                       contents: `Rewrite this image prompt for 8K Photorealism: "${textToUse}". Output ONLY the prompt.`,
                   });
                   const enhancedPrompt = analysisResponse.text || textToUse;
                   
-                  updateStatus('Multi-Engine Synthesis: Optimizing Visuals...');
                   let imageUri = null;
                   let usedPrompt = enhancedPrompt;
 
                   try {
-                       updateStatus('Imagen 3 Quantum: Rendering 8K Visuals...');
+                       setEngineStatus('Rendering 8K...');
                        const imagenResponse = await ai.models.generateImages({
                             model: 'imagen-3.0-generate-001',
                             prompt: enhancedPrompt,
@@ -807,12 +880,10 @@
                        } else throw new Error("No data");
                   } catch (imagenError) {
                       try {
-                          // Fallback to Flash Image directly for speed and reliability if Pro fails
-                          updateStatus('Fast Engine: Finalizing Render...');
+                          setEngineStatus('Fallback Render...');
                           const fallbackResponse = await ai.models.generateContent({
                             model: 'gemini-2.5-flash-image',
                             contents: { parts: [{ text: textToUse }] },
-                            // gemini-2.5-flash-image supports basic image gen
                           });
                           for (const part of fallbackResponse.candidates[0].content.parts) {
                               if (part.inlineData) {
@@ -835,6 +906,7 @@
                   showToast("Visual generation paused. Please check API Key.");
               } finally {
                   setIsStreaming(false);
+                  setEngineStatus('');
               }
           };
 
@@ -852,23 +924,6 @@
               setInput(''); setSelectedAttachment(null); setIsStreaming(true);
               setIsMagicActive(false); 
               isMagicActiveRef.current = false; 
-              
-              if (isProMode) {
-                  const engines = [
-                      "⚡ Deep Logic: Analyzing...",
-                      "🔥 Passion Engine: Igniting...",
-                      "🧠 Creative Core: Synthesizing...",
-                      "📚 Knowledge Base: Verifying...",
-                      "✨ Final Polish: Formatting..."
-                  ];
-                  let i = 0;
-                  setEngineStatus(engines[0]);
-                  const interval = setInterval(() => {
-                      i++;
-                      if (i < engines.length) setEngineStatus(engines[i]);
-                      else { clearInterval(interval); setEngineStatus(''); }
-                  }, 800);
-              }
 
               const userMsg = { role: 'user', content: textToSend, attachments: attachmentPayload ? [attachmentPayload] : [] };
               let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'New Analysis') : currentSession.title;
@@ -876,6 +931,9 @@
               let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg], title: newTitle } : s);
               updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: chatbotName }] } : s);
               setSessions(updatedSessions);
+              
+              // Run animation sequence
+              await runEngineSequence('text');
 
               const historyParts = currentSession.messages
                   .filter(m => !m.statusMessage)
@@ -891,7 +949,6 @@
                           });
                       }
                       if (m.content) parts.push({ text: m.content });
-                      // Gemini requires valid parts
                       return parts.length > 0 ? { role: m.role === 'user' ? 'user' : 'model', parts: parts } : null;
                   })
                   .filter(Boolean);
@@ -914,11 +971,9 @@
 
               try {
                   const ai = new GoogleGenAI({ apiKey: key });
-
-                  // --- BULLETPROOF RETRY LOGIC ---
                   let success = false;
                   
-                  // Attempt 1: Full Config (Pro/Standard)
+                  // Attempt 1: Full Config
                   if (!success) {
                     try {
                         const config = {
@@ -926,12 +981,10 @@
                             temperature: isProMode ? 0.6 : 0.7,
                         };
                         
-                        // Only add search if explicitly requested to avoid 400 errors
                         if (isProMode && textToSend.toLowerCase().includes("search")) {
                              config.tools = [{ googleSearch: {} }];
                         }
 
-                        // Use stable 2.5-flash for everything to ensure reliability
                         const streamResult = await ai.models.generateContentStream({
                             model: 'gemini-2.5-flash',
                             contents: finalContents, 
@@ -950,7 +1003,7 @@
                     } catch (e) { console.warn("Attempt 1 failed, retrying...", e); }
                   }
 
-                  // Attempt 2: Minimal "Safe Mode" (Instant Fallback)
+                  // Attempt 2: Minimal "Safe Mode"
                   if (!success) {
                       try {
                           const streamResult = await ai.models.generateContentStream({
@@ -974,7 +1027,6 @@
                   if (!success) throw new Error("All attempts failed");
 
               } catch (error) {
-                  // Fallback: update message to show friendly error instead of toast
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "I'm having a bit of trouble connecting right now. Please check if your API Key is correctly configured in your deployment settings.", isPro: false, botName: botIdentity }] } : s));
                   console.error("Critical AI Error:", error);
               } finally { 
@@ -1134,15 +1186,10 @@
 
                       <div className={`p-4 lg:p-6 transition-all duration-500 z-20 bg-white/90 backdrop-blur-md`}>
                           <div className={`max-w-2xl mx-auto relative flex flex-col items-stretch gap-2 bg-slate-50 border shadow-sm rounded-[24px] p-1.5 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
-                              {/* Engine Status Indicator for Pro Mode */}
-                              {engineStatus && (
-                                  <div className="absolute -top-7 left-0 w-full flex justify-center animate-fade-in">
-                                      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                          {engineStatus}
-                                      </div>
-                                  </div>
-                              )}
+                              
+                              {/* New Hyper-Real Engine HUD */}
+                              <EngineHUD status={engineStatus} activeColor={engineColor} />
+
                               <div className="flex items-end gap-2">
                                   <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5" /></button>
                                   <div className="flex-1 flex flex-col justify-center min-h-[40px]">
