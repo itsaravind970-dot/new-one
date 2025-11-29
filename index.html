@@ -34,8 +34,8 @@
             },
             keyframes: {
                 fadeInUp: {
-                    '0%': { opacity: '0', transform: 'translateY(10px)' },
-                    '100%': { opacity: '1', transform: 'translateY(0)' },
+                    '0%': { opacity: '0', transform: 'translateY(10px) translateX(-50%)' },
+                    '100%': { opacity: '1', transform: 'translateY(0) translateX(-50%)' },
                 },
                 fadeIn: {
                     '0%': { opacity: '0' },
@@ -238,39 +238,33 @@
         </div>
       );
 
-      // --- HYPER REAL ENGINE HUD ---
-      const EngineHUD = ({ status, activeColor = "text-cyan-400" }) => {
+      // --- HYPER REAL ENGINE HUD (COMPACT & PROFESSIONAL) ---
+      const EngineHUD = ({ status, mode = 'text' }) => {
           if (!status) return null;
           
-          return (
-            <div className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-40 h-28 z-50 animate-fade-in-up pointer-events-none">
-                 <div className="w-full h-full relative flex flex-col items-center justify-center">
-                    {/* Glass Container */}
-                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-2xl"></div>
-                    
-                    {/* 3D Holographic Ring */}
-                    <div className="perspective-1000 w-12 h-12 relative mb-2">
-                        <div className={`w-full h-full rounded-full border-2 border-dotted ${activeColor} opacity-80 animate-rotate-3d preserve-3d absolute inset-0`}></div>
-                        <div className={`w-full h-full rounded-full border border-white/20 animate-spin-slow absolute inset-0`}></div>
-                        {/* Core Energy */}
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ${activeColor.replace('text', 'bg')} blur-md animate-pulse`}></div>
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-lg`}></div>
-                    </div>
-                    
-                    {/* Scanning Line */}
-                    <div className="absolute top-4 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent animate-float opacity-30"></div>
+          const engines = mode === 'image' 
+             ? ["Neural Architect", "Quantum Render", "Visual Polish"]
+             : ["Deep Logic", "Fact Verification", "Creative Core"];
 
-                    {/* Status Text */}
-                    <div className="relative z-10 text-center px-2">
-                         <div className={`text-[10px] font-mono uppercase tracking-widest ${activeColor} mb-1 opacity-80`}>Engine Active</div>
-                         <div className="text-xs font-bold text-white leading-tight animate-pulse">{status}</div>
-                    </div>
-                    
-                    {/* Tech Corners */}
-                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/30 rounded-tl-lg"></div>
-                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/30 rounded-tr-lg"></div>
-                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/30 rounded-bl-lg"></div>
-                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/30 rounded-br-lg"></div>
+          return (
+            <div className="absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
+                 <div className="bg-black/90 backdrop-blur-md border-2 border-black shadow-2xl rounded-xl p-3 flex items-center gap-4 w-max max-w-[95vw]">
+                    {engines.map((eng, i) => {
+                        const isCurrent = status === eng;
+                        // Always show all engines, but highlight current
+                        return (
+                            <div key={i} className={`flex flex-col items-center gap-1.5 px-2 transition-all duration-300 ${isCurrent ? 'opacity-100 scale-105' : 'opacity-40 grayscale'}`}>
+                                <div className="relative w-6 h-6 flex items-center justify-center">
+                                    <div className={`absolute inset-0 border-2 border-green-900/50 rounded-full`}></div>
+                                    <div className={`absolute inset-0 border-t-2 border-green-400 rounded-full ${isCurrent ? 'animate-spin' : ''}`}></div>
+                                    <div className={`w-1.5 h-1.5 rounded-full bg-green-500 ${isCurrent ? 'animate-pulse' : ''}`}></div>
+                                </div>
+                                <span className="text-[9px] font-mono font-bold text-green-400 whitespace-nowrap tracking-wider uppercase">{eng}</span>
+                            </div>
+                        )
+                    })}
+                    {/* Background Tech Line */}
+                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-green-500/10 -z-10"></div>
                  </div>
             </div>
           );
@@ -610,6 +604,7 @@
           // --- ENGINE HUD STATE ---
           const [engineStatus, setEngineStatus] = useState('');
           const [engineColor, setEngineColor] = useState('text-cyan-400');
+          const [engineMode, setEngineMode] = useState('text'); // 'text' or 'image'
 
           const [projects, setProjects] = useState(['General', 'Work', 'Creative']);
           const [activeProject, setActiveProject] = useState('General');
@@ -813,11 +808,11 @@
                   ? [
                       { text: "Neural Architect", color: "text-purple-400" },
                       { text: "Quantum Render", color: "text-amber-400" },
-                      { text: "Final Polish", color: "text-cyan-400" }
+                      { text: "Visual Polish", color: "text-cyan-400" }
                     ]
                   : [
                       { text: "Deep Logic", color: "text-cyan-400" },
-                      { text: "Fact Check", color: "text-emerald-400" },
+                      { text: "Fact Verification", color: "text-emerald-400" },
                       { text: "Creative Core", color: "text-purple-400" }
                     ];
 
@@ -842,6 +837,7 @@
               }
 
               setIsStreaming(true);
+              setEngineMode('image');
               setInput(''); 
 
               const userMsg = { role: 'user', content: `Generate Hyper-Real Image: ${textToUse}` };
@@ -922,6 +918,7 @@
 
               const attachmentPayload = selectedAttachment; 
               setInput(''); setSelectedAttachment(null); setIsStreaming(true);
+              setEngineMode('text');
               setIsMagicActive(false); 
               isMagicActiveRef.current = false; 
 
@@ -1188,7 +1185,7 @@
                           <div className={`max-w-2xl mx-auto relative flex flex-col items-stretch gap-2 bg-slate-50 border shadow-sm rounded-[24px] p-1.5 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
                               
                               {/* New Hyper-Real Engine HUD */}
-                              <EngineHUD status={engineStatus} activeColor={engineColor} />
+                              <EngineHUD status={engineStatus} mode={engineMode} />
 
                               <div className="flex items-end gap-2">
                                   <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5" /></button>
