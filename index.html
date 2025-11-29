@@ -801,7 +801,7 @@
 
               } catch (e) {
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
-                  showToast("Connection interrupted. Visual generation paused.");
+                  showToast("Visual generation paused. Please try again.");
               } finally {
                   setIsStreaming(false);
               }
@@ -819,11 +819,11 @@
               
               if (isProMode) {
                   const engines = [
-                      "⚡ Deep Logic: Analyzing Complexity...",
-                      "🧠 Creative Engine: Synthesizing Tone...",
-                      "📚 Knowledge Base: Fact Checking...",
-                      "✨ Formatting Core: Polishing Output...",
-                      "🚀 Generating Final Response..."
+                      "⚡ Deep Logic: Analyzing...",
+                      "🔥 Passion Engine: Igniting...",
+                      "🧠 Creative Core: Synthesizing...",
+                      "📚 Knowledge Base: Verifying...",
+                      "✨ Final Polish: Formatting..."
                   ];
                   let i = 0;
                   setEngineStatus(engines[0]);
@@ -870,7 +870,7 @@
 
               const botIdentity = chatbotName || "Bapkam";
               const baseIdentity = `You are Bapkam, created by Arvind and Afridi. Friendly, concise, helpful.`;
-              const proInstructions = `You are running in PRO MODE. Act as a consensus of expert engines. Combine 'Deep Logic' (for accuracy), 'Creative Spirit' (for engaging writing), and 'Formatting Core' (to structure the answer beautifully with markdown). Your goal is to provide an answer that is excellent, attractive, and highly comprehensive.`;
+              const proInstructions = `You are running in PRO MODE (Passion Engine Active). Act as a consensus of expert engines. Combine 'Deep Logic' (for accuracy), 'Creative Spirit' (for engaging writing), and 'Formatting Core' (to structure the answer beautifully with markdown). Your goal is to provide an answer that is excellent, attractive, and highly comprehensive.`;
               
               const systemPrompt = isProMode ? baseIdentity + "\n" + proInstructions : baseIdentity;
 
@@ -880,26 +880,48 @@
                   
                   const ai = new GoogleGenAI({ apiKey: key });
 
-                  // ROBUST RETRY & FALLBACK LOOP
-                  let attempts = 0;
-                  const maxAttempts = 3;
+                  // --- BULLETPROOF RETRY LOGIC ---
+                  let success = false;
+                  
+                  // Attempt 1: Full Config (Pro/Standard)
+                  if (!success) {
+                    try {
+                        const config = {
+                            systemInstruction: systemPrompt,
+                            temperature: isProMode ? 0.6 : 0.7,
+                            // Removed complex tools/thinkingConfig to prevent network errors
+                        };
+                        
+                        // Add search ONLY if explicitly requested, as it can cause timeouts
+                        if (isProMode && textToSend.toLowerCase().includes("search")) {
+                             config.tools = [{ googleSearch: {} }];
+                        }
 
-                  while (attempts < maxAttempts) {
+                        const streamResult = await ai.models.generateContentStream({
+                            model: 'gemini-2.5-flash',
+                            contents: finalContents, 
+                            config: config
+                        });
+                        
+                        let assistantText = '';
+                        for await (const chunk of streamResult) {
+                            const chunkText = chunk.text;
+                            if (chunkText) {
+                                assistantText += chunkText;
+                                setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
+                            }
+                        }
+                        success = true;
+                    } catch (e) { console.warn("Attempt 1 failed, retrying..."); }
+                  }
+
+                  // Attempt 2: Minimal "Safe Mode" (Instant Fallback)
+                  if (!success) {
                       try {
-                          const config = {
-                              systemInstruction: systemPrompt,
-                              temperature: isProMode ? 0.6 : 0.7,
-                          };
-                          // Only add complex configs if attempting Pro Mode features
-                          if (isProMode && attempts === 0) {
-                              config.tools = [{ googleSearch: {} }];
-                              config.thinkingConfig = { thinkingBudget: 1024 };
-                          }
-                          
                           const streamResult = await ai.models.generateContentStream({
                               model: 'gemini-2.5-flash',
-                              contents: finalContents, 
-                              config: config
+                              contents: finalContents,
+                              config: { temperature: 0.7 } // Minimal config
                           });
                           
                           let assistantText = '';
@@ -910,26 +932,15 @@
                                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
                               }
                           }
-                          break; // Success
-                      } catch (err) {
-                          attempts++;
-                          console.warn(`Attempt ${attempts} failed.`, err);
-                          
-                          if (attempts >= maxAttempts) throw err;
-                          
-                          // Smart Fallback: Disable Pro tools on retry for stability
-                          if (attempts === 1) {
-                              // Fast retry without tools
-                              await new Promise(r => setTimeout(r, 500));
-                          } else {
-                              // Slower retry
-                              await new Promise(r => setTimeout(r, 1000));
-                          }
-                      }
+                          success = true;
+                      } catch(e) { console.warn("Attempt 2 failed."); }
                   }
+                  
+                  if (!success) throw new Error("All attempts failed");
+
               } catch (error) {
-                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
-                  showToast("Network is struggling. Please try again.");
+                  // Fallback: update message to show friendly error instead of toast
+                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "I'm having a bit of trouble connecting right now. Could you please try asking that again?", isPro: false, botName: botIdentity }] } : s));
                   console.error("Critical AI Error:", error);
               } finally { 
                   setIsStreaming(false); 
