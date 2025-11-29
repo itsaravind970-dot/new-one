@@ -67,6 +67,11 @@
         // Polyfill process.env for browser environments to prevent crashes
         window.process = window.process || {};
         window.process.env = window.process.env || {};
+        
+        // Try to grab key from global if injected by some other means
+        if (typeof window.API_KEY !== 'undefined') {
+            window.process.env.API_KEY = window.API_KEY;
+        }
 
         const originalWarn = console.warn;
         const originalError = console.error;
@@ -164,7 +169,8 @@
               <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 text-center">
                  <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 text-3xl">!</div>
                  <h1 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h1>
-                 <button onClick={() => window.location.reload()} className="mt-6 px-4 py-2 bg-slate-900 text-white rounded-lg">Refresh App</button>
+                 <p className="text-slate-600 mb-6">Please refresh the page to try again.</p>
+                 <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl shadow-lg hover:bg-slate-800 transition-colors">Refresh App</button>
               </div>
             );
           }
@@ -344,8 +350,9 @@
           const renderContent = () => {
             const hasAttachments = msg.attachments && msg.attachments.length > 0;
             const rawContent = msg.content || '';
+            const images = msg.images || [];
             
-            if (!isUser && !rawContent.trim() && isLoading && isLatest) {
+            if (!isUser && !rawContent.trim() && !images.length && isLoading && isLatest) {
                 return (
                     <div className="flex items-center gap-3 text-slate-500 text-sm py-2">
                          <RainbowCyclone className="w-5 h-5" />
@@ -377,6 +384,14 @@
                         </div>
                     )}
                     
+                    {images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {images.map((img, i) => (
+                                <img key={i} src={img} className="rounded-xl max-w-full h-auto border border-slate-200 shadow-sm" alt="Generated" />
+                            ))}
+                        </div>
+                    )}
+
                     {parts.map((part, index) => {
                         if (index % 3 === 0 && part.trim()) {
                             return <MarkdownText key={index} text={part} />;
@@ -397,7 +412,7 @@
                       )}
                       <div className={`flex-1 min-w-0 ${isUser ? 'bg-slate-100 text-slate-900 px-4 py-3 rounded-2xl rounded-tr-sm' : 'pl-0 sm:pl-0'}`}>
                         {renderContent()}
-                        {!isUser && msg.content.trim() && (
+                        {!isUser && (msg.content.trim() || msg.images?.length > 0) && (
                             <div className="flex items-center gap-4 mt-2 pt-1">
                                 <button onClick={handleCopy} className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-all">
                                     {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-500" /> : <CopyIcon className="w-3.5 h-3.5" />} 
@@ -530,7 +545,6 @@
           const [isSidebarOpen, setIsSidebarOpen] = useState(false);
           const [isStreaming, setIsStreaming] = useState(false);
           
-          // Enhanced Attachment State: { uri: string, mimeType: string, type: 'image'|'video' }
           const [selectedAttachment, setSelectedAttachment] = useState(null);
           
           const [isProMode, setIsProMode] = useState(false);
@@ -551,6 +565,13 @@
           const inputRef = useRef(null);
           const fileInputRef = useRef(null);
           const isMagicActiveRef = useRef(isMagicActive);
+
+          // SAFE API KEY RETRIEVAL
+          const getApiKey = useCallback(() => {
+              const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
+              if (!key || key.startsWith('sk-')) return null; // Filter out OpenAI keys
+              return key;
+          }, []);
 
           useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
 
@@ -705,11 +726,12 @@
 
           const handleEnhancePrompt = async () => {
               if (!input.trim()) return;
+              const key = getApiKey();
+              if (!key) return; // Silent return if no key, don't crash
+              
               setIsMagicLoading(true);
               try {
-                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
-                  const ai = new GoogleGenAI({ apiKey: key || 'dummy_key' });
-                  
+                  const ai = new GoogleGenAI({ apiKey: key });
                   const response = await ai.models.generateContent({
                       model: 'gemini-2.5-flash',
                       contents: input,
@@ -736,6 +758,12 @@
                   return;
               }
               
+              const key = getApiKey();
+              if (!key) {
+                  showToast("⚠️ Deployment Error: API Key missing. Please check Vercel settings.");
+                  return;
+              }
+
               setIsStreaming(true);
               setInput(''); 
 
@@ -753,8 +781,7 @@
               setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', statusMessage: 'Initializing Quantum Engine...' }] } : s));
 
               try {
-                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
-                  const ai = new GoogleGenAI({ apiKey: key || 'dummy_key' });
+                  const ai = new GoogleGenAI({ apiKey: key });
 
                   updateStatus('Deep Logic Analysis: Architecting Composition...');
                   const analysisResponse = await ai.models.generateContent({
@@ -780,34 +807,20 @@
                        } else throw new Error("No data");
                   } catch (imagenError) {
                       try {
-                           updateStatus('Gemini Vision Pro: Rerouting...');
-                           const imgResponse = await ai.models.generateContent({
-                                model: 'gemini-3-pro-image-preview',
-                                contents: { parts: [{ text: enhancedPrompt }] },
-                                config: { imageConfig: { aspectRatio: "16:9" } }
-                           });
-                           for (const part of imgResponse.candidates[0].content.parts) {
-                               if (part.inlineData) {
-                                   imageUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                                    usedPrompt = enhancedPrompt + " (Generated with Gemini 3 Pro)";
-                               }
-                           }
-                      } catch (proError) {
-                          try {
-                              updateStatus('Fast Engine: Finalizing Render...');
-                              const fallbackResponse = await ai.models.generateContent({
-                                model: 'gemini-2.5-flash-image',
-                                contents: { parts: [{ text: textToUse }] },
-                                config: { imageConfig: { aspectRatio: "16:9" } }
-                              });
-                              for (const part of fallbackResponse.candidates[0].content.parts) {
-                                  if (part.inlineData) {
-                                      imageUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                                      usedPrompt = textToUse + " (Generated with Fast Engine)";
-                                  }
+                          // Fallback to Flash Image directly for speed and reliability if Pro fails
+                          updateStatus('Fast Engine: Finalizing Render...');
+                          const fallbackResponse = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash-image',
+                            contents: { parts: [{ text: textToUse }] },
+                            // gemini-2.5-flash-image supports basic image gen
+                          });
+                          for (const part of fallbackResponse.candidates[0].content.parts) {
+                              if (part.inlineData) {
+                                  imageUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                                  usedPrompt = textToUse + " (Generated with Fast Engine)";
                               }
-                          } catch (fallbackError) { throw new Error("All image models failed."); }
-                      }
+                          }
+                      } catch (fallbackError) { throw new Error("All image models failed."); }
                   }
 
                    if (imageUri) {
@@ -819,7 +832,7 @@
 
               } catch (e) {
                   setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
-                  showToast("Visual generation paused. Please try again.");
+                  showToast("Visual generation paused. Please check API Key.");
               } finally {
                   setIsStreaming(false);
               }
@@ -829,8 +842,13 @@
               const textToSend = textOverride || input;
               if ((!textToSend.trim() && !selectedAttachment) || isStreaming) return;
               
-              const attachmentPayload = selectedAttachment; // Capture current attachment
+              const key = getApiKey();
+              if (!key) {
+                  showToast("⚠️ Deployment Error: API Key missing. Please check Vercel settings.");
+                  return;
+              }
 
+              const attachmentPayload = selectedAttachment; 
               setInput(''); setSelectedAttachment(null); setIsStreaming(true);
               setIsMagicActive(false); 
               isMagicActiveRef.current = false; 
@@ -873,6 +891,7 @@
                           });
                       }
                       if (m.content) parts.push({ text: m.content });
+                      // Gemini requires valid parts
                       return parts.length > 0 ? { role: m.role === 'user' ? 'user' : 'model', parts: parts } : null;
                   })
                   .filter(Boolean);
@@ -883,7 +902,8 @@
                        currentParts.push({ inlineData: { mimeType: attachmentPayload.mimeType, data: attachmentPayload.uri.split('base64,')[1] } });
                    } catch(e) {}
               }
-              currentParts.push({ text: textToSend });
+              if (textToSend) currentParts.push({ text: textToSend });
+              
               const finalContents = [...historyParts, { role: 'user', parts: currentParts }];
 
               const botIdentity = chatbotName || "Bapkam";
@@ -893,9 +913,6 @@
               const systemPrompt = isProMode ? baseIdentity + "\n" + proInstructions : baseIdentity;
 
               try {
-                  const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
-                  if (!key) throw new Error("API Key missing");
-                  
                   const ai = new GoogleGenAI({ apiKey: key });
 
                   // --- BULLETPROOF RETRY LOGIC ---
@@ -907,14 +924,14 @@
                         const config = {
                             systemInstruction: systemPrompt,
                             temperature: isProMode ? 0.6 : 0.7,
-                            // Removed complex tools/thinkingConfig to prevent network errors
                         };
                         
-                        // Add search ONLY if explicitly requested, as it can cause timeouts
+                        // Only add search if explicitly requested to avoid 400 errors
                         if (isProMode && textToSend.toLowerCase().includes("search")) {
                              config.tools = [{ googleSearch: {} }];
                         }
 
+                        // Use stable 2.5-flash for everything to ensure reliability
                         const streamResult = await ai.models.generateContentStream({
                             model: 'gemini-2.5-flash',
                             contents: finalContents, 
@@ -930,7 +947,7 @@
                             }
                         }
                         success = true;
-                    } catch (e) { console.warn("Attempt 1 failed, retrying..."); }
+                    } catch (e) { console.warn("Attempt 1 failed, retrying...", e); }
                   }
 
                   // Attempt 2: Minimal "Safe Mode" (Instant Fallback)
@@ -939,7 +956,7 @@
                           const streamResult = await ai.models.generateContentStream({
                               model: 'gemini-2.5-flash',
                               contents: finalContents,
-                              config: { temperature: 0.7 } // Minimal config
+                              config: { temperature: 0.7 } 
                           });
                           
                           let assistantText = '';
@@ -951,14 +968,14 @@
                               }
                           }
                           success = true;
-                      } catch(e) { console.warn("Attempt 2 failed."); }
+                      } catch(e) { console.warn("Attempt 2 failed.", e); }
                   }
                   
                   if (!success) throw new Error("All attempts failed");
 
               } catch (error) {
                   // Fallback: update message to show friendly error instead of toast
-                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "I'm having a bit of trouble connecting right now. Could you please try asking that again?", isPro: false, botName: botIdentity }] } : s));
+                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "I'm having a bit of trouble connecting right now. Please check if your API Key is correctly configured in your deployment settings.", isPro: false, botName: botIdentity }] } : s));
                   console.error("Critical AI Error:", error);
               } finally { 
                   setIsStreaming(false); 
