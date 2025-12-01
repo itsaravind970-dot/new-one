@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>bapkam.ai</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><g transform=%22translate(50,50)%22><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#111827%22 transform=%22rotate(0) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#1f2937%22 transform=%22rotate(30) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#374151%22 transform=%22rotate(60) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#4b5563%22 transform=%22rotate(90) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#6b7280%22 transform=%22rotate(120) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#111827%22 transform=%22rotate(150) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#1f2937%22 transform=%22rotate(180) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#374151%22 transform=%22rotate(210) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#4b5563%22 transform=%22rotate(240) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#6b7280%22 transform=%22rotate(270) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#9ca3af%22 transform=%22rotate(300) translate(0, -10)%22 opacity=%220.95%22 /><path d=%22M0 -30 L5 -45 L10 -35 L5 -25 Z%22 fill=%22#d1d5db%22 transform=%22rotate(330) translate(0, -10)%22 opacity=%220.95%22 /></g></svg>" />
     
@@ -105,12 +105,44 @@
              ) return;
              originalError.apply(console, args);
         };
+        
+        // --- MOBILE HEIGHT FIX ---
+        // Dynamically set app height to fix "half screen" issues on mobile
+        function setAppHeight() {
+            const doc = document.documentElement;
+            doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+        }
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight();
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        html, body { height: 100dvh; width: 100vw; margin: 0; overflow: hidden; background-color: #ffffff; overscroll-behavior: none; text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
-        #root { position: fixed; inset: 0; height: 100dvh; width: 100vw; display: flex; flex-direction: column; z-index: 1; }
+        :root {
+            --app-height: 100dvh; /* Fallback */
+        }
+        html, body { 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background-color: #ffffff; 
+            overscroll-behavior: none; 
+            text-size-adjust: 100%; 
+            -webkit-text-size-adjust: 100%; 
+        }
+        #root { 
+            position: fixed; 
+            inset: 0; 
+            width: 100%;
+            height: 100%; /* Fallback */
+            height: var(--app-height); /* JS Fix */
+            display: flex; 
+            flex-direction: column; 
+            z-index: 1; 
+        }
         
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -181,7 +213,7 @@
         render() {
           if (this.state.hasError) {
             return (
-              <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 text-center">
+              <div className="flex flex-col items-center justify-center h-full bg-slate-50 p-4 text-center">
                  <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 text-3xl">!</div>
                  <h1 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h1>
                  <p className="text-slate-600 mb-6">Please refresh the page to try again.</p>
@@ -1071,7 +1103,7 @@
           return (
               <div className={`flex h-full w-full font-sans transition-colors duration-700 ${isProMode ? 'bg-[#f8f9fa]' : 'bg-white'}`}>
                   {isSidebarOpen && <div className="fixed inset-0 bg-black/20 z-30 lg:hidden backdrop-blur-md" onClick={() => setIsSidebarOpen(false)}></div>}
-                  <aside className={`fixed lg:relative inset-y-0 left-0 w-[280px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col h-full`}>
+                  <aside className={`fixed lg:relative inset-y-0 left-0 w-[280px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col h-full shadow-2xl lg:shadow-none`}>
                       <div className="p-4 flex items-center justify-between border-b border-slate-100/50">
                           <div className="flex items-center gap-3 font-bold text-lg text-slate-800 tracking-tight">
                               <div className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center shadow-sm">
@@ -1178,7 +1210,7 @@
                           )}
                       </div>
 
-                      <div className={`p-4 lg:p-6 transition-all duration-500 z-20 bg-white/90 backdrop-blur-md`}>
+                      <div className={`p-4 lg:p-6 transition-all duration-500 z-20 bg-white/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]`}>
                           <div className={`max-w-2xl mx-auto relative flex flex-col items-stretch gap-2 bg-slate-50 border shadow-sm rounded-[24px] p-1.5 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
                               
                               {/* New Hyper-Real Engine HUD */}
