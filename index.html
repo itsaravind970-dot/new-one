@@ -30,12 +30,11 @@
                 'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
                 'shimmer': 'shimmer 2s linear infinite',
                 'float': 'float 3s ease-in-out infinite',
-                'rotate-3d': 'rotate3d 4s linear infinite',
             },
             keyframes: {
                 fadeInUp: {
-                    '0%': { opacity: '0', transform: 'translateY(10px) translateX(-50%)' },
-                    '100%': { opacity: '1', transform: 'translateY(0) translateX(-50%)' },
+                    '0%': { opacity: '0', transform: 'translateY(10px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
                 fadeIn: {
                     '0%': { opacity: '0' },
@@ -48,66 +47,43 @@
                 float: {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-5px)' },
-                },
-                rotate3d: {
-                    '0%': { transform: 'rotateX(60deg) rotateZ(0deg)' },
-                    '100%': { transform: 'rotateX(60deg) rotateZ(360deg)' }
-                }
-            },
-            colors: {
-                pro: {
-                    50: '#f0fdf4',
-                    100: '#dcfce7',
-                    500: '#22c55e',
-                    600: '#16a34a',
-                    900: '#14532d',
-                    glow: '#4ade80'
                 }
             },
             dropShadow: {
                 'cyan': '0 0 8px rgba(34, 211, 238, 0.5)',
-                'gold': '0 0 10px rgba(251, 191, 36, 0.6)',
             }
           }
         }
       }
     </script>
     
-    <!-- Environment & Console Polyfills (CRITICAL: Must run before other scripts) -->
+    <!-- Environment & Console Polyfills (CRITICAL for Vercel & Mobile) -->
     <script>
-        // Polyfill process.env for browser environments to prevent crashes
+        // CRITICAL: Prevent "process is not defined" crash on Vercel/Browser
         window.process = window.process || {};
         window.process.env = window.process.env || {};
         
-        // Try to grab key from global if injected by some other means
+        // Auto-detect API Key if injected via global script or similar
         if (typeof window.API_KEY !== 'undefined') {
             window.process.env.API_KEY = window.API_KEY;
         }
 
+        // Suppress benign warnings to keep console clean
         const originalWarn = console.warn;
         const originalError = console.error;
-
         console.warn = function(...args) {
             const str = args.map(a => String(a)).join(' ');
-            if (
-                str.includes('in-browser Babel transformer') || 
-                str.includes('Imagen 3 failed') || 
-                str.includes('Pro model failed')
-            ) return;
+            if (str.includes('in-browser Babel') || str.includes('React Router')) return;
             originalWarn.apply(console, args);
         };
-
         console.error = function(...args) {
              const str = args.map(a => String(a)).join(' ');
-             if (
-                 (str.includes('404') || str.includes('403')) && 
-                 (str.includes('generateImages') || str.includes('generateContent'))
-             ) return;
+             if ((str.includes('404') || str.includes('403')) && str.includes('generate')) return;
              originalError.apply(console, args);
         };
         
-        // --- MOBILE HEIGHT FIX ---
-        // Dynamically set app height to fix "half screen" issues on mobile
+        // --- MOBILE LAYOUT ENGINE ---
+        // Dynamically calculate 1vh to fix iOS safari scroll bugs
         function setAppHeight() {
             const doc = document.documentElement;
             doc.style.setProperty('--app-height', `${window.innerHeight}px`);
@@ -120,69 +96,51 @@
 
     <style>
         :root {
-            --app-height: 100dvh; /* Fallback */
+            --app-height: 100dvh;
         }
         html, body { 
             height: 100%; 
             width: 100%; 
             margin: 0; 
             padding: 0; 
-            overflow: hidden; 
+            overflow: hidden; /* Prevent body scroll */
             background-color: #ffffff; 
             overscroll-behavior: none; 
-            text-size-adjust: 100%; 
-            -webkit-text-size-adjust: 100%; 
+            -webkit-tap-highlight-color: transparent;
         }
         #root { 
             position: fixed; 
             inset: 0; 
             width: 100%;
             height: 100%; /* Fallback */
-            height: var(--app-height); /* JS Fix */
+            height: var(--app-height); /* Dynamic Fix */
             display: flex; 
             flex-direction: column; 
             z-index: 1; 
         }
         
-        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        * { -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
         
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-
-        /* Syntax Highlighting */
-        .token-keyword { color: #ff7b72; font-weight: 600; }
-        .token-string { color: #a5d6ff; }
-        .token-comment { color: #8b949e; font-style: italic; }
-        .token-function { color: #d2a8ff; }
-        .token-number { color: #79c0ff; }
-        .token-class { color: #f0883e; }
-        
-        /* Markdown Styles for Chat */
-        .prose-content ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
-        .prose-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
-        .prose-content strong { font-weight: 700; color: #1e293b; }
-        .prose-content em { font-style: italic; }
-        .prose-content h3 { font-size: 1.1rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #0f172a; }
-        .prose-content h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0f172a; }
+        /* Markdown Styles */
+        .prose-content ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+        .prose-content ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+        .prose-content strong { font-weight: 700; color: #111827; }
+        .prose-content h3 { font-size: 1.1rem; font-weight: 700; margin-top: 1rem; color: #111827; }
         .prose-content p { margin-bottom: 0.75rem; line-height: 1.6; }
         .prose-content p:last-child { margin-bottom: 0; }
-        
-        /* 3D Engine Perspective */
-        .perspective-1000 { perspective: 1000px; }
-        .preserve-3d { transform-style: preserve-3d; }
     </style>
+
 <script type="importmap">
 {
   "imports": {
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
     "react": "https://esm.sh/react@18.3.1",
-    "react/": "https://esm.sh/react@18.3.1/",
-    "react-dom": "https://esm.sh/react-dom@18.3.1",
-    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/"
   }
 }
 </script>
@@ -191,7 +149,7 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-      import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+      import React, { useState, useEffect, useRef, useCallback } from 'react';
       import { createRoot } from 'react-dom/client';
       import { GoogleGenAI } from "@google/genai";
 
@@ -199,25 +157,17 @@
       class ErrorBoundary extends React.Component {
         constructor(props) {
           super(props);
-          this.state = { hasError: false, error: null };
+          this.state = { hasError: false };
         }
-
-        static getDerivedStateFromError(error) {
-          return { hasError: true, error };
-        }
-
-        componentDidCatch(error, errorInfo) {
-          console.error("Uncaught Error:", error, errorInfo);
-        }
-
+        static getDerivedStateFromError(error) { return { hasError: true }; }
         render() {
           if (this.state.hasError) {
             return (
-              <div className="flex flex-col items-center justify-center h-full bg-slate-50 p-4 text-center">
-                 <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 text-3xl">!</div>
-                 <h1 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h1>
-                 <p className="text-slate-600 mb-6">Please refresh the page to try again.</p>
-                 <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl shadow-lg hover:bg-slate-800 transition-colors">Refresh App</button>
+              <div className="flex flex-col items-center justify-center h-full bg-white p-6 text-center">
+                 <div className="text-3xl mb-4">⚠️</div>
+                 <h2 className="text-xl font-bold mb-2">Application Paused</h2>
+                 <p className="text-slate-500 mb-6">Something unexpected happened.</p>
+                 <button onClick={() => window.location.reload()} className="px-6 py-2 bg-slate-900 text-white rounded-lg">Reload App</button>
               </div>
             );
           }
@@ -234,63 +184,50 @@
       const SearchIcon = (p) => <Icon d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 16zM21 21l-4.35-4.35" {...p} />;
       const CodeIcon = (p) => <Icon d="M16 18 22 12 16 6M8 6 2 12 8 18" {...p} />;
       const SparklesIcon = (p) => <Icon d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" {...p} />;
-      const CheckIcon = (p) => <Icon d="M20 6 9 17l-5-5" {...p} />;
       const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" {...p} />;
-      const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8m-4-6-4-4-4 4m4-4v13" {...p} />;
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
       const MagicWandIcon = (p) => <Icon d="M10.5 10.5 3 3m18 18-7.5-7.5M10.5 10.5l4-4m-4 4 5 5m.5-9.5L21 3l-4.5 4.5m-11 11 6.5-6.5" {...p} />;
       const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
       const TrashIcon = (p) => <Icon d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...p} />;
       const PaletteIcon = (p) => <Icon d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" {...p} />;
       const TemplateIcon = (p) => <Icon d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4" {...p} />;
-      const TextIcon = (p) => <Icon d="M4 7V4h16v3M9 20h6M12 4v16" {...p} />;
       const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
       const VideoIcon = (p) => <Icon d="M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" {...p} />;
-      
-      // --- COMPONENTS ---
 
+      // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false }) => (
         <div className={`${className} relative flex items-center justify-center`}>
             {isPro && (
                 <>
-                    <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-40 animate-pulse" style={{ animationDuration: '2s' }}></div>
+                    <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-40 animate-pulse"></div>
                     <div className="absolute -inset-2 bg-blue-500 rounded-full blur-2xl opacity-20 animate-ping-slow"></div>
                 </>
             )}
-            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 ease-in-out ${isPro ? 'animate-spin-slower drop-shadow-cyan' : ''}`} xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 ${isPro ? 'animate-spin-slower drop-shadow-cyan' : ''}`} xmlns="http://www.w3.org/2000/svg">
                 <g transform="translate(50,50)">
-                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#22d3ee" : "#111827"} transform="rotate(0) translate(0, -10)" opacity="0.95" />
-                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#06b6d4" : "#1f2937"} transform="rotate(60) translate(0, -10)" opacity="0.95" />
-                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#3b82f6" : "#374151"} transform="rotate(120) translate(0, -10)" opacity="0.95" />
-                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#60a5fa" : "#4b5563"} transform="rotate(180) translate(0, -10)" opacity="0.95" />
-                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#93c5fd" : "#6b7280"} transform="rotate(240) translate(0, -10)" opacity="0.95" />
-                    <path d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? "#e0f2fe" : "#9ca3af"} transform="rotate(300) translate(0, -10)" opacity="0.95" />
+                    {[...Array(12)].map((_, i) => (
+                        <path key={i} d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? `hsl(${190 + i * 10}, 90%, 60%)` : `hsl(220, 20%, ${20 + i * 5}%)`} transform={`rotate(${i * 30}) translate(0, -10)`} opacity="0.95" />
+                    ))}
                 </g>
             </svg>
         </div>
       );
 
-      // --- HYPER REAL ENGINE HUD (COMPACT & PROFESSIONAL) ---
+      // --- MATRIX STYLE ENGINE HUD ---
       const EngineHUD = ({ status, mode = 'text' }) => {
           if (!status) return null;
-          
           const engines = mode === 'image' 
              ? ["Neural Architect", "Quantum Render", "Visual Polish"]
              : ["Deep Logic", "Fact Verification", "Creative Core"];
-
           return (
-            <div className="absolute bottom-[105%] left-1/2 -translate-x-1/2 z-50 animate-fade-in-up w-max max-w-[90vw]">
-                 <div className="bg-black/95 backdrop-blur-md border border-black shadow-2xl rounded-lg p-2 flex items-center gap-3">
+            <div className="absolute bottom-[110%] left-1/2 -translate-x-1/2 z-50 animate-fade-in-up w-max max-w-[95vw]">
+                 <div className="bg-black/90 backdrop-blur-md border border-black shadow-2xl rounded-lg px-3 py-2 flex items-center gap-3">
                     {engines.map((eng, i) => {
                         const isCurrent = status === eng;
                         return (
-                            <div key={i} className={`flex flex-col items-center gap-1 px-1.5 transition-all duration-300 ${isCurrent ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                                <div className="relative w-4 h-4 flex items-center justify-center">
-                                    <div className={`absolute inset-0 border border-green-900/50 rounded-full`}></div>
-                                    <div className={`absolute inset-0 border-t border-green-400 rounded-full ${isCurrent ? 'animate-spin' : ''}`}></div>
-                                    <div className={`w-1 h-1 rounded-full bg-green-500 ${isCurrent ? 'animate-pulse' : ''}`}></div>
-                                </div>
-                                <span className="text-[9px] font-mono font-bold text-green-400 whitespace-nowrap tracking-wider uppercase">{eng}</span>
+                            <div key={i} className={`flex flex-col items-center gap-1 transition-all duration-300 ${isCurrent ? 'opacity-100 scale-105' : 'opacity-40 grayscale'}`}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
+                                <span className="text-[10px] font-mono font-bold text-green-400 whitespace-nowrap uppercase tracking-wider">{eng}</span>
                             </div>
                         )
                     })}
@@ -299,962 +236,318 @@
           );
       };
 
-      const RainbowCyclone = ({ className = "w-6 h-6" }) => (
-          <div className={`${className} rounded-full animate-spin-slow`} 
-               style={{ 
-                   background: 'conic-gradient(from 0deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)',
-                   padding: '3px',
-                   mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px + 1px))',
-                   WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px + 1px))'
-               }}>
-          </div>
-      );
-
-      const CodeBlock = ({ language, code }) => {
-          const [copied, setCopied] = useState(false);
-          const handleCopy = () => {
-              navigator.clipboard.writeText(code);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-          };
-          
-          const highlighted = code
-              .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-              .replace(/(['"`])(.*?)\1/g, '<span class="token-string">$1$2$1</span>')
-              .replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|async|await|const|let|var|function|print|console|new|this|window|document|export|default)\b/g, '<span class="token-keyword">$1</span>')
-              .replace(/\b(\d+)\b/g, '<span class="token-number">$1</span>')
-              .replace(/\b([A-Z][a-zA-Z0-9_]*)\b/g, '<span class="token-class">$1</span>')
-              .replace(/(#.*|\/\/.*)$/gm, '<span class="token-comment">$1</span>');
-
-          return (
-              <div className="my-5 rounded-xl overflow-hidden border border-slate-200/80 shadow-xl bg-[#1e1e2e] text-slate-300 w-full group ring-1 ring-black/5 relative max-w-full">
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#181825] border-b border-white/10">
-                      <div className="flex items-center gap-3">
-                          <div className="flex gap-1.5 opacity-75">
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider ml-2">
-                             {language || 'CODE'}
-                          </span>
-                      </div>
-                      <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/10">
-                          {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-400" /> : <CopyIcon className="w-3.5 h-3.5" />}
-                          {copied ? 'Copied' : 'Copy'}
-                      </button>
-                  </div>
-                  <div className="relative overflow-x-auto custom-scroll bg-[#1e1e2e]">
-                      <div className="flex min-w-full">
-                          <div className="flex flex-col items-end px-3 py-4 text-right select-none text-[#6c7086] text-xs font-mono leading-6 border-r border-white/5 bg-[#1e1e2e] min-w-[40px]">
-                               {code.trim().split('\n').map((_, i) => <span key={i}>{i + 1}</span>)}
-                          </div>
-                          <pre className="flex-1 px-4 py-4 text-[13px] font-mono leading-6 tab-4 outline-none text-[#cdd6f4]">
-                              <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-                          </pre>
-                      </div>
-                  </div>
-              </div>
-          );
-      };
-
-      const MarkdownText = ({ text }) => {
-          const formatText = (input) => {
-              if (!input) return null;
-              
-              const paragraphs = input.split(/\n\n+/);
-              
-              return paragraphs.map((paragraph, i) => {
-                  if (paragraph.startsWith('### ')) {
-                      return <h3 key={i} className="text-lg font-bold mt-4 mb-2 text-slate-900">{paragraph.replace('### ', '')}</h3>;
-                  }
-                  if (paragraph.startsWith('## ')) {
-                      return <h2 key={i} className="text-xl font-bold mt-6 mb-3 text-slate-900">{paragraph.replace('## ', '')}</h2>;
-                  }
-                  if (paragraph.match(/^[-•] /m)) {
-                      const items = paragraph.split(/\n/).filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'));
-                      if (items.length > 0) {
-                          return (
-                              <ul key={i} className="list-disc pl-5 my-2 space-y-1 text-slate-800">
-                                  {items.map((item, j) => {
-                                      const content = item.replace(/^[-•] /, '').trim();
-                                      return (
-                                          <li key={j} dangerouslySetInnerHTML={{
-                                              __html: content
-                                                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                          }} />
-                                      );
-                                  })}
-                              </ul>
-                          );
-                      }
-                  }
-
-                  const htmlContent = paragraph
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      .replace(/\n(?![-\d])/g, '<br/>');
-
-                  return <p key={i} className="mb-3 last:mb-0 leading-relaxed text-[16px] text-slate-800" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
-              });
-          };
-
-          return <div className="prose-content">{formatText(text)}</div>;
-      };
-
-      const ChatMessage = ({ msg, isPro, isLatest, isLoading, botName }) => {
-          const [copied, setCopied] = useState(false);
-          const isUser = msg.role === 'user';
-
-          const handleCopy = () => {
-            navigator.clipboard.writeText(msg.content);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          };
-
-          const handleShare = async () => {
-            if (navigator.share) {
-                try { await navigator.share({ title: 'Response', text: msg.content }); } catch (err) {}
-            } else {
-                navigator.clipboard.writeText(msg.content);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            }
-          };
-
-          const renderContent = () => {
-            const hasAttachments = msg.attachments && msg.attachments.length > 0;
-            const rawContent = msg.content || '';
-            const images = msg.images || [];
-            
-            if (!isUser && !rawContent.trim() && !images.length && isLoading && isLatest) {
-                return (
-                    <div className="flex items-center gap-3 text-slate-500 text-sm py-2">
-                         <RainbowCyclone className="w-5 h-5" />
-                         <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 animate-pulse">
-                            {msg.statusMessage || "Thinking..."}
-                         </span>
-                    </div>
-                );
-            }
-
-            const parts = rawContent.split(/```(\w+)?\n([\s\S]*?)```/g);
-            
-            return (
-                <div className="flex flex-col gap-2 w-full overflow-hidden">
-                    {hasAttachments && (
-                        <div className="flex flex-wrap gap-2 mb-2 justify-end">
-                            {msg.attachments.map((att, i) => (
-                                <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm max-w-[200px]">
-                                    {att.type === 'video' ? (
-                                        <div className="relative">
-                                            <video src={att.uri} className="w-full h-auto" controls />
-                                            <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1"><VideoIcon className="w-3 h-3"/> Video</div>
-                                        </div>
-                                    ) : (
-                                        <img src={att.uri} className="w-full h-auto object-cover cursor-pointer hover:opacity-90" onClick={() => window.open(att.uri, '_blank')} />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {images.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                            {images.map((img, i) => (
-                                <img key={i} src={img} className="rounded-xl max-w-full h-auto border border-slate-200 shadow-sm" alt="Generated" />
-                            ))}
-                        </div>
-                    )}
-
-                    {parts.map((part, index) => {
-                        if (index % 3 === 0 && part.trim()) {
-                            return <MarkdownText key={index} text={part} />;
-                        }
-                        if (index % 3 === 2) return <CodeBlock key={index} language={parts[index - 1]} code={part} />;
-                    })}
-                </div>
-            );
-          };
-
-          return (
-              <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
-                  <div className={`flex w-full ${isUser ? 'flex-row-reverse max-w-2xl' : 'flex-row max-w-4xl'} gap-3 sm:gap-4`}>
-                      {!isUser && (
-                          <div className={`w-8 h-8 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center flex-shrink-0 mt-1 transition-all duration-500 overflow-hidden hidden sm:flex`}>
-                             <BapkamLogo className="w-5 h-5" />
-                          </div>
-                      )}
-                      <div className={`flex-1 min-w-0 ${isUser ? 'bg-slate-100 text-slate-900 px-4 py-3 rounded-2xl rounded-tr-sm' : 'pl-0 sm:pl-0'}`}>
-                        {renderContent()}
-                        {!isUser && (msg.content.trim() || msg.images?.length > 0) && (
-                            <div className="flex items-center gap-4 mt-2 pt-1">
-                                <button onClick={handleCopy} className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-all">
-                                    {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-500" /> : <CopyIcon className="w-3.5 h-3.5" />} 
-                                    {copied ? 'Copied' : 'Copy'}
-                                </button>
-                                <button onClick={handleShare} className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-all">
-                                    <ShareIcon className="w-3.5 h-3.5" /> Share
-                                </button>
-                                {isPro && (
-                                    <span className="text-[10px] text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 uppercase tracking-wide font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                        Pro
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                      </div>
-                  </div>
-              </div>
-          );
-      };
-
-      const SuggestionPill = ({ icon: Icon, text, onClick }) => (
-        <button onClick={onClick} className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-full shadow-sm transition-all group w-full justify-center">
-            <Icon className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-            <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 truncate">{text}</span>
-        </button>
-      );
-
-      const PromptTemplateModal = ({ isOpen, onClose, onSelect }) => {
-          if(!isOpen) return null;
-          const templates = [
-              { name: "Summarize Document", prompt: "Summarize this text in 3 concise bullet points:", icon: TextIcon },
-              { name: "Fix My Code", prompt: "Debug this code, explain the error, and provide the fixed version:", icon: CodeIcon },
-              { name: "Write Professional Email", prompt: "Write a polite and professional email about:", icon: SendIcon },
-              { name: "Simplify Complex Topic", prompt: "Explain this concept like I'm 10 years old:", icon: SparklesIcon },
-              { name: "Creative Story", prompt: "Write a short story with a massive plot twist about:", icon: PaletteIcon }
-          ];
-
-          return (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-                  <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-lg font-bold text-slate-800">Quick Templates</h3>
-                          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><CloseIcon className="w-5 h-5 text-slate-500"/></button>
-                      </div>
-                      <div className="grid gap-3">
-                          {templates.map((t, i) => (
-                              <button key={i} onClick={() => onSelect(t.prompt)} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all text-left group">
-                                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                                      <t.icon className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                      <div className="font-semibold text-slate-800 text-sm">{t.name}</div>
-                                      <div className="text-xs text-slate-500 truncate">{t.prompt}</div>
-                                  </div>
-                              </button>
-                          ))}
-                      </div>
-                  </div>
-              </div>
-          )
-      };
-
-      const ImageGenerationModal = ({ isOpen, onClose, onGenerate }) => {
-        const [prompt, setPrompt] = useState("");
-        const inputRef = useRef(null);
-        
-        useEffect(() => {
-            if(isOpen && inputRef.current) inputRef.current.focus();
-        }, [isOpen]);
-
-        if (!isOpen) return null;
-
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-                <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-fade-in-up border border-slate-100" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-6">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                                <PaletteIcon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 leading-tight">Hyper-Real Studio</h3>
-                                <p className="text-xs text-slate-500">Powered by Imagen 3 Quantum</p>
-                            </div>
-                         </div>
-                        <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors"><CloseIcon className="w-5 h-5 text-slate-400"/></button>
-                    </div>
-                    
-                    <div className="relative mb-6">
-                        <textarea 
-                            ref={inputRef}
-                            className="w-full bg-slate-50 rounded-2xl p-4 text-slate-800 placeholder-slate-400 outline-none border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none h-32 text-base leading-relaxed"
-                            placeholder="Describe your imagination in detail... (e.g., A futuristic city with neon lights in rain, 8k realism)"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                        />
-                         <div className="absolute bottom-3 right-3 text-xs text-slate-400 font-medium">
-                            {prompt.length} chars
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3">
-                         <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors">Cancel</button>
-                         <button 
-                            onClick={() => { onGenerate(prompt); onClose(); setPrompt(""); }} 
-                            disabled={!prompt.trim()}
-                            className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                         >
-                            <SparklesIcon className="w-4 h-4 text-yellow-300" />
-                            Generate Masterpiece
-                         </button>
-                    </div>
-                </div>
-            </div>
-        );
-      };
-
+      // --- MAIN APP ---
       const App = () => {
-          const [isSignedIn, setIsSignedIn] = useState(false);
-          const [user, setUser] = useState(null);
+          // --- STATE ---
           const [isLoaded, setIsLoaded] = useState(false);
-          
+          const [isSignedIn, setIsSignedIn] = useState(false);
           const [chatbotName, setChatbotName] = useState('');
-          const [isSetupComplete, setIsSetupComplete] = useState(false);
-
           const [sessions, setSessions] = useState([]);
           const [activeId, setActiveId] = useState(null);
           const [input, setInput] = useState('');
           const [isSidebarOpen, setIsSidebarOpen] = useState(false);
           const [isStreaming, setIsStreaming] = useState(false);
-          
+          const [isProMode, setIsProMode] = useState(false);
           const [selectedAttachment, setSelectedAttachment] = useState(null);
           
-          const [isProMode, setIsProMode] = useState(false);
-          const [isDataLoaded, setIsDataLoaded] = useState(false);
-          const [isMagicLoading, setIsMagicLoading] = useState(false);
-          const [isMagicActive, setIsMagicActive] = useState(false);
-          const [toastMessage, setToastMessage] = useState(null);
-          const [searchQuery, setSearchQuery] = useState('');
-          
-          // --- ENGINE HUD STATE ---
+          // HUD & Tools
           const [engineStatus, setEngineStatus] = useState('');
-          const [engineColor, setEngineColor] = useState('text-cyan-400');
-          const [engineMode, setEngineMode] = useState('text'); // 'text' or 'image'
-
-          const [projects, setProjects] = useState(['General', 'Work', 'Creative']);
-          const [activeProject, setActiveProject] = useState('General');
-
+          const [engineMode, setEngineMode] = useState('text');
           const [showTemplates, setShowTemplates] = useState(false);
-          const [showImageGenModal, setShowImageGenModal] = useState(false);
+          const [showImageModal, setShowImageModal] = useState(false);
+          const [searchQuery, setSearchQuery] = useState('');
+          const [toast, setToast] = useState(null);
 
+          // Refs
           const chatRef = useRef(null);
           const inputRef = useRef(null);
-          const fileInputRef = useRef(null);
-          const isMagicActiveRef = useRef(isMagicActive);
+          const fileRef = useRef(null);
 
-          // SAFE API KEY RETRIEVAL
-          const getApiKey = useCallback(() => {
-              const key = typeof process !== 'undefined' ? process.env.API_KEY : '';
-              if (!key || key.startsWith('sk-')) return null; // Filter out OpenAI keys
-              return key;
-          }, []);
+          // --- HELPERS ---
+          const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+          
+          const getApiKey = () => {
+             // Safe check for Vercel environments
+             const k = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : null;
+             return k;
+          };
 
-          useEffect(() => { isMagicActiveRef.current = isMagicActive; }, [isMagicActive]);
-
+          // --- INIT ---
           useEffect(() => {
               const timer = setTimeout(() => {
-                try {
-                    const storedAuth = localStorage.getItem('bapkam_auth_token');
-                    if (storedAuth) {
-                        setIsSignedIn(true);
-                        setUser({ id: 'guest_user', firstName: 'Friend' });
-                    }
-                } catch(e) { console.debug("Storage access error", e); }
-                setIsLoaded(true);
-              }, 800);
+                  try {
+                      const storedAuth = localStorage.getItem('bapkam_auth');
+                      if (storedAuth) setIsSignedIn(true);
+                      
+                      const storedSessions = localStorage.getItem('bapkam_sessions');
+                      if (storedSessions) {
+                          const parsed = JSON.parse(storedSessions);
+                          setSessions(parsed);
+                          if(parsed.length > 0) setActiveId(parsed[0].id);
+                      }
+                      
+                      const savedName = localStorage.getItem('bapkam_name');
+                      if (savedName) setChatbotName(savedName);
+                  } catch(e) {}
+                  setIsLoaded(true);
+              }, 600);
               return () => clearTimeout(timer);
           }, []);
+
+          // --- PERSISTENCE ---
+          useEffect(() => {
+              if (isLoaded && isSignedIn) {
+                  localStorage.setItem('bapkam_sessions', JSON.stringify(sessions));
+              }
+          }, [sessions, isLoaded, isSignedIn]);
           
           useEffect(() => {
-              if (isLoaded && isSignedIn && user) {
-                  try {
-                      const savedName = localStorage.getItem(`bapkam_bot_name_${user.id}`);
-                      if (savedName) {
-                          setChatbotName(savedName);
-                          setIsSetupComplete(true);
-                      }
+             if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+          }, [sessions, isStreaming]);
 
-                      const savedChats = localStorage.getItem(`bapkam_chats_${user.id}`);
-                      if (savedChats) {
-                          const parsed = JSON.parse(savedChats);
-                          setSessions(parsed);
-                          setActiveId(parsed[0]?.id || null);
-                      } else {
-                          setSessions([]);
-                      }
-                  } catch(e) { console.debug("Storage load error", e); setSessions([]); }
-                  setIsDataLoaded(true);
-              }
-          }, [isLoaded, isSignedIn, user]);
-
-          useEffect(() => {
-             if (isDataLoaded && isSignedIn && sessions.length === 0) {
-                 createSession();
-             }
-          }, [isDataLoaded, isSignedIn]);
-
-          useEffect(() => {
-              if (isSignedIn && user && isDataLoaded) {
-                  try {
-                    localStorage.setItem(`bapkam_chats_${user.id}`, JSON.stringify(sessions));
-                  } catch(e) {}
-              }
-          }, [sessions, isSignedIn, user, isDataLoaded]);
-
-          useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [sessions, isStreaming]);
-
-          useEffect(() => {
-             if (isMagicActive && input.trim() && !isMagicLoading && isProMode) {
-                 const timer = setTimeout(() => {
-                     if (input.trim() && isMagicActive) {
-                         handleEnhancePrompt();
-                     }
-                 }, 1500); 
-                 return () => clearTimeout(timer);
-             }
-          }, [input, isMagicActive, isProMode]);
-
-          useEffect(() => {
-            if (toastMessage) {
-                const timer = setTimeout(() => setToastMessage(null), 3000);
-                return () => clearTimeout(timer);
-            }
-          }, [toastMessage]);
-
-          const showToast = (msg) => setToastMessage(msg);
-
-          const handleLogin = (e) => {
-              e.preventDefault(); 
-              try { localStorage.setItem('bapkam_auth_token', 'guest_access_granted'); } catch(e) {}
-              setIsSignedIn(true);
-              setUser({ id: 'guest_user', firstName: 'Friend' });
-          };
-
-          const handleLogout = () => {
-              try { localStorage.removeItem('bapkam_auth_token'); } catch(e) {}
-              setIsSignedIn(false);
-              setUser(null);
-              setSessions([]);
-              setIsSetupComplete(false);
-          };
-
-          const currentSession = sessions.find(s => s.id === activeId) || { messages: [] };
-
-          const createSession = (project = 'General') => {
+          // --- HANDLERS ---
+          const createSession = () => {
               const id = Date.now().toString();
-              const newSession = { id, title: 'New Chat', messages: [], project: project };
-              setSessions(prev => [newSession, ...prev]);
+              const newS = { id, title: 'New Chat', messages: [] };
+              setSessions(prev => [newS, ...prev]);
               setActiveId(id);
-              setActiveProject(project);
               if (window.innerWidth < 1024) setIsSidebarOpen(false);
           };
-          
-          const handleDeleteSession = (e, sessionId) => {
-            e.stopPropagation();
-            const newSessions = sessions.filter(s => s.id !== sessionId);
-            setSessions(newSessions);
-            
-            if (newSessions.length === 0) {
-                const id = Date.now().toString();
-                const newSession = { id, title: 'New Chat', messages: [], project: activeProject };
-                setSessions([newSession]);
-                setActiveId(id);
-            } else if (activeId === sessionId) {
-                setActiveId(newSessions[0].id);
-            }
-          };
 
-          const handleFileChange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const isVideo = file.type.startsWith('video/');
-                    setSelectedAttachment({
-                        uri: reader.result,
-                        mimeType: file.type,
-                        type: isVideo ? 'video' : 'image'
-                    });
-                };
-                reader.readAsDataURL(file);
-            }
-          };
-
-          const handleBotSetup = (name) => {
-              if (!name.trim()) return;
-              try { localStorage.setItem(`bapkam_bot_name_${user.id}`, name); } catch(e) {}
-              setChatbotName(name);
-              setIsSetupComplete(true);
-              createSession();
-          };
-
-          const handleToggleMagic = () => {
-             if (!isProMode) {
-                 showToast("Turn on Pro Mode to use this feature.");
-                 return;
-             }
-             setIsMagicActive(!isMagicActive);
-          };
-
-          const handleTogglePro = () => {
-              setIsProMode(!isProMode);
-          };
-
-          const handleEnhancePrompt = async () => {
-              if (!input.trim()) return;
-              const key = getApiKey();
-              if (!key) return; // Silent return if no key, don't crash
-              
-              setIsMagicLoading(true);
-              try {
-                  const ai = new GoogleGenAI({ apiKey: key });
-                  const response = await ai.models.generateContent({
-                      model: 'gemini-2.5-flash',
-                      contents: input,
-                      config: {
-                          systemInstruction: "You are an APEX PROMPT ENGINEER. Rewrite input to be concise, professional and 'God-Tier'. Output ONLY the prompt.",
-                          temperature: 0.7 
-                      }
-                  });
-
-                  if (!isMagicActiveRef.current) return;
-                  if (!inputRef.current || inputRef.current.value === '') return;
-                  if (response.text) setInput(response.text.trim());
-              } catch (e) {
-                  console.debug("Magic Wand suppressed error", e);
-              } finally {
-                  setIsMagicLoading(false);
-              }
-          };
-          
-          // --- SIMULATE ENGINE SEQUENCE ---
-          const runEngineSequence = async (type = 'text') => {
-              const phases = type === 'image' 
-                  ? [
-                      { text: "Neural Architect", color: "text-purple-400" },
-                      { text: "Quantum Render", color: "text-amber-400" },
-                      { text: "Visual Polish", color: "text-cyan-400" }
-                    ]
-                  : [
-                      { text: "Deep Logic", color: "text-cyan-400" },
-                      { text: "Fact Verification", color: "text-emerald-400" },
-                      { text: "Creative Core", color: "text-purple-400" }
-                    ];
-
-              for (const phase of phases) {
-                  setEngineStatus(phase.text);
-                  setEngineColor(phase.color);
-                  await new Promise(r => setTimeout(r, 800)); // Visible delay for effect
-              }
-          };
-
-          const handleGenerateRealImage = async (promptOverride = null) => {
-              const textToUse = promptOverride || input;
-              if (!textToUse.trim()) {
-                  setShowImageGenModal(true);
-                  return;
-              }
+          const handleSend = async (textOverride = null) => {
+              const txt = textOverride || input;
+              if (!txt.trim() && !selectedAttachment) return;
               
               const key = getApiKey();
               if (!key) {
-                  showToast("⚠️ Deployment Error: API Key missing. Please check Vercel settings.");
+                  showToast("⚠️ Missing API Key. Check Vercel Environment Variables.");
                   return;
               }
 
-              setIsStreaming(true);
-              setEngineMode('image');
-              setInput(''); 
-
-              const userMsg = { role: 'user', content: `Generate Hyper-Real Image: ${textToUse}` };
-              let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg] } : s);
-              setSessions(updatedSessions);
+              const att = selectedAttachment;
+              setInput(''); setSelectedAttachment(null); setIsStreaming(true); setEngineMode('text');
               
-              // Start Engine Visualization
-              setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', statusMessage: 'Initializing Quantum Engine...' }] } : s));
-              
-              // Run the animation sequence before real API call (for effect)
-              await runEngineSequence('image');
+              // 1. Update UI with User Message
+              const userMsg = { role: 'user', content: txt, attachments: att ? [att] : [] };
+              setSessions(prev => prev.map(s => s.id === activeId ? {
+                  ...s, messages: [...s.messages, userMsg], title: s.messages.length === 0 ? txt.slice(0, 30) : s.title
+              } : s));
 
+              // 2. Add Placeholder for AI
+              setSessions(prev => prev.map(s => s.id === activeId ? {
+                  ...s, messages: [...s.messages, { role: 'model', content: '', isThinking: true }]
+              } : s));
+
+              // 3. Engine Animation
+              const engines = ["Deep Logic", "Fact Verification", "Creative Core"];
+              for (const eng of engines) {
+                  setEngineStatus(eng);
+                  await new Promise(r => setTimeout(r, 600));
+              }
+
+              // 4. API Call
               try {
-                  const ai = new GoogleGenAI({ apiKey: key });
-
-                  setEngineStatus('Architecting...');
-                  const analysisResponse = await ai.models.generateContent({
-                      model: 'gemini-2.5-flash',
-                      contents: `Rewrite this image prompt for 8K Photorealism: "${textToUse}". Output ONLY the prompt.`,
-                  });
-                  const enhancedPrompt = analysisResponse.text || textToUse;
-                  
-                  let imageUri = null;
-                  let usedPrompt = enhancedPrompt;
-
-                  try {
-                       setEngineStatus('Rendering 8K...');
-                       const imagenResponse = await ai.models.generateImages({
-                            model: 'imagen-3.0-generate-001',
-                            prompt: enhancedPrompt,
-                            config: { numberOfImages: 1, aspectRatio: "16:9" }
-                       });
-                       if (imagenResponse.generatedImages?.[0]?.image?.imageBytes) {
-                           imageUri = `data:image/jpeg;base64,${imagenResponse.generatedImages[0].image.imageBytes}`;
-                           usedPrompt = enhancedPrompt + " (Generated with Imagen 3)";
-                       } else throw new Error("No data");
-                  } catch (imagenError) {
-                      try {
-                          setEngineStatus('Fallback Render...');
-                          const fallbackResponse = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash-image',
-                            contents: { parts: [{ text: textToUse }] },
+                  const history = sessions.find(s => s.id === activeId)?.messages || [];
+                  // Filter out empty/failed messages
+                  const validHistory = history.map(m => {
+                      if (!m.content && (!m.attachments || m.attachments.length===0)) return null;
+                      const parts = [];
+                      if (m.attachments) {
+                          m.attachments.forEach(a => {
+                             if(a.uri && a.uri.includes('base64,')) {
+                                 parts.push({ inlineData: { mimeType: a.mimeType, data: a.uri.split('base64,')[1] }});
+                             }
                           });
-                          for (const part of fallbackResponse.candidates[0].content.parts) {
-                              if (part.inlineData) {
-                                  imageUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                                  usedPrompt = textToUse + " (Generated with Fast Engine)";
-                              }
-                          }
-                      } catch (fallbackError) { throw new Error("All image models failed."); }
+                      }
+                      if (m.content) parts.push({ text: m.content });
+                      return { role: m.role === 'user' ? 'user' : 'model', parts };
+                  }).filter(Boolean);
+
+                  const currentParts = [];
+                  if (att && att.uri.includes('base64,')) {
+                      currentParts.push({ inlineData: { mimeType: att.mimeType, data: att.uri.split('base64,')[1] }});
                   }
+                  if (txt) currentParts.push({ text: txt });
+                  
+                  const contents = [...validHistory, { role: 'user', parts: currentParts }];
+                  
+                  const ai = new GoogleGenAI({ apiKey: key });
+                  const model = isProMode ? 'gemini-2.5-flash' : 'gemini-2.5-flash'; // Use Flash for stability on Vercel
+                  
+                  const result = await ai.models.generateContentStream({
+                      model: model,
+                      contents: contents,
+                      config: {
+                          systemInstruction: isProMode 
+                            ? "You are Bapkam in PRO MODE. Be concise, highly intelligent, and use beautiful markdown formatting." 
+                            : "You are Bapkam, a friendly and helpful assistant created by Arvind and Afridi.",
+                      }
+                  });
 
-                   if (imageUri) {
-                        setSessions(prev => prev.map(s => s.id === activeId ? { 
-                            ...s, 
-                            messages: [...s.messages.slice(0, -1), { role: 'model', content: usedPrompt, images: [imageUri] }] 
-                        } : s));
-                   } else throw new Error("Image generation failed.");
-
+                  let fullText = '';
+                  for await (const chunk of result) {
+                      const t = chunk.text;
+                      if (t) {
+                          fullText += t;
+                          setSessions(prev => prev.map(s => s.id === activeId ? {
+                              ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false }]
+                          } : s));
+                      }
+                  }
               } catch (e) {
-                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: s.messages.slice(0, -1) } : s));
-                  showToast("Visual generation paused. Please check API Key.");
+                  console.error(e);
+                  setSessions(prev => prev.map(s => s.id === activeId ? {
+                      ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "**Connection Error:** Please check your internet or API Key.", isError: true }]
+                  } : s));
               } finally {
                   setIsStreaming(false);
                   setEngineStatus('');
               }
           };
 
-          const handleSend = async (textOverride = null) => {
-              const textToSend = textOverride || input;
-              if ((!textToSend.trim() && !selectedAttachment) || isStreaming) return;
-              
-              const key = getApiKey();
-              if (!key) {
-                  showToast("⚠️ Deployment Error: API Key missing. Please check Vercel settings.");
-                  return;
-              }
+          // --- RENDERING ---
+          if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"/></div>;
 
-              const attachmentPayload = selectedAttachment; 
-              setInput(''); setSelectedAttachment(null); setIsStreaming(true);
-              setEngineMode('text');
-              setIsMagicActive(false); 
-              isMagicActiveRef.current = false; 
-
-              const userMsg = { role: 'user', content: textToSend, attachments: attachmentPayload ? [attachmentPayload] : [] };
-              let newTitle = currentSession.title === 'New Chat' ? (textToSend ? textToSend.substring(0, 30) : 'New Analysis') : currentSession.title;
-
-              let updatedSessions = sessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, userMsg], title: newTitle } : s);
-              updatedSessions = updatedSessions.map(s => s.id === activeId ? { ...s, messages: [...s.messages, { role: 'model', content: '', isPro: isProMode, botName: chatbotName }] } : s);
-              setSessions(updatedSessions);
-              
-              // Run animation sequence
-              await runEngineSequence('text');
-
-              const historyParts = currentSession.messages
-                  .filter(m => !m.statusMessage)
-                  .map(m => {
-                      const parts = [];
-                      if (m.attachments && m.attachments.length > 0) {
-                          m.attachments.forEach(att => {
-                              try {
-                                  if (att.uri.includes('base64,')) {
-                                      parts.push({ inlineData: { mimeType: att.mimeType, data: att.uri.split('base64,')[1] } });
-                                  }
-                              } catch(e) {}
-                          });
-                      }
-                      if (m.content) parts.push({ text: m.content });
-                      return parts.length > 0 ? { role: m.role === 'user' ? 'user' : 'model', parts: parts } : null;
-                  })
-                  .filter(Boolean);
-
-              const currentParts = [];
-              if (attachmentPayload) {
-                   try {
-                       currentParts.push({ inlineData: { mimeType: attachmentPayload.mimeType, data: attachmentPayload.uri.split('base64,')[1] } });
-                   } catch(e) {}
-              }
-              if (textToSend) currentParts.push({ text: textToSend });
-              
-              const finalContents = [...historyParts, { role: 'user', parts: currentParts }];
-
-              const botIdentity = chatbotName || "Bapkam";
-              const baseIdentity = `You are Bapkam, created by Arvind and Afridi. Friendly, concise, helpful.`;
-              const proInstructions = `You are running in PRO MODE (Passion Engine Active). Act as a consensus of expert engines. Combine 'Deep Logic' (for accuracy), 'Creative Spirit' (for engaging writing), and 'Formatting Core' (to structure the answer beautifully with markdown). Your goal is to provide an answer that is excellent, attractive, and highly comprehensive.`;
-              
-              const systemPrompt = isProMode ? baseIdentity + "\n" + proInstructions : baseIdentity;
-
-              try {
-                  const ai = new GoogleGenAI({ apiKey: key });
-                  let success = false;
-                  
-                  // Attempt 1: Full Config
-                  if (!success) {
-                    try {
-                        const config = {
-                            systemInstruction: systemPrompt,
-                            temperature: isProMode ? 0.6 : 0.7,
-                        };
-                        
-                        if (isProMode && textToSend.toLowerCase().includes("search")) {
-                             config.tools = [{ googleSearch: {} }];
-                        }
-
-                        const streamResult = await ai.models.generateContentStream({
-                            model: 'gemini-2.5-flash',
-                            contents: finalContents, 
-                            config: config
-                        });
-                        
-                        let assistantText = '';
-                        for await (const chunk of streamResult) {
-                            const chunkText = chunk.text;
-                            if (chunkText) {
-                                assistantText += chunkText;
-                                setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
-                            }
-                        }
-                        success = true;
-                    } catch (e) { console.warn("Attempt 1 failed, retrying...", e); }
-                  }
-
-                  // Attempt 2: Minimal "Safe Mode"
-                  if (!success) {
-                      try {
-                          const streamResult = await ai.models.generateContentStream({
-                              model: 'gemini-2.5-flash',
-                              contents: finalContents,
-                              config: { temperature: 0.7 } 
-                          });
-                          
-                          let assistantText = '';
-                          for await (const chunk of streamResult) {
-                              const chunkText = chunk.text;
-                              if (chunkText) {
-                                  assistantText += chunkText;
-                                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: assistantText, isPro: isProMode, botName: botIdentity }] } : s));
-                              }
-                          }
-                          success = true;
-                      } catch(e) { console.warn("Attempt 2 failed.", e); }
-                  }
-                  
-                  if (!success) throw new Error("All attempts failed");
-
-              } catch (error) {
-                  setSessions(prev => prev.map(s => s.id === activeId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "I'm having a bit of trouble connecting right now. Please check if your API Key is correctly configured in your deployment settings.", isPro: false, botName: botIdentity }] } : s));
-                  console.error("Critical AI Error:", error);
-              } finally { 
-                  setIsStreaming(false); 
-                  setEngineStatus('');
-              }
-          };
-          
-          const filteredSessions = sessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()));
-
-          if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-white"><RainbowCyclone className="w-10 h-10" /></div>;
-
+          // LOGIN SCREEN
           if (!isSignedIn) {
               return (
-                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden font-sans">
-                      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-slate-100 rounded-full blur-3xl opacity-40 -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
-                      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-slate-200 rounded-full blur-3xl opacity-40 translate-x-1/2 translate-y-1/2 animate-pulse-slow"></div>
-                      <div className="z-10 bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 animate-fade-in-up">
-                          <div className="flex flex-col items-center mb-6">
-                                <div className="w-20 h-20 mb-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-xl flex items-center justify-center ring-1 ring-slate-900/5">
-                                    <BapkamLogo className="w-12 h-12" />
-                                </div>
-                                <h1 className="text-3xl font-bold text-slate-900">bapkam.ai</h1>
-                                <p className="text-slate-500 mt-2 text-center">Created by Arvind and Afridi</p>
-                          </div>
-                          <button onClick={handleLogin} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg flex items-center justify-center gap-2 group"><span>Get Started</span><span className="group-hover:translate-x-1 transition-transform">→</span></button>
+                  <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
+                      <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100 animate-fade-in-up z-10">
+                          <div className="mx-auto w-16 h-16 bg-white border border-slate-100 rounded-2xl shadow-lg flex items-center justify-center mb-6"><BapkamLogo className="w-10 h-10"/></div>
+                          <h1 className="text-2xl font-bold text-slate-900 mb-2">bapkam.ai</h1>
+                          <p className="text-sm text-slate-500 mb-8">Created by Arvind and Afridi</p>
+                          <button onClick={() => { localStorage.setItem('bapkam_auth', 'true'); setIsSignedIn(true); createSession(); }} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-transform active:scale-95 shadow-lg">Enter App</button>
                       </div>
                   </div>
               );
           }
 
-          if (isSignedIn && !isSetupComplete) {
-              return (
-                <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 font-sans">
-                     <div className="z-10 bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 animate-fade-in-up text-center">
-                        <h2 className="text-xl font-semibold text-slate-800">Name Your AI</h2>
-                        <p className="text-slate-500 text-sm mb-6">What should we call your personal assistant?</p>
-                        <form onSubmit={(e) => { e.preventDefault(); handleBotSetup(e.target.elements.name.value); }}>
-                            <input name="name" type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-lg mb-4" placeholder="e.g. Jarvis, Friday, Bapkam" autoFocus />
-                            <button type="submit" className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-semibold hover:bg-black transition-colors shadow-lg">Complete Setup</button>
-                        </form>
-                    </div>
-                </div>
-              );
-          }
-          
-          const isNewChat = currentSession.messages.length === 0;
+          const activeSession = sessions.find(s => s.id === activeId) || { messages: [] };
+
           return (
-              <div className={`flex h-full w-full font-sans transition-colors duration-700 ${isProMode ? 'bg-[#f8f9fa]' : 'bg-white'}`}>
-                  {isSidebarOpen && <div className="fixed inset-0 bg-black/20 z-30 lg:hidden backdrop-blur-md" onClick={() => setIsSidebarOpen(false)}></div>}
-                  <aside className={`fixed lg:relative inset-y-0 left-0 w-[280px] bg-white border-r border-slate-200 z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col h-full shadow-2xl lg:shadow-none`}>
-                      <div className="p-4 flex items-center justify-between border-b border-slate-100/50">
-                          <div className="flex items-center gap-3 font-bold text-lg text-slate-800 tracking-tight">
-                              <div className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center shadow-sm">
-                                  <BapkamLogo className="w-5 h-5" isPro={isProMode} />
-                              </div>
-                              {chatbotName}
-                          </div>
-                          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-5 h-5 text-slate-500"/></button>
+              <div className="flex h-full w-full bg-white text-slate-900 font-sans relative overflow-hidden">
+                  {/* MOBILE SIDEBAR OVERLAY */}
+                  <div className={`fixed inset-0 bg-black/40 z-30 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
+                  
+                  {/* SIDEBAR */}
+                  <aside className={`fixed lg:relative z-40 w-[280px] h-full bg-slate-50 border-r border-slate-200 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-2xl lg:shadow-none`}>
+                      <div className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-bold"><BapkamLogo className="w-6 h-6"/> bapkam</div>
+                          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2"><CloseIcon className="w-5 h-5"/></button>
                       </div>
+                      <div className="px-4 pb-2"><button onClick={createSession} className="w-full py-2.5 bg-white border border-slate-200 rounded-lg shadow-sm font-semibold text-sm hover:border-slate-300 flex items-center justify-center gap-2"><PlusIcon className="w-4 h-4"/> New Chat</button></div>
                       
-                      <div className="px-4 mt-3">
-                          <div className="relative">
-                              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
-                              <input type="text" placeholder="Search History..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-slate-300"/>
-                          </div>
-                      </div>
-                      
-                      <div className="px-4 mt-4">
-                        <div className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${isProMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isProMode ? 'bg-slate-800 text-green-400' : 'bg-slate-100 text-slate-500'}`}><ZapIcon className="w-4 h-4" /></div>
-                                <div className="flex flex-col"><span className="text-sm font-bold">Pro Mode</span></div>
-                            </div>
-                            <button onClick={handleTogglePro} className={`w-10 h-6 rounded-full p-1 transition-colors relative ${isProMode ? 'bg-green-500' : 'bg-slate-200'}`}>
-                                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isProMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                            </button>
+                      <div className="px-4 py-2">
+                        <div className={`flex items-center justify-between p-2.5 rounded-xl border ${isProMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200'}`}>
+                           <div className="flex items-center gap-2"><div className={`p-1 rounded ${isProMode?'bg-slate-800 text-green-400':'bg-slate-100'}`}><ZapIcon className="w-4 h-4"/></div><span className="text-xs font-bold">Pro Mode</span></div>
+                           <button onClick={() => setIsProMode(!isProMode)} className={`w-9 h-5 rounded-full p-0.5 transition-colors ${isProMode?'bg-green-500':'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${isProMode?'translate-x-4':''}`}></div></button>
                         </div>
                       </div>
 
-                      {isProMode && (
-                        <div className="px-4 mt-2 space-y-1 animate-fade-in">
-                            <button onClick={() => handleGenerateRealImage()} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
-                                <div className="w-6 h-6 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center"><PaletteIcon className="w-3.5 h-3.5"/></div>
-                                Hyper-Real Image
-                            </button>
-                            <button onClick={handleToggleMagic} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-colors border border-transparent ${isMagicActive ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'text-slate-600 hover:bg-slate-50 hover:border-slate-200'}`}>
-                                <div className={`w-6 h-6 rounded flex items-center justify-center ${isMagicActive ? 'bg-indigo-200 text-indigo-700' : 'bg-orange-50 text-orange-600'}`}><MagicWandIcon className="w-3.5 h-3.5"/></div>
-                                {isMagicActive ? 'Magic Prompt On' : 'Magic Prompt'}
-                            </button>
-                        </div>
-                      )}
-
-                      <div className="px-4 mt-4 mb-2">
-                           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Project Spaces</div>
-                           <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
-                               {projects.map(p => (
-                                   <button key={p} onClick={() => { setActiveProject(p); createSession(p); }} className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeProject === p ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{p}</button>
-                               ))}
-                           </div>
-                      </div>
-
-                      <div className="px-4 pb-4"><button onClick={() => createSession(activeProject)} className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-xl transition-all text-sm font-semibold text-slate-700 group"><div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors"><PlusIcon className="w-4 h-4"/></div>New Chat</button></div>
-                      
-                      <div className="flex-1 overflow-y-auto px-2 custom-scroll space-y-0.5">
-                          {filteredSessions.map(s => (
-                              <div key={s.id} className={`group relative w-full rounded-lg transition-all ${activeId===s.id ? 'bg-slate-100' : 'hover:bg-slate-50'}`}>
-                                  <button onClick={() => { setActiveId(s.id); if(window.innerWidth<1024) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 pr-10 rounded-lg text-sm truncate transition-all ${activeId===s.id ? 'text-slate-900 font-medium' : 'text-slate-600'}`}>{s.title}</button>
-                                  <button onClick={(e) => handleDeleteSession(e, s.id)} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity ${activeId===s.id ? 'opacity-100' : ''}`} title="Delete Chat"><TrashIcon className="w-4 h-4" /></button>
-                              </div>
+                      <div className="flex-1 overflow-y-auto px-2 custom-scroll">
+                          {sessions.map(s => (
+                              <button key={s.id} onClick={() => {setActiveId(s.id); setIsSidebarOpen(false);}} className={`w-full text-left px-3 py-2.5 rounded-lg text-sm mb-0.5 truncate transition-colors ${activeId===s.id ? 'bg-white shadow-sm font-medium text-slate-900' : 'text-slate-600 hover:bg-slate-200/50'}`}>
+                                  {s.title}
+                              </button>
                           ))}
                       </div>
                       
-                      <div className="p-4 border-t border-slate-100">
-                          <div className="flex items-center justify-between w-full p-2 rounded-xl bg-slate-50 border border-slate-100">
-                              <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">{user?.firstName?.charAt(0) || 'F'}</div>
-                                  <div className="flex flex-col"><span className="text-sm font-bold text-slate-800">{user?.firstName || 'Friend'}</span><span className="text-[10px] text-slate-500">Free Plan</span></div>
-                              </div>
-                              <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Sign Out"><LogOutIcon className="w-4 h-4" /></button>
-                          </div>
+                      <div className="p-4 border-t border-slate-200">
+                          <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-red-600"><LogOutIcon className="w-4 h-4"/> Sign Out</button>
                       </div>
                   </aside>
 
-                  <main className="flex-1 flex flex-col h-full relative min-w-0 bg-[#ffffff] overflow-hidden">
-                      <header className={`h-14 lg:h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 backdrop-blur-md transition-colors duration-500 bg-white/90 border-b border-transparent`}>
+                  {/* MAIN CHAT AREA */}
+                  <main className="flex-1 flex flex-col h-full relative min-w-0 bg-white">
+                      {/* HEADER */}
+                      <header className="h-14 flex items-center justify-between px-4 border-b border-slate-100 bg-white/80 backdrop-blur sticky top-0 z-20">
                           <div className="flex items-center gap-3">
-                              <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 text-slate-700`}><MenuIcon className="w-6 h-6"/></button>
-                              <span className={`font-bold text-lg lg:hidden text-slate-800`}>{chatbotName}</span>
+                              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2"><MenuIcon className="w-6 h-6 text-slate-700"/></button>
+                              <span className="font-bold lg:hidden">bapkam</span>
                           </div>
-                          <div className={`hidden lg:flex items-center gap-2.5 px-4 py-1.5 rounded-full border shadow-sm transition-all ${isProMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                              <span className={`w-2 h-2 rounded-full ${isProMode ? 'bg-green-400' : 'bg-slate-400'}`}></span>
-                              <span className={`font-medium text-xs tracking-wide ${isProMode ? 'text-white' : 'text-slate-600'}`}>{isProMode ? 'PRO MODE ACTIVE' : 'Standard Mode'}</span>
-                          </div>
+                          {isProMode && <span className="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded shadow-sm">PRO</span>}
                       </header>
-                      
-                      <div className="flex-1 overflow-y-auto custom-scroll scroll-smooth p-0 relative z-10" ref={chatRef}>
-                          {isNewChat ? (
-                              <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up px-4 sm:px-6">
-                                  <div className="mb-4 transform scale-125"><BapkamLogo className="w-16 h-16" isPro={isProMode} /></div>
-                                  <h2 className="text-4xl font-bold text-slate-900 mb-6 text-center tracking-tight">bapkam</h2>
-                                  <div className="w-full max-w-lg space-y-3">
-                                      <div className="flex gap-3">
-                                          <SuggestionPill icon={SearchIcon} text="Deep Search" onClick={() => handleSend("Research deeply about:")} />
-                                          <SuggestionPill icon={PaletteIcon} text="Create Image" onClick={() => setShowImageGenModal(true)} />
-                                      </div>
-                                      <div className="flex justify-center"><div className="w-1/2"><SuggestionPill icon={TemplateIcon} text="Templates" onClick={() => setShowTemplates(true)} /></div></div>
+
+                      {/* MESSAGES */}
+                      <div className="flex-1 overflow-y-auto custom-scroll p-4 pb-24 scroll-smooth" ref={chatRef}>
+                          {activeSession.messages.length === 0 ? (
+                              <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60">
+                                  <BapkamLogo className="w-16 h-16 mb-4" isPro={isProMode}/>
+                                  <h2 className="text-2xl font-bold text-slate-900">How can I help?</h2>
+                                  <div className="flex gap-2 mt-6">
+                                      <button onClick={() => handleSend("Analyze a complex topic")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Complex Analysis</button>
+                                      <button onClick={() => handleSend("Write a creative story")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Creative Writing</button>
                                   </div>
-                                  <div className="mt-12 text-slate-400 text-sm">{isProMode ? 'Pro Reasoning Active' : 'Ready to create something extraordinary?'}</div>
                               </div>
                           ) : (
-                              <div className="max-w-4xl mx-auto py-6 space-y-6 px-4 sm:px-6 pb-24">
-                                {currentSession.messages.map((m, i) => <ChatMessage key={i} msg={m} isPro={m.isPro} isLatest={i === currentSession.messages.length - 1} isLoading={isStreaming} botName={chatbotName} />)}
+                              <div className="max-w-3xl mx-auto space-y-6">
+                                  {activeSession.messages.map((m, i) => (
+                                      <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                          <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}`}>
+                                              {m.attachments?.map((a, j) => (
+                                                  <div key={j} className="mb-2 rounded-lg overflow-hidden border border-slate-200"><img src={a.uri} className="max-w-full h-auto"/></div>
+                                              ))}
+                                              {m.isThinking ? (
+                                                  <div className="flex items-center gap-2 text-slate-400"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"/><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75"/><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150"/></div>
+                                              ) : (
+                                                  <div className="prose-content whitespace-pre-wrap">{m.content}</div>
+                                              )}
+                                          </div>
+                                      </div>
+                                  ))}
                               </div>
                           )}
                       </div>
 
-                      <div className={`p-4 lg:p-6 transition-all duration-500 z-20 bg-white/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]`}>
-                          <div className={`max-w-2xl mx-auto relative flex flex-col items-stretch gap-2 bg-slate-50 border shadow-sm rounded-[24px] p-1.5 transition-all focus-within:ring-2 focus-within:ring-slate-100 ${isProMode ? 'border-indigo-200' : 'border-slate-200'}`}>
+                      {/* INPUT AREA */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                          <EngineHUD status={engineStatus} mode={engineMode} />
+                          <div className="max-w-3xl mx-auto relative flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-[24px] p-1.5 focus-within:ring-2 focus-within:ring-slate-200 transition-all shadow-sm">
+                              <button onClick={() => fileRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5"/></button>
                               
-                              {/* New Hyper-Real Engine HUD */}
-                              <EngineHUD status={engineStatus} mode={engineMode} />
-
-                              <div className="flex items-end gap-2">
-                                  <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5" /></button>
-                                  <div className="flex-1 flex flex-col justify-center min-h-[40px]">
-                                       {selectedAttachment && (
-                                          <div className="flex items-center gap-2 mb-1 p-1 bg-white rounded-lg w-fit border border-slate-200">
-                                              {selectedAttachment.type === 'video' ? (
-                                                  <div className="w-8 h-8 bg-black rounded-md flex items-center justify-center text-white"><VideoIcon className="w-4 h-4"/></div>
-                                              ) : (
-                                                  <img src={selectedAttachment.uri} className="w-8 h-8 object-cover rounded-md" />
-                                              )}
-                                              <button onClick={() => setSelectedAttachment(null)} className="p-0.5 hover:bg-slate-100 rounded-full"><CloseIcon className="w-3 h-3 text-slate-500"/></button>
-                                          </div>
-                                       )}
-                                       <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={isProMode ? "Ask Deep Research or Upload Video..." : "Message bapkam..."} className={`w-full bg-transparent outline-none resize-none max-h-32 text-slate-800 placeholder-slate-400 py-2 px-1 text-sm ${isMagicActive ? 'text-indigo-700 font-medium' : ''}`} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
-                                  </div>
-                                  {isMagicLoading && <div className="absolute right-14 bottom-3"><RainbowCyclone className="w-4 h-4 opacity-50" /></div>}
-                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedAttachment} className={`p-2.5 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() || selectedAttachment ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'}`}>{isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SendIcon className="w-5 h-5" />}</button>
+                              <div className="flex-1 py-2.5 min-h-[44px]">
+                                  {selectedAttachment && (
+                                      <div className="flex items-center gap-2 mb-2 bg-white px-2 py-1 rounded-md border w-fit">
+                                          <span className="text-xs truncate max-w-[100px]">{selectedAttachment.name || 'Image'}</span>
+                                          <button onClick={() => setSelectedAttachment(null)}><CloseIcon className="w-3 h-3"/></button>
+                                      </div>
+                                  )}
+                                  <textarea 
+                                    ref={inputRef}
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={e => {if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); handleSend();}}}
+                                    placeholder="Message..."
+                                    className="w-full bg-transparent outline-none text-sm text-slate-800 placeholder-slate-400 resize-none max-h-32"
+                                    rows={1}
+                                    onInput={e => {e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'}}
+                                  />
                               </div>
-                          </div>
-                          <div className="text-center mt-3">
-                              <p className="text-[10px] text-slate-400">By messaging bapkam.ai, you agree to our <a href="#" className="underline hover:text-slate-600">Terms</a> and <a href="#" className="underline hover:text-slate-600">Privacy Policy</a>.</p>
+                              
+                              <button onClick={() => handleSend()} disabled={!input.trim() && !selectedAttachment} className={`p-2.5 rounded-full transition-all ${input.trim()||selectedAttachment ? 'bg-black text-white shadow-md' : 'bg-slate-200 text-slate-400'}`}>
+                                  {isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <SendIcon className="w-5 h-5"/>}
+                              </button>
                           </div>
                       </div>
-
-                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/mp4,video/webm" onChange={handleFileChange} />
-                      <PromptTemplateModal isOpen={showTemplates} onClose={() => setShowTemplates(false)} onSelect={(txt) => { setInput(txt); setShowTemplates(false); inputRef.current.focus(); }} />
-                      <ImageGenerationModal isOpen={showImageGenModal} onClose={() => setShowImageGenModal(false)} onGenerate={handleGenerateRealImage} />
-                      {toastMessage && <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-full shadow-xl backdrop-blur-md z-[60] text-sm font-medium animate-fade-in-up flex items-center gap-2"><SparklesIcon className="w-4 h-4 text-yellow-400" />{toastMessage}</div>}
                   </main>
+
+                  {/* HIDDEN FILE INPUT */}
+                  <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={(e) => {
+                      if(e.target.files?.[0]) {
+                          const reader = new FileReader();
+                          reader.onload = () => setSelectedAttachment({ uri: reader.result, mimeType: e.target.files[0].type, name: e.target.files[0].name });
+                          reader.readAsDataURL(e.target.files[0]);
+                      }
+                  }} />
+
+                  {/* TOAST */}
+                  {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg z-50 animate-fade-in-up">{toast}</div>}
               </div>
           );
       };
 
       const root = createRoot(document.getElementById('root'));
-      root.render(
-        <ErrorBoundary>
-            <App />
-        </ErrorBoundary>
-      );
+      root.render(<ErrorBoundary><App /></ErrorBoundary>);
     </script>
   </body>
 </html>
