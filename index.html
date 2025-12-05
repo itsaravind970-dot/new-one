@@ -289,9 +289,6 @@
           // HUD & Tools
           const [engineStatus, setEngineStatus] = useState('');
           const [engineMode, setEngineMode] = useState('text');
-          const [showTemplates, setShowTemplates] = useState(false);
-          const [showImageModal, setShowImageModal] = useState(false);
-          const [searchQuery, setSearchQuery] = useState('');
           const [toast, setToast] = useState(null);
 
           // Refs
@@ -303,11 +300,8 @@
           const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
           
           const getApiKey = useCallback(() => {
-             // 1. Check Local Storage (User Input)
              const local = localStorage.getItem('bapkam_api_key');
              if (local) return local;
-             
-             // 2. Check Environment (Vercel/Build)
              if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
                  return process.env.API_KEY;
              }
@@ -319,7 +313,6 @@
                   localStorage.setItem('bapkam_api_key', k.trim());
                   setShowKeyModal(false);
                   showToast("Key Saved securely!");
-                  // Force a reload might be too harsh, just let state update naturally
               }
           };
 
@@ -340,9 +333,6 @@
                           setSessions(parsed);
                           if(parsed.length > 0) setActiveId(parsed[0].id);
                       }
-                      
-                      const savedName = localStorage.getItem('bapkam_name');
-                      if (savedName) setChatbotName(savedName);
                   } catch(e) {}
                   setIsLoaded(true);
               }, 600);
@@ -403,7 +393,6 @@
               // 4. API Call
               try {
                   const history = sessions.find(s => s.id === activeId)?.messages || [];
-                  // Filter out empty/failed messages
                   const validHistory = history.map(m => {
                       if (!m.content && (!m.attachments || m.attachments.length===0)) return null;
                       const parts = [];
@@ -427,7 +416,7 @@
                   const contents = [...validHistory, { role: 'user', parts: currentParts }];
                   
                   const ai = new GoogleGenAI({ apiKey: key });
-                  const model = isProMode ? 'gemini-2.5-flash' : 'gemini-2.5-flash'; // Use Flash for stability on Vercel
+                  const model = isProMode ? 'gemini-2.5-flash' : 'gemini-2.5-flash'; 
                   
                   const result = await ai.models.generateContentStream({
                       model: model,
@@ -463,12 +452,13 @@
           // --- RENDERING ---
           if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"/></div>;
 
+          // Define activeSession safely
+          const activeSession = sessions.find(s => s.id === activeId) || { id: 'temp', title: 'New Chat', messages: [] };
+
           return (
               <div className="flex h-full w-full bg-white text-slate-900 font-sans relative overflow-hidden">
-                  {/* KEY MODAL */}
                   {showKeyModal && <ApiKeyModal onSave={handleSaveKey} />}
 
-                  {/* LOGIN SCREEN */}
                   {!isSignedIn ? (
                       <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
                           <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100 animate-fade-in-up z-10">
@@ -480,10 +470,8 @@
                       </div>
                   ) : (
                     <>
-                      {/* MOBILE SIDEBAR OVERLAY */}
                       <div className={`fixed inset-0 bg-black/40 z-30 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
                       
-                      {/* SIDEBAR */}
                       <aside className={`fixed lg:relative z-40 w-[280px] h-full bg-slate-50 border-r border-slate-200 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-2xl lg:shadow-none`}>
                           <div className="p-4 flex items-center justify-between">
                               <div className="flex items-center gap-2 font-bold"><BapkamLogo className="w-6 h-6"/> bapkam</div>
@@ -512,9 +500,7 @@
                           </div>
                       </aside>
 
-                      {/* MAIN CHAT AREA */}
                       <main className="flex-1 flex flex-col h-full relative min-w-0 bg-white">
-                          {/* HEADER */}
                           <header className="h-14 flex items-center justify-between px-4 border-b border-slate-100 bg-white/80 backdrop-blur sticky top-0 z-20">
                               <div className="flex items-center gap-3">
                                   <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2"><MenuIcon className="w-6 h-6 text-slate-700"/></button>
@@ -523,7 +509,6 @@
                               {isProMode && <span className="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded shadow-sm">PRO</span>}
                           </header>
 
-                          {/* MESSAGES */}
                           <div className="flex-1 overflow-y-auto custom-scroll p-4 pb-24 scroll-smooth" ref={chatRef}>
                               {activeSession.messages.length === 0 ? (
                                   <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60">
@@ -554,10 +539,8 @@
                           )}
                       </div>
 
-                      {/* INPUT AREA */}
                       <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
                           <div className="max-w-3xl mx-auto relative flex flex-col justify-end">
-                              {/* CENTERED ENGINE HUD */}
                               <div className="self-center mb-3">
                                   <EngineHUD status={engineStatus} mode={engineMode} />
                               </div>
@@ -592,8 +575,7 @@
                       </div>
                   </main>
 
-                  {/* HIDDEN FILE INPUT */}
-                  <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={(e) => {
+                  <input type="file" ref={fileRef} className="hidden" accept="image/*,video/*" onChange={(e) => {
                       if(e.target.files?.[0]) {
                           const reader = new FileReader();
                           reader.onload = () => setSelectedAttachment({ uri: reader.result, mimeType: e.target.files[0].type, name: e.target.files[0].name });
@@ -601,7 +583,6 @@
                       }
                   }} />
 
-                  {/* TOAST */}
                   {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg z-50 animate-fade-in-up">{toast}</div>}
                   </>
                 )}
