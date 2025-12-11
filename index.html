@@ -264,10 +264,8 @@
                 if (view === 'signup') {
                     const res = await createUserWithEmailAndPassword(auth, email, password);
                     if (name) await updateProfile(res.user, { displayName: name });
-                    // User is automatically logged in after creation
                 } else if (view === 'login') {
                     await signInWithEmailAndPassword(auth, email, password);
-                    // Login successful, app listener handles state
                 }
             } catch (e) {
                 if(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-email') {
@@ -367,7 +365,6 @@
                   setUser(u);
                   setIsLoaded(true);
                   if (u) {
-                      // Load user specific sessions
                       const key = `bapkam_sessions_${u.uid}`;
                       const stored = localStorage.getItem(key);
                       if (stored) {
@@ -375,7 +372,6 @@
                           setSessions(parsed);
                           if (parsed.length > 0) setActiveId(parsed[0].id);
                       } else {
-                          // Start with empty sessions, create one on first message
                           setSessions([]);
                       }
                   }
@@ -390,7 +386,7 @@
               }
           }, [sessions, user, isLoaded]);
           
-          // Auto scroll to bottom on new messages
+          // Auto scroll to bottom
           useEffect(() => {
              if (chatRef.current) {
                  chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -412,24 +408,20 @@
               const key = getApiKey();
               const att = selectedAttachment;
               
-              // Reset Inputs
               setInput(''); 
               setSelectedAttachment(null); 
               setIsStreaming(true); 
               setEngineMode('text');
               
-              // Determine active ID (Create new session if none exists)
               let currentId = activeId;
               if (!currentId) {
                   currentId = Date.now().toString();
                   setActiveId(currentId);
               }
 
-              // Create Message Objects
               const userMsg = { role: 'user', content: txt, attachments: att ? [att] : [] };
               const modelPlaceholder = { role: 'model', content: '', isThinking: true };
 
-              // Update State: Add User Message + Model Placeholder
               setSessions(prev => {
                   const existingSession = prev.find(s => s.id === currentId);
                   if (existingSession) {
@@ -439,7 +431,6 @@
                           title: s.messages.length === 0 ? (txt.slice(0, 30) || 'New Chat') : s.title
                       } : s);
                   } else {
-                      // If session didn't exist in state (first message case), create it now
                       return [{
                           id: currentId,
                           title: txt.slice(0, 30) || 'New Chat',
@@ -448,7 +439,7 @@
                   }
               });
 
-              // Simulate "Thinking" Engine Steps
+              // Simulate "Thinking"
               const engines = ["Deep Logic", "Fact Verification", "Creative Core"];
               for (const eng of engines) {
                   setEngineStatus(eng);
@@ -456,18 +447,21 @@
               }
 
               try {
-                  // Reconstruct history for API call from state + new message
-                  // We must grab the history from the CURRENT session state, excluding the just added placeholder
-                  // Since state update is async, 'sessions' here might be stale.
-                  // Ideally we use a functional update or rely on the fact that we just updated it.
-                  // For simplicity in this structure, we'll build context from the 'userMsg' and assume previous history is in 'sessions'
-                  
-                  // NOTE: 'sessions' var is from the render scope.
+                  // CRITICAL FIX: Sanitize history to prevent API errors
                   const currentSession = sessions.find(s => s.id === currentId);
-                  const history = currentSession ? currentSession.messages : [];
+                  const rawHistory = currentSession ? currentSession.messages : [];
                   
-                  const validHistory = history.map(m => {
-                      if (!m.content && (!m.attachments || m.attachments.length===0)) return null;
+                  // 1. Filter out errors, placeholders, and empty messages
+                  let cleanHistory = rawHistory.filter(m => !m.isError && !m.isThinking && (m.content || (m.attachments && m.attachments.length > 0)));
+
+                  // 2. Ensure history ends with 'model' if it exists.
+                  // If the last message is 'user', it means the previous request failed. Drop it to prevent [User, User] sequence.
+                  if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
+                      cleanHistory.pop();
+                  }
+
+                  // 3. Format for API
+                  const validHistory = cleanHistory.map(m => {
                       const parts = [];
                       if (m.attachments) {
                           m.attachments.forEach(a => {
@@ -478,9 +472,9 @@
                       }
                       if (m.content) parts.push({ text: m.content });
                       return { role: m.role === 'user' ? 'user' : 'model', parts };
-                  }).filter(Boolean);
+                  });
 
-                  // Add current user message to context (since 'sessions' might not have updated in this closure yet)
+                  // 4. Construct current message parts
                   const currentParts = [];
                   if (att && att.uri.includes('base64,')) {
                       currentParts.push({ inlineData: { mimeType: att.mimeType, data: att.uri.split('base64,')[1] }});
@@ -509,7 +503,6 @@
                           fullText += t;
                           setSessions(prev => prev.map(s => s.id === currentId ? {
                               ...s, 
-                              // Replace the last message (placeholder) with actual content
                               messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false }]
                           } : s));
                       }
