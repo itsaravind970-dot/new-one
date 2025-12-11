@@ -57,18 +57,15 @@
       }
     </script>
     
-    <!-- Environment & Console Polyfills (CRITICAL for Vercel & Mobile) -->
+    <!-- Environment & Console Polyfills -->
     <script>
-        // CRITICAL: Prevent "process is not defined" crash on Vercel/Browser
         window.process = window.process || {};
         window.process.env = window.process.env || {};
         
-        // Auto-detect API Key if injected via global script or similar
         if (typeof window.API_KEY !== 'undefined') {
             window.process.env.API_KEY = window.API_KEY;
         }
 
-        // Suppress benign warnings to keep console clean
         const originalWarn = console.warn;
         const originalError = console.error;
         console.warn = function(...args) {
@@ -82,8 +79,6 @@
              originalError.apply(console, args);
         };
         
-        // --- MOBILE LAYOUT ENGINE ---
-        // Dynamically calculate 1vh to fix iOS safari scroll bugs
         function setAppHeight() {
             const doc = document.documentElement;
             doc.style.setProperty('--app-height', `${window.innerHeight}px`);
@@ -103,7 +98,7 @@
             width: 100%; 
             margin: 0; 
             padding: 0; 
-            overflow: hidden; /* Prevent body scroll */
+            overflow: hidden; 
             background-color: #ffffff; 
             overscroll-behavior: none; 
             -webkit-tap-highlight-color: transparent;
@@ -112,8 +107,8 @@
             position: fixed; 
             inset: 0; 
             width: 100%;
-            height: 100%; /* Fallback */
-            height: var(--app-height); /* Dynamic Fix */
+            height: 100%; 
+            height: var(--app-height); 
             display: flex; 
             flex-direction: column; 
             z-index: 1; 
@@ -140,7 +135,9 @@
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
     "react": "https://esm.sh/react@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/"
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+    "react/": "https://esm.sh/react@^19.2.1/"
   }
 }
 </script>
@@ -152,6 +149,30 @@
       import React, { useState, useEffect, useRef, useCallback } from 'react';
       import { createRoot } from 'react-dom/client';
       import { GoogleGenAI } from "@google/genai";
+      import { initializeApp } from "firebase/app";
+      import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        onAuthStateChanged, 
+        signOut,
+        updateProfile,
+        sendEmailVerification,
+        sendPasswordResetEmail
+      } from "firebase/auth";
+
+      // --- FIREBASE INIT ---
+      const firebaseConfig = {
+        apiKey: "AIzaSyCOQTbyMMnAQ9j6y7VIXEKuPNNrWTAZejk",
+        authDomain: "chatbot-51c57.firebaseapp.com",
+        projectId: "chatbot-51c57",
+        storageBucket: "chatbot-51c57.firebasestorage.app",
+        messagingSenderId: "145235532714",
+        appId: "1:145235532714:web:4f64abd7ec54dc0342e9d3"
+      };
+
+      const firebaseApp = initializeApp(firebaseConfig);
+      const auth = getAuth(firebaseApp);
 
       // --- ERROR BOUNDARY ---
       class ErrorBoundary extends React.Component {
@@ -181,20 +202,11 @@
       const MenuIcon = (p) => <Icon d="M4 6h16M4 12h16M4 18h16" {...p} />;
       const PlusIcon = (p) => <Icon d="M12 5v14M5 12h14" {...p} />;
       const CloseIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
-      const SearchIcon = (p) => <Icon d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 16zM21 21l-4.35-4.35" {...p} />;
-      const CodeIcon = (p) => <Icon d="M16 18 22 12 16 6M8 6 2 12 8 18" {...p} />;
-      const SparklesIcon = (p) => <Icon d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" {...p} />;
-      const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" {...p} />;
-      const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
-      const MagicWandIcon = (p) => <Icon d="M10.5 10.5 3 3m18 18-7.5-7.5M10.5 10.5l4-4m-4 4 5 5m.5-9.5L21 3l-4.5 4.5m-11 11 6.5-6.5" {...p} />;
-      const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
-      const TrashIcon = (p) => <Icon d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...p} />;
-      const PaletteIcon = (p) => <Icon d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" {...p} />;
-      const TemplateIcon = (p) => <Icon d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4" {...p} />;
-      const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
-      const VideoIcon = (p) => <Icon d="M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" {...p} />;
       const KeyIcon = (p) => <Icon d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" {...p} />;
-
+      const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
+      const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
+      const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
+      
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false }) => (
         <div className={`${className} relative flex items-center justify-center`}>
@@ -214,7 +226,6 @@
         </div>
       );
 
-      // --- MATRIX STYLE ENGINE HUD ---
       const EngineHUD = ({ status, mode = 'text' }) => {
           if (!status) return null;
           const engines = mode === 'image' 
@@ -235,7 +246,6 @@
           );
       };
 
-      // --- API KEY MODAL ---
       const ApiKeyModal = ({ onSave }) => {
           const [key, setKey] = useState('');
           return (
@@ -246,8 +256,8 @@
                           <h2 className="text-lg font-bold">Connection Setup</h2>
                       </div>
                       <p className="text-sm text-slate-500 mb-4">
-                          To connect securely to the AI, please enter your Google Gemini API Key. 
-                          It is stored <strong>locally on your device</strong> (encrypted in storage) and is never shared or leaked.
+                          To activate the AI Engine (Gemini), please enter your Google API Key.
+                          It is stored <strong>locally</strong> and handled securely.
                       </p>
                       <input 
                           type="password" 
@@ -261,7 +271,7 @@
                           disabled={key.length < 10}
                           className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl disabled:opacity-50 hover:scale-[1.02] transition-transform shadow-lg"
                       >
-                          Secure Connect & Start
+                          Connect AI Engine
                       </button>
                       <p className="text-[10px] text-center mt-4 text-slate-400">
                           Don't have a key? Get one free at <a href="https://aistudio.google.com" target="_blank" className="underline hover:text-blue-500">Google AI Studio</a>.
@@ -270,13 +280,108 @@
               </div>
           )
       }
+      
+      const AuthScreen = ({ onLogin }) => {
+        const [view, setView] = useState('login'); // 'login', 'signup', 'forgot'
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const [name, setName] = useState('');
+        const [error, setError] = useState('');
+        const [success, setSuccess] = useState('');
+        const [loading, setLoading] = useState(false);
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            setLoading(true); setError(''); setSuccess('');
+            try {
+                if (view === 'signup') {
+                    const res = await createUserWithEmailAndPassword(auth, email, password);
+                    if (name) await updateProfile(res.user, { displayName: name });
+                    await sendEmailVerification(res.user);
+                    await signOut(auth);
+                    setView('login');
+                    setSuccess("Account created! Verification email sent. Please verify before logging in.");
+                    setEmail(''); setPassword(''); setName('');
+                } else if (view === 'login') {
+                    const res = await signInWithEmailAndPassword(auth, email, password);
+                    if (!res.user.emailVerified) {
+                        await signOut(auth);
+                        setError("Email not verified. Please check your inbox.");
+                    }
+                } else if (view === 'forgot') {
+                    await sendPasswordResetEmail(auth, email);
+                    setView('login');
+                    setSuccess("Password reset email sent! Check your inbox.");
+                    setEmail(''); setPassword('');
+                }
+            } catch (e) {
+                if(e.code === 'auth/invalid-credential') setError("Invalid email or password.");
+                else if(e.code === 'auth/email-already-in-use') setError("Email already registered.");
+                else if(e.code === 'auth/weak-password') setError("Password must be at least 6 characters.");
+                else if(e.code === 'auth/user-not-found') setError("No account found with this email.");
+                else setError(e.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+             <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
+                <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border border-slate-100 animate-fade-in-up z-10">
+                    <div className="mx-auto w-16 h-16 bg-white border border-slate-100 rounded-2xl shadow-lg flex items-center justify-center mb-6"><BapkamLogo className="w-10 h-10"/></div>
+                    <h1 className="text-2xl font-bold text-center text-slate-900 mb-1">
+                        {view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Reset Password' : 'Welcome Back'}
+                    </h1>
+                    <p className="text-sm text-slate-500 text-center mb-6">
+                        {view === 'forgot' ? 'Enter email to receive reset link' : 'Sign in to continue to bapkam.ai'}
+                    </p>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {view === 'signup' && (
+                            <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm" required />
+                        )}
+                        <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm" required />
+                        
+                        {view !== 'forgot' && (
+                            <div className="relative">
+                                <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm" required />
+                                {view === 'login' && (
+                                    <button type="button" onClick={() => { setView('forgot'); setError(''); setSuccess(''); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600 hover:text-blue-800">
+                                        Forgot?
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                        
+                        {error && <p className="text-xs text-red-500 font-medium text-center">{error}</p>}
+                        {success && <p className="text-xs text-green-600 font-medium text-center">{success}</p>}
+                        
+                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-transform active:scale-95 shadow-lg disabled:opacity-70 flex items-center justify-center gap-2">
+                            {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                            {view === 'signup' ? 'Sign Up' : view === 'forgot' ? 'Send Reset Link' : 'Log In'}
+                        </button>
+                    </form>
+
+                    <div className="text-xs text-center mt-6 text-slate-500 space-y-2">
+                        {view === 'login' && (
+                            <p>Don't have an account? <button onClick={()=>{setView('signup'); setError(''); setSuccess('');}} className="font-bold text-blue-600 hover:underline">Sign Up</button></p>
+                        )}
+                        {view === 'signup' && (
+                            <p>Already have an account? <button onClick={()=>{setView('login'); setError(''); setSuccess('');}} className="font-bold text-blue-600 hover:underline">Log In</button></p>
+                        )}
+                        {view === 'forgot' && (
+                            <button onClick={()=>{setView('login'); setError(''); setSuccess('');}} className="font-bold text-slate-600 hover:text-slate-900">Back to Login</button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+      };
 
       // --- MAIN APP ---
       const App = () => {
-          // --- STATE ---
           const [isLoaded, setIsLoaded] = useState(false);
-          const [isSignedIn, setIsSignedIn] = useState(false);
-          const [chatbotName, setChatbotName] = useState('');
+          const [user, setUser] = useState(null);
           const [sessions, setSessions] = useState([]);
           const [activeId, setActiveId] = useState(null);
           const [input, setInput] = useState('');
@@ -286,17 +391,14 @@
           const [selectedAttachment, setSelectedAttachment] = useState(null);
           const [showKeyModal, setShowKeyModal] = useState(false);
           
-          // HUD & Tools
           const [engineStatus, setEngineStatus] = useState('');
           const [engineMode, setEngineMode] = useState('text');
           const [toast, setToast] = useState(null);
 
-          // Refs
           const chatRef = useRef(null);
           const inputRef = useRef(null);
           const fileRef = useRef(null);
 
-          // --- HELPERS ---
           const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
           
           const getApiKey = useCallback(() => {
@@ -312,45 +414,55 @@
               if (k && k.trim().length > 0) {
                   localStorage.setItem('bapkam_api_key', k.trim());
                   setShowKeyModal(false);
-                  showToast("Key Saved securely!");
+                  showToast("AI Key Saved!");
               }
           };
 
-          // --- INIT ---
+          // Auth Listener
           useEffect(() => {
-              const timer = setTimeout(() => {
-                  try {
-                      // Check Key
+              const unsubscribe = onAuthStateChanged(auth, (u) => {
+                  if (u && !u.emailVerified) {
+                      // If user is logged in but not verified (e.g. persisted session), force logout or handle appropriately.
+                      // We'll treat them as not logged in for this app's logic.
+                      setUser(null);
+                      // Optionally we could show a "please verify" screen, but signOut in AuthScreen handles the main flow.
+                  } else {
+                      setUser(u);
+                  }
+                  
+                  setIsLoaded(true);
+                  if (u && u.emailVerified) {
+                      // Load user specific sessions
+                      const key = `bapkam_sessions_${u.uid}`;
+                      const stored = localStorage.getItem(key);
+                      if (stored) {
+                          const parsed = JSON.parse(stored);
+                          setSessions(parsed);
+                          if (parsed.length > 0) setActiveId(parsed[0].id);
+                      } else {
+                          // Default welcome session
+                          setSessions([]);
+                      }
+                      
+                      // Check Gemini Key presence once logged in
                       const k = getApiKey();
                       if (!k) setShowKeyModal(true);
-
-                      const storedAuth = localStorage.getItem('bapkam_auth');
-                      if (storedAuth) setIsSignedIn(true);
-                      
-                      const storedSessions = localStorage.getItem('bapkam_sessions');
-                      if (storedSessions) {
-                          const parsed = JSON.parse(storedSessions);
-                          setSessions(parsed);
-                          if(parsed.length > 0) setActiveId(parsed[0].id);
-                      }
-                  } catch(e) {}
-                  setIsLoaded(true);
-              }, 600);
-              return () => clearTimeout(timer);
+                  }
+              });
+              return () => unsubscribe();
           }, [getApiKey]);
 
-          // --- PERSISTENCE ---
+          // Persistence
           useEffect(() => {
-              if (isLoaded && isSignedIn) {
-                  localStorage.setItem('bapkam_sessions', JSON.stringify(sessions));
+              if (user && isLoaded) {
+                  localStorage.setItem(`bapkam_sessions_${user.uid}`, JSON.stringify(sessions));
               }
-          }, [sessions, isLoaded, isSignedIn]);
+          }, [sessions, user, isLoaded]);
           
           useEffect(() => {
              if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
           }, [sessions, isStreaming]);
 
-          // --- HANDLERS ---
           const createSession = () => {
               const id = Date.now().toString();
               const newS = { id, title: 'New Chat', messages: [] };
@@ -372,25 +484,21 @@
               const att = selectedAttachment;
               setInput(''); setSelectedAttachment(null); setIsStreaming(true); setEngineMode('text');
               
-              // 1. Update UI with User Message
               const userMsg = { role: 'user', content: txt, attachments: att ? [att] : [] };
               setSessions(prev => prev.map(s => s.id === activeId ? {
                   ...s, messages: [...s.messages, userMsg], title: s.messages.length === 0 ? txt.slice(0, 30) : s.title
               } : s));
 
-              // 2. Add Placeholder for AI
               setSessions(prev => prev.map(s => s.id === activeId ? {
                   ...s, messages: [...s.messages, { role: 'model', content: '', isThinking: true }]
               } : s));
 
-              // 3. Engine Animation
               const engines = ["Deep Logic", "Fact Verification", "Creative Core"];
               for (const eng of engines) {
                   setEngineStatus(eng);
                   await new Promise(r => setTimeout(r, 600));
               }
 
-              // 4. API Call
               try {
                   const history = sessions.find(s => s.id === activeId)?.messages || [];
                   const validHistory = history.map(m => {
@@ -449,143 +557,137 @@
               }
           };
 
-          // --- RENDERING ---
           if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"/></div>;
 
-          // Define activeSession safely
+          if (!user) return <AuthScreen />;
+
           const activeSession = sessions.find(s => s.id === activeId) || { id: 'temp', title: 'New Chat', messages: [] };
 
           return (
               <div className="flex h-full w-full bg-white text-slate-900 font-sans relative overflow-hidden">
                   {showKeyModal && <ApiKeyModal onSave={handleSaveKey} />}
-
-                  {!isSignedIn ? (
-                      <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
-                          <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100 animate-fade-in-up z-10">
-                              <div className="mx-auto w-16 h-16 bg-white border border-slate-100 rounded-2xl shadow-lg flex items-center justify-center mb-6"><BapkamLogo className="w-10 h-10"/></div>
-                              <h1 className="text-2xl font-bold text-slate-900 mb-2">bapkam.ai</h1>
-                              <p className="text-sm text-slate-500 mb-8">Created by Arvind and Afridi</p>
-                              <button onClick={() => { localStorage.setItem('bapkam_auth', 'true'); setIsSignedIn(true); createSession(); }} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-transform active:scale-95 shadow-lg">Enter App</button>
-                          </div>
+                  
+                  <div className={`fixed inset-0 bg-black/40 z-30 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
+                  
+                  <aside className={`fixed lg:relative z-40 w-[280px] h-full bg-slate-50 border-r border-slate-200 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-2xl lg:shadow-none`}>
+                      <div className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-bold"><BapkamLogo className="w-6 h-6"/> bapkam</div>
+                          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2"><CloseIcon className="w-5 h-5"/></button>
                       </div>
-                  ) : (
-                    <>
-                      <div className={`fixed inset-0 bg-black/40 z-30 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
+                      <div className="px-4 pb-2"><button onClick={createSession} className="w-full py-2.5 bg-white border border-slate-200 rounded-lg shadow-sm font-semibold text-sm hover:border-slate-300 flex items-center justify-center gap-2"><PlusIcon className="w-4 h-4"/> New Chat</button></div>
                       
-                      <aside className={`fixed lg:relative z-40 w-[280px] h-full bg-slate-50 border-r border-slate-200 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-2xl lg:shadow-none`}>
-                          <div className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-2 font-bold"><BapkamLogo className="w-6 h-6"/> bapkam</div>
-                              <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2"><CloseIcon className="w-5 h-5"/></button>
-                          </div>
-                          <div className="px-4 pb-2"><button onClick={createSession} className="w-full py-2.5 bg-white border border-slate-200 rounded-lg shadow-sm font-semibold text-sm hover:border-slate-300 flex items-center justify-center gap-2"><PlusIcon className="w-4 h-4"/> New Chat</button></div>
-                          
-                          <div className="px-4 py-2">
-                            <div className={`flex items-center justify-between p-2.5 rounded-xl border ${isProMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200'}`}>
-                              <div className="flex items-center gap-2"><div className={`p-1 rounded ${isProMode?'bg-slate-800 text-green-400':'bg-slate-100'}`}><ZapIcon className="w-4 h-4"/></div><span className="text-xs font-bold">Pro Mode</span></div>
-                              <button onClick={() => setIsProMode(!isProMode)} className={`w-9 h-5 rounded-full p-0.5 transition-colors ${isProMode?'bg-green-500':'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${isProMode?'translate-x-4':''}`}></div></button>
-                            </div>
-                          </div>
+                      <div className="px-4 py-2">
+                        <div className={`flex items-center justify-between p-2.5 rounded-xl border ${isProMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200'}`}>
+                          <div className="flex items-center gap-2"><div className={`p-1 rounded ${isProMode?'bg-slate-800 text-green-400':'bg-slate-100'}`}><ZapIcon className="w-4 h-4"/></div><span className="text-xs font-bold">Pro Mode</span></div>
+                          <button onClick={() => setIsProMode(!isProMode)} className={`w-9 h-5 rounded-full p-0.5 transition-colors ${isProMode?'bg-green-500':'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${isProMode?'translate-x-4':''}`}></div></button>
+                        </div>
+                      </div>
 
-                          <div className="flex-1 overflow-y-auto px-2 custom-scroll">
-                              {sessions.map(s => (
-                                  <button key={s.id} onClick={() => {setActiveId(s.id); setIsSidebarOpen(false);}} className={`w-full text-left px-3 py-2.5 rounded-lg text-sm mb-0.5 truncate transition-colors ${activeId===s.id ? 'bg-white shadow-sm font-medium text-slate-900' : 'text-slate-600 hover:bg-slate-200/50'}`}>
-                                      {s.title}
-                                  </button>
+                      <div className="flex-1 overflow-y-auto px-2 custom-scroll">
+                          {sessions.map(s => (
+                              <button key={s.id} onClick={() => {setActiveId(s.id); setIsSidebarOpen(false);}} className={`w-full text-left px-3 py-2.5 rounded-lg text-sm mb-0.5 truncate transition-colors ${activeId===s.id ? 'bg-white shadow-sm font-medium text-slate-900' : 'text-slate-600 hover:bg-slate-200/50'}`}>
+                                  {s.title}
+                              </button>
+                          ))}
+                      </div>
+                      
+                      <div className="p-4 border-t border-slate-200">
+                          <div className="flex items-center gap-3 px-2 mb-4">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">{user.displayName ? user.displayName[0] : user.email[0]}</div>
+                              <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-bold truncate">{user.displayName || 'User'}</p>
+                                  <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+                              </div>
+                          </div>
+                          <button onClick={() => { localStorage.removeItem('bapkam_api_key'); setShowKeyModal(true); }} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-blue-600 w-full mb-3"><KeyIcon className="w-4 h-4"/> Reset AI Key</button>
+                          <button onClick={() => signOut(auth)} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-red-600 w-full"><LogOutIcon className="w-4 h-4"/> Sign Out</button>
+                      </div>
+                  </aside>
+
+                  <main className="flex-1 flex flex-col h-full relative min-w-0 bg-white">
+                      <header className="h-14 flex items-center justify-between px-4 border-b border-slate-100 bg-white/80 backdrop-blur sticky top-0 z-20">
+                          <div className="flex items-center gap-3">
+                              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2"><MenuIcon className="w-6 h-6 text-slate-700"/></button>
+                              <span className="font-bold lg:hidden">bapkam</span>
+                          </div>
+                          {isProMode && <span className="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded shadow-sm">PRO</span>}
+                      </header>
+
+                      <div className="flex-1 overflow-y-auto custom-scroll p-4 pb-24 scroll-smooth" ref={chatRef}>
+                          {activeSession.messages.length === 0 ? (
+                              <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60">
+                                  <BapkamLogo className="w-16 h-16 mb-4" isPro={isProMode}/>
+                                  <h2 className="text-2xl font-bold text-slate-900">Hi, {user.displayName ? user.displayName.split(' ')[0] : 'Friend'}</h2>
+                                  <div className="flex gap-2 mt-6">
+                                      <button onClick={() => handleSend("Analyze a complex topic")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Complex Analysis</button>
+                                      <button onClick={() => handleSend("Write a creative story")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Creative Writing</button>
+                                  </div>
+                              </div>
+                          ) : (
+                              <div className="max-w-3xl mx-auto space-y-6">
+                                  {activeSession.messages.map((m, i) => (
+                                      <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                          <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}`}>
+                                              {m.attachments?.map((a, j) => (
+                                                  <div key={j} className="mb-2 rounded-lg overflow-hidden border border-slate-200"><img src={a.uri} className="max-w-full h-auto"/></div>
+                                          ))}
+                                          {m.isThinking ? (
+                                              <div className="flex items-center gap-2 text-slate-400"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"/><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75"/><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150"/></div>
+                                          ) : (
+                                              <div className="prose-content whitespace-pre-wrap">{m.content}</div>
+                                          )}
+                                      </div>
+                                  </div>
                               ))}
                           </div>
-                          
-                          <div className="p-4 border-t border-slate-200">
-                              <button onClick={() => { localStorage.removeItem('bapkam_api_key'); setShowKeyModal(true); }} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-blue-600 w-full mb-3"><KeyIcon className="w-4 h-4"/> Reset API Key</button>
-                              <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-red-600 w-full"><LogOutIcon className="w-4 h-4"/> Sign Out</button>
+                      )}
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <div className="max-w-3xl mx-auto relative flex flex-col justify-end">
+                          <div className="self-center mb-3">
+                              <EngineHUD status={engineStatus} mode={engineMode} />
                           </div>
-                      </aside>
 
-                      <main className="flex-1 flex flex-col h-full relative min-w-0 bg-white">
-                          <header className="h-14 flex items-center justify-between px-4 border-b border-slate-100 bg-white/80 backdrop-blur sticky top-0 z-20">
-                              <div className="flex items-center gap-3">
-                                  <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2"><MenuIcon className="w-6 h-6 text-slate-700"/></button>
-                                  <span className="font-bold lg:hidden">bapkam</span>
-                              </div>
-                              {isProMode && <span className="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded shadow-sm">PRO</span>}
-                          </header>
-
-                          <div className="flex-1 overflow-y-auto custom-scroll p-4 pb-24 scroll-smooth" ref={chatRef}>
-                              {activeSession.messages.length === 0 ? (
-                                  <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60">
-                                      <BapkamLogo className="w-16 h-16 mb-4" isPro={isProMode}/>
-                                      <h2 className="text-2xl font-bold text-slate-900">How can I help?</h2>
-                                      <div className="flex gap-2 mt-6">
-                                          <button onClick={() => handleSend("Analyze a complex topic")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Complex Analysis</button>
-                                          <button onClick={() => handleSend("Write a creative story")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Creative Writing</button>
+                          <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-[24px] p-1.5 focus-within:ring-2 focus-within:ring-slate-200 transition-all shadow-sm w-full">
+                              <button onClick={() => fileRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5"/></button>
+                              
+                              <div className="flex-1 py-2.5 min-h-[44px]">
+                                  {selectedAttachment && (
+                                      <div className="flex items-center gap-2 mb-2 bg-white px-2 py-1 rounded-md border w-fit">
+                                          <span className="text-xs truncate max-w-[100px]">{selectedAttachment.name || 'Image'}</span>
+                                          <button onClick={() => setSelectedAttachment(null)}><CloseIcon className="w-3 h-3"/></button>
                                       </div>
-                                  </div>
-                              ) : (
-                                  <div className="max-w-3xl mx-auto space-y-6">
-                                      {activeSession.messages.map((m, i) => (
-                                          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                              <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}`}>
-                                                  {m.attachments?.map((a, j) => (
-                                                      <div key={j} className="mb-2 rounded-lg overflow-hidden border border-slate-200"><img src={a.uri} className="max-w-full h-auto"/></div>
-                                              ))}
-                                              {m.isThinking ? (
-                                                  <div className="flex items-center gap-2 text-slate-400"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"/><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75"/><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150"/></div>
-                                              ) : (
-                                                  <div className="prose-content whitespace-pre-wrap">{m.content}</div>
-                                              )}
-                                          </div>
-                                      </div>
-                                  ))}
+                                  )}
+                                  <textarea 
+                                    ref={inputRef}
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={e => {if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); handleSend();}}}
+                                    placeholder="Message..."
+                                    className="w-full bg-transparent outline-none text-sm text-slate-800 placeholder-slate-400 resize-none max-h-32"
+                                    rows={1}
+                                    onInput={e => {e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'}}
+                                  />
                               </div>
-                          )}
-                      </div>
-
-                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                          <div className="max-w-3xl mx-auto relative flex flex-col justify-end">
-                              <div className="self-center mb-3">
-                                  <EngineHUD status={engineStatus} mode={engineMode} />
-                              </div>
-
-                              <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-[24px] p-1.5 focus-within:ring-2 focus-within:ring-slate-200 transition-all shadow-sm w-full">
-                                  <button onClick={() => fileRef.current.click()} className="p-2.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><PaperclipIcon className="w-5 h-5"/></button>
-                                  
-                                  <div className="flex-1 py-2.5 min-h-[44px]">
-                                      {selectedAttachment && (
-                                          <div className="flex items-center gap-2 mb-2 bg-white px-2 py-1 rounded-md border w-fit">
-                                              <span className="text-xs truncate max-w-[100px]">{selectedAttachment.name || 'Image'}</span>
-                                              <button onClick={() => setSelectedAttachment(null)}><CloseIcon className="w-3 h-3"/></button>
-                                          </div>
-                                      )}
-                                      <textarea 
-                                        ref={inputRef}
-                                        value={input}
-                                        onChange={e => setInput(e.target.value)}
-                                        onKeyDown={e => {if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); handleSend();}}}
-                                        placeholder="Message..."
-                                        className="w-full bg-transparent outline-none text-sm text-slate-800 placeholder-slate-400 resize-none max-h-32"
-                                        rows={1}
-                                        onInput={e => {e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'}}
-                                      />
-                                  </div>
-                                  
-                                  <button onClick={() => handleSend()} disabled={!input.trim() && !selectedAttachment} className={`p-2.5 rounded-full transition-all ${input.trim()||selectedAttachment ? 'bg-black text-white shadow-md' : 'bg-slate-200 text-slate-400'}`}>
-                                      {isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <SendIcon className="w-5 h-5"/>}
-                                  </button>
-                              </div>
+                              
+                              <button onClick={() => handleSend()} disabled={!input.trim() && !selectedAttachment} className={`p-2.5 rounded-full transition-all ${input.trim()||selectedAttachment ? 'bg-black text-white shadow-md' : 'bg-slate-200 text-slate-400'}`}>
+                                  {isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <SendIcon className="w-5 h-5"/>}
+                              </button>
                           </div>
                       </div>
-                  </main>
+                  </div>
+              </main>
 
-                  <input type="file" ref={fileRef} className="hidden" accept="image/*,video/*" onChange={(e) => {
-                      if(e.target.files?.[0]) {
-                          const reader = new FileReader();
-                          reader.onload = () => setSelectedAttachment({ uri: reader.result, mimeType: e.target.files[0].type, name: e.target.files[0].name });
-                          reader.readAsDataURL(e.target.files[0]);
-                      }
-                  }} />
+              <input type="file" ref={fileRef} className="hidden" accept="image/*,video/*" onChange={(e) => {
+                  if(e.target.files?.[0]) {
+                      const reader = new FileReader();
+                      reader.onload = () => setSelectedAttachment({ uri: reader.result, mimeType: e.target.files[0].type, name: e.target.files[0].name });
+                      reader.readAsDataURL(e.target.files[0]);
+                  }
+              }} />
 
-                  {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg z-50 animate-fade-in-up">{toast}</div>}
-                  </>
-                )}
+              {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg z-50 animate-fade-in-up">{toast}</div>}
               </div>
           );
       };
