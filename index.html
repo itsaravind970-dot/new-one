@@ -451,17 +451,35 @@
                   const currentSession = sessions.find(s => s.id === currentId);
                   const rawHistory = currentSession ? currentSession.messages : [];
                   
-                  // 1. Filter out errors, placeholders, and empty messages
-                  let cleanHistory = rawHistory.filter(m => !m.isError && !m.isThinking && (m.content || (m.attachments && m.attachments.length > 0)));
+                  // 1. Filter out errors, placeholders, and empty/malformed messages
+                  const cleanHistory = rawHistory.filter(m => 
+                      !m.isError && 
+                      !m.isThinking && 
+                      ((typeof m.content === 'string' && m.content.trim().length > 0) || (m.attachments && m.attachments.length > 0))
+                  );
 
-                  // 2. Ensure history ends with 'model' if it exists.
-                  // If the last message is 'user', it means the previous request failed. Drop it to prevent [User, User] sequence.
-                  if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
-                      cleanHistory.pop();
+                  // 2. Ensure strictly alternating roles [User, Model, User, Model]
+                  // The API demands that the chat history ends with 'model' before we send a new 'user' message.
+                  const adjustedHistory = [];
+                  for (const m of cleanHistory) {
+                     const role = m.role === 'user' ? 'user' : 'model';
+                     if (adjustedHistory.length === 0) {
+                         if (role === 'model') continue; // Chat must start with User
+                         adjustedHistory.push(m);
+                     } else {
+                         const prevRole = adjustedHistory[adjustedHistory.length - 1].role === 'user' ? 'user' : 'model';
+                         if (role === prevRole) continue; // Skip duplicates (e.g. User followed by User)
+                         adjustedHistory.push(m);
+                     }
+                  }
+                  
+                  // If after adjustment, the last message is 'user', we must drop it because we are adding another 'user' message.
+                  if (adjustedHistory.length > 0 && adjustedHistory[adjustedHistory.length - 1].role === 'user') {
+                      adjustedHistory.pop();
                   }
 
                   // 3. Format for API
-                  const validHistory = cleanHistory.map(m => {
+                  const validHistory = adjustedHistory.map(m => {
                       const parts = [];
                       if (m.attachments) {
                           m.attachments.forEach(a => {
@@ -481,6 +499,7 @@
                   }
                   if (txt) currentParts.push({ text: txt });
                   
+                  // 5. Build Content Array for stateless request
                   const contents = [...validHistory, { role: 'user', parts: currentParts }];
                   
                   const ai = new GoogleGenAI({ apiKey: key });
@@ -509,8 +528,17 @@
                   }
               } catch (e) {
                   console.error(e);
+                  // Provide specific error messages for better debugging
+                  const errorMsg = e.message || e.toString();
+                  let displayMsg = "**Connection Error:** Please check your internet or try again later.";
+                  
+                  if (errorMsg.includes('403')) displayMsg = "**Authentication Error:** The API Key is restricted or invalid for this domain.";
+                  else if (errorMsg.includes('400')) displayMsg = "**Request Error:** The message history was invalid (re-syncing...).";
+                  else if (errorMsg.includes('429')) displayMsg = "**Quota Exceeded:** Too many requests. Please wait a moment.";
+                  else if (errorMsg.includes('500') || errorMsg.includes('503')) displayMsg = "**Server Error:** Google's AI service is temporarily unavailable.";
+                  
                   setSessions(prev => prev.map(s => s.id === currentId ? {
-                      ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "**Connection Error:** Please check your internet or try again later.", isError: true }]
+                      ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: displayMsg, isError: true }]
                   } : s));
               } finally {
                   setIsStreaming(false);
