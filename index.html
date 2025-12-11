@@ -324,6 +324,7 @@
           const [selectedAttachment, setSelectedAttachment] = useState(null);
           
           const [engineStatus, setEngineStatus] = useState('');
+          const [engineMode, setEngineMode] = useState('text');
           const [isHealing, setIsHealing] = useState(false);
           const [toast, setToast] = useState(null);
 
@@ -421,6 +422,7 @@
               setSelectedAttachment(null); 
               setIsStreaming(true); 
               setIsHealing(false); // Reset healing state
+              setEngineMode(att ? 'image' : 'text');
               
               let currentId = activeId;
               if (!currentId) {
