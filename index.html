@@ -202,48 +202,47 @@
       const MenuIcon = (p) => <Icon d="M4 6h16M4 12h16M4 18h16" {...p} />;
       const PlusIcon = (p) => <Icon d="M12 5v14M5 12h14" {...p} />;
       const CloseIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
-      const KeyIcon = (p) => <Icon d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" {...p} />;
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
       const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
       const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
-      const MailIcon = (p) => <Icon d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" {...p} />;
-      const EditIcon = (p) => <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" {...p} />;
       
       // --- COMPONENTS ---
-      const BapkamLogo = ({ className = "w-10 h-10", isPro = false }) => (
+      const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
         <div className={`${className} relative flex items-center justify-center`}>
-            {isPro && (
+            {isHealing && (
+                 <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-60 animate-pulse"></div>
+            )}
+            {isPro && !isHealing && (
                 <>
                     <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-40 animate-pulse"></div>
                     <div className="absolute -inset-2 bg-blue-500 rounded-full blur-2xl opacity-20 animate-ping-slow"></div>
                 </>
             )}
-            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 ${isPro ? 'animate-spin-slower drop-shadow-cyan' : ''}`} xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 ${isPro && !isHealing ? 'animate-spin-slower drop-shadow-cyan' : ''} ${isHealing ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg">
                 <g transform="translate(50,50)">
                     {[...Array(12)].map((_, i) => (
-                        <path key={i} d="M0 -30 L5 -45 L10 -35 L5 -25 Z" fill={isPro ? `hsl(${190 + i * 10}, 90%, 60%)` : `hsl(220, 20%, ${20 + i * 5}%)`} transform={`rotate(${i * 30}) translate(0, -10)`} opacity="0.95" />
+                        <path key={i} d="M0 -30 L5 -45 L10 -35 L5 -25 Z" 
+                              fill={isHealing ? `hsl(45, 90%, 50%)` : (isPro ? `hsl(${190 + i * 10}, 90%, 60%)` : `hsl(220, 20%, ${20 + i * 5}%)`)} 
+                              transform={`rotate(${i * 30}) translate(0, -10)`} 
+                              opacity="0.95" />
                     ))}
                 </g>
             </svg>
         </div>
       );
 
-      const EngineHUD = ({ status, mode = 'text' }) => {
+      const EngineHUD = ({ status, mode = 'text', isHealing = false }) => {
           if (!status) return null;
-          const engines = mode === 'image' 
-             ? ["Neural Architect", "Quantum Render", "Visual Polish"]
-             : ["Deep Logic", "Fact Verification", "Creative Core"];
+          // If healing, show repair sequence
+          const displayStatus = isHealing ? "Self-Healing Protocol" : status;
+          
           return (
-             <div className="bg-black/90 backdrop-blur-md border border-black shadow-2xl rounded-lg px-3 py-2 flex items-center gap-3 animate-fade-in-up">
-                {engines.map((eng, i) => {
-                    const isCurrent = status === eng;
-                    return (
-                        <div key={i} className={`flex flex-col items-center gap-1 transition-all duration-300 ${isCurrent ? 'opacity-100 scale-105' : 'opacity-40 grayscale'}`}>
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
-                            <span className="text-[10px] font-mono font-bold text-green-400 whitespace-nowrap uppercase tracking-wider">{eng}</span>
-                        </div>
-                    )
-                })}
+             <div className={`bg-black/90 backdrop-blur-md border ${isHealing ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'border-black shadow-2xl'} rounded-lg px-3 py-2 flex items-center gap-3 animate-fade-in-up transition-colors duration-500`}>
+                <div className="flex items-center gap-2">
+                     <div className={`w-2 h-2 rounded-full ${isHealing ? 'bg-yellow-400 animate-ping' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'}`}></div>
+                     <span className={`text-[10px] font-mono font-bold whitespace-nowrap uppercase tracking-wider ${isHealing ? 'text-yellow-400' : 'text-green-400'}`}>{displayStatus}</span>
+                </div>
+                {isHealing && <span className="text-[10px] text-slate-400 font-mono">RE-ROUTING...</span>}
              </div>
           );
       };
@@ -259,7 +258,6 @@
         const handleSubmit = async (e) => {
             e.preventDefault();
             setLoading(true); setError('');
-            
             try {
                 if (view === 'signup') {
                     const res = await createUserWithEmailAndPassword(auth, email, password);
@@ -268,19 +266,12 @@
                     await signInWithEmailAndPassword(auth, email, password);
                 }
             } catch (e) {
-                if(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-email') {
-                    setError("Incorrect email or password.");
-                } else if(e.code === 'auth/email-already-in-use') {
-                    setError("This email is already registered.");
-                } else if(e.code === 'auth/weak-password') {
-                    setError("Password must be at least 6 characters.");
-                } else if(e.code === 'auth/user-not-found') {
-                    setError("No account found with this email.");
-                } else if(e.code === 'auth/too-many-requests') {
-                    setError("Too many attempts. Please try again later.");
-                } else {
-                    setError(e.message);
-                }
+                if(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-email') setError("Incorrect email or password.");
+                else if(e.code === 'auth/email-already-in-use') setError("This email is already registered.");
+                else if(e.code === 'auth/weak-password') setError("Password must be at least 6 characters.");
+                else if(e.code === 'auth/user-not-found') setError("No account found with this email.");
+                else if(e.code === 'auth/too-many-requests') setError("Too many attempts. Please try again later.");
+                else setError(e.message);
             } finally {
                 setLoading(false);
             }
@@ -302,30 +293,18 @@
                             <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm" required />
                         )}
                         <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm" required />
-                        
                         <div className="relative">
                             <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm" required />
                         </div>
-                        
-                        {error && (
-                            <div className="text-center">
-                                <p className="text-xs text-red-500 font-medium mb-1 bg-red-50 p-2 rounded">{error}</p>
-                            </div>
-                        )}
-                        
+                        {error && ( <div className="text-center"><p className="text-xs text-red-500 font-medium mb-1 bg-red-50 p-2 rounded">{error}</p></div> )}
                         <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-transform active:scale-95 shadow-lg disabled:opacity-70 flex items-center justify-center gap-2">
                             {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
                             {view === 'signup' ? 'Sign Up' : 'Log In'}
                         </button>
                     </form>
-
                     <div className="text-xs text-center mt-6 text-slate-500 space-y-2">
-                        {view === 'login' && (
-                            <p>Don't have an account? <button onClick={()=>{setView('signup'); setError('');}} className="font-bold text-blue-600 hover:underline">Sign Up</button></p>
-                        )}
-                        {view === 'signup' && (
-                            <p>Already have an account? <button onClick={()=>{setView('login'); setError('');}} className="font-bold text-blue-600 hover:underline">Log In</button></p>
-                        )}
+                        {view === 'login' && (<p>Don't have an account? <button onClick={()=>{setView('signup'); setError('');}} className="font-bold text-blue-600 hover:underline">Sign Up</button></p>)}
+                        {view === 'signup' && (<p>Already have an account? <button onClick={()=>{setView('login'); setError('');}} className="font-bold text-blue-600 hover:underline">Log In</button></p>)}
                     </div>
                 </div>
             </div>
@@ -345,21 +324,18 @@
           const [selectedAttachment, setSelectedAttachment] = useState(null);
           
           const [engineStatus, setEngineStatus] = useState('');
-          const [engineMode, setEngineMode] = useState('text');
+          const [isHealing, setIsHealing] = useState(false);
           const [toast, setToast] = useState(null);
 
           const chatRef = useRef(null);
           const inputRef = useRef(null);
           const fileRef = useRef(null);
 
-          const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
-          
           // Hardcoded API Key
           const getApiKey = useCallback(() => {
              return "AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg";
           }, []);
 
-          // Auth Listener
           useEffect(() => {
               const unsubscribe = onAuthStateChanged(auth, (u) => {
                   setUser(u);
@@ -379,14 +355,12 @@
               return () => unsubscribe();
           }, []);
 
-          // Persistence
           useEffect(() => {
               if (user && isLoaded) {
                   localStorage.setItem(`bapkam_sessions_${user.uid}`, JSON.stringify(sessions));
               }
           }, [sessions, user, isLoaded]);
           
-          // Auto scroll to bottom
           useEffect(() => {
              if (chatRef.current) {
                  chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -401,6 +375,41 @@
               if (window.innerWidth < 1024) setIsSidebarOpen(false);
           };
 
+          // --- BAPKAM ENGINE: SELF-HEALING REQUEST ---
+          const attemptGeneration = async (key, contents, isPro) => {
+             const modelsToTry = isPro 
+                ? ['gemini-2.5-flash', 'gemini-1.5-pro-latest', 'gemini-1.5-flash'] 
+                : ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-pro'];
+             
+             for (let i = 0; i < modelsToTry.length; i++) {
+                 const model = modelsToTry[i];
+                 try {
+                     // If retrying, show healing status
+                     if (i > 0) setIsHealing(true);
+
+                     const ai = new GoogleGenAI({ apiKey: key });
+                     const result = await ai.models.generateContentStream({
+                        model: model,
+                        contents: contents,
+                        config: {
+                          systemInstruction: isPro 
+                            ? "You are Bapkam in PRO MODE. Be concise, highly intelligent, and use beautiful markdown formatting." 
+                            : "You are Bapkam, a friendly and helpful assistant created by Arvind and Afridi.",
+                        }
+                     });
+                     
+                     // If we get here, connection was successful (or at least started)
+                     return result;
+                 } catch (e) {
+                     console.warn(`Model ${model} failed:`, e);
+                     // If it's the last model, throw the error to be caught by main handler
+                     if (i === modelsToTry.length - 1) throw e;
+                     // Otherwise continue loop to next model (Self-Healing)
+                     await new Promise(r => setTimeout(r, 500)); // Brief pause
+                 }
+             }
+          };
+
           const handleSend = async (textOverride = null) => {
               const txt = textOverride || input;
               if (!txt.trim() && !selectedAttachment) return;
@@ -411,7 +420,7 @@
               setInput(''); 
               setSelectedAttachment(null); 
               setIsStreaming(true); 
-              setEngineMode('text');
+              setIsHealing(false); // Reset healing state
               
               let currentId = activeId;
               if (!currentId) {
@@ -439,46 +448,37 @@
                   }
               });
 
-              // Simulate "Thinking"
-              const engines = ["Deep Logic", "Fact Verification", "Creative Core"];
-              for (const eng of engines) {
-                  setEngineStatus(eng);
-                  await new Promise(r => setTimeout(r, 600));
-              }
+              // Initial Status
+              setEngineStatus("Deep Logic");
 
               try {
-                  // CRITICAL FIX: Sanitize history to prevent API errors
                   const currentSession = sessions.find(s => s.id === currentId);
                   const rawHistory = currentSession ? currentSession.messages : [];
                   
-                  // 1. Filter out errors, placeholders, and empty/malformed messages
+                  // Sanitize
                   const cleanHistory = rawHistory.filter(m => 
                       !m.isError && 
                       !m.isThinking && 
                       ((typeof m.content === 'string' && m.content.trim().length > 0) || (m.attachments && m.attachments.length > 0))
                   );
 
-                  // 2. Ensure strictly alternating roles [User, Model, User, Model]
-                  // The API demands that the chat history ends with 'model' before we send a new 'user' message.
                   const adjustedHistory = [];
                   for (const m of cleanHistory) {
                      const role = m.role === 'user' ? 'user' : 'model';
                      if (adjustedHistory.length === 0) {
-                         if (role === 'model') continue; // Chat must start with User
+                         if (role === 'model') continue; 
                          adjustedHistory.push(m);
                      } else {
                          const prevRole = adjustedHistory[adjustedHistory.length - 1].role === 'user' ? 'user' : 'model';
-                         if (role === prevRole) continue; // Skip duplicates (e.g. User followed by User)
+                         if (role === prevRole) continue; 
                          adjustedHistory.push(m);
                      }
                   }
                   
-                  // If after adjustment, the last message is 'user', we must drop it because we are adding another 'user' message.
                   if (adjustedHistory.length > 0 && adjustedHistory[adjustedHistory.length - 1].role === 'user') {
                       adjustedHistory.pop();
                   }
 
-                  // 3. Format for API
                   const validHistory = adjustedHistory.map(m => {
                       const parts = [];
                       if (m.attachments) {
@@ -492,31 +492,19 @@
                       return { role: m.role === 'user' ? 'user' : 'model', parts };
                   });
 
-                  // 4. Construct current message parts
                   const currentParts = [];
                   if (att && att.uri.includes('base64,')) {
                       currentParts.push({ inlineData: { mimeType: att.mimeType, data: att.uri.split('base64,')[1] }});
                   }
                   if (txt) currentParts.push({ text: txt });
                   
-                  // 5. Build Content Array for stateless request
                   const contents = [...validHistory, { role: 'user', parts: currentParts }];
                   
-                  const ai = new GoogleGenAI({ apiKey: key });
-                  const model = isProMode ? 'gemini-2.5-flash' : 'gemini-2.5-flash'; 
-                  
-                  const result = await ai.models.generateContentStream({
-                      model: model,
-                      contents: contents,
-                      config: {
-                          systemInstruction: isProMode 
-                            ? "You are Bapkam in PRO MODE. Be concise, highly intelligent, and use beautiful markdown formatting." 
-                            : "You are Bapkam, a friendly and helpful assistant created by Arvind and Afridi.",
-                      }
-                  });
+                  // Use Self-Healing Generator
+                  const resultStream = await attemptGeneration(key, contents, isProMode);
 
                   let fullText = '';
-                  for await (const chunk of result) {
+                  for await (const chunk of resultStream) {
                       const t = chunk.text;
                       if (t) {
                           fullText += t;
@@ -528,20 +516,21 @@
                   }
               } catch (e) {
                   console.error(e);
-                  // Provide specific error messages for better debugging
                   const errorMsg = e.message || e.toString();
                   let displayMsg = "**Connection Error:** Please check your internet or try again later.";
                   
-                  if (errorMsg.includes('403')) displayMsg = "**Authentication Error:** The API Key is restricted or invalid for this domain.";
-                  else if (errorMsg.includes('400')) displayMsg = "**Request Error:** The message history was invalid (re-syncing...).";
-                  else if (errorMsg.includes('429')) displayMsg = "**Quota Exceeded:** Too many requests. Please wait a moment.";
-                  else if (errorMsg.includes('500') || errorMsg.includes('503')) displayMsg = "**Server Error:** Google's AI service is temporarily unavailable.";
-                  
+                  // Even more specific error handling
+                  if (errorMsg.includes('403')) displayMsg = "**Access Protocol:** The neural link (API Key) is restricted. Please check domain settings in Google Cloud Console.";
+                  else if (errorMsg.includes('400')) displayMsg = "**Data Malfunction:** Invalid request format. The engine has purged the corrupted data.";
+                  else if (errorMsg.includes('429')) displayMsg = "**System Overload:** Too many requests. Cooling down... try again in 10s.";
+                  else if (errorMsg.includes('503')) displayMsg = "**Mainframe Down:** Google's AI service is temporarily offline.";
+
                   setSessions(prev => prev.map(s => s.id === currentId ? {
                       ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: displayMsg, isError: true }]
                   } : s));
               } finally {
                   setIsStreaming(false);
+                  setIsHealing(false);
                   setEngineStatus('');
               }
           };
@@ -603,7 +592,7 @@
                       <div className="flex-1 overflow-y-auto custom-scroll p-4 pb-24 scroll-smooth" ref={chatRef}>
                           {activeSession.messages.length === 0 ? (
                               <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60">
-                                  <BapkamLogo className="w-16 h-16 mb-4" isPro={isProMode}/>
+                                  <BapkamLogo className="w-16 h-16 mb-4" isPro={isProMode} isHealing={isHealing} />
                                   <h2 className="text-2xl font-bold text-slate-900">Hi, {user.displayName ? user.displayName.split(' ')[0] : 'Friend'}</h2>
                                   <div className="flex gap-2 mt-6">
                                       <button onClick={() => handleSend("Analyze a complex topic")} className="px-4 py-2 bg-slate-50 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-100">Complex Analysis</button>
@@ -633,7 +622,7 @@
                   <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
                       <div className="max-w-3xl mx-auto relative flex flex-col justify-end">
                           <div className="self-center mb-3">
-                              <EngineHUD status={engineStatus} mode={engineMode} />
+                              <EngineHUD status={engineStatus} mode={engineMode} isHealing={isHealing} />
                           </div>
 
                           <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-[24px] p-1.5 focus-within:ring-2 focus-within:ring-slate-200 transition-all shadow-sm w-full">
