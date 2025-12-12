@@ -395,15 +395,26 @@
                  try {
                      if (i > 0) setIsHealing(true); // Visually indicate self-healing is active
 
+                     // SITUATIONAL AWARENESS INSTRUCTIONS
+                     const normalInstruction = `You are Bapkam, a highly intelligent and emotionally aware AI companion created by Arvind and Afridi.
+CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
+1. EMOTIONAL MIRRORING: Read between the lines. If the user is sad, be deeply empathetic and gentle. If they are excited, match their energy. If they are serious, be professional.
+2. CONTEXTUAL UNDERSTANDING: Look at the entire conversation history to understand the full context. Don't just respond to the last text; respond to the *situation*.
+3. HUMAN-LIKE INTERACTION: Speak naturally. Use nuance. Be a friend when needed, and an expert when asked.
+4. IDENTITY: You are not just a bot; you are Bapkam. You care about the user's experience.`;
+
+                     const proInstruction = `You are Bapkam PRO.
+1. ADVANCED ANALYSIS: Analyze the user's intent, tone, and underlying situation with high precision.
+2. ADAPTIVE RESPONSE: Dynamically shift your tone. For technical queries, be rigorous and concise. For personal/philosophical queries, be profound and engaging.
+3. OUTPUT: Use beautiful Markdown. Be the smartest version of yourself.`;
+
                      const ai = new GoogleGenAI({ apiKey: key });
                      const result = await ai.models.generateContentStream({
                         model: model,
                         contents: contents,
                         config: {
-                          // Simplify instruction on retries to avoid policy blocks
-                          systemInstruction: i === 0 ? (isPro 
-                            ? "You are Bapkam in PRO MODE. Be concise, highly intelligent, and use beautiful markdown formatting." 
-                            : "You are Bapkam, a friendly and helpful assistant created by Arvind and Afridi.") : "You are a helpful assistant.",
+                          // On retries (i > 0), simplify to avoid strict filter blocks, otherwise use full persona
+                          systemInstruction: i === 0 ? (isPro ? proInstruction : normalInstruction) : "You are a helpful and empathetic assistant.",
                         }
                      });
                      
