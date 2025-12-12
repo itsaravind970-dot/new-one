@@ -162,6 +162,7 @@
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
     "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
     "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+    "lz-string": "https://esm.sh/lz-string@1.5.0",
     "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
@@ -175,6 +176,7 @@
       import { createRoot } from 'react-dom/client';
       import { GoogleGenAI } from "@google/genai";
       import { initializeApp } from "firebase/app";
+      import LZString from "lz-string";
       import { 
         getAuth, 
         createUserWithEmailAndPassword, 
@@ -235,6 +237,7 @@
       const ExpandIcon = (p) => <Icon d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" {...p} />;
       const SearchIcon = (p) => <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" {...p} />;
       const GlobeIcon = (p) => <Icon d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm0-16a8 8 0 1 0 8 8 8 8 0 0 0-8-8z" {...p} />;
+      const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" {...p} />;
       
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
@@ -292,18 +295,49 @@
       };
 
       const SourceBar = ({ sources }) => {
+          const [expanded, setExpanded] = useState(false);
           if (!sources || sources.length === 0) return null;
-          return (
-              <div className="mt-3 flex flex-wrap gap-2 animate-fade-in">
-                  <div className="w-full text-[10px] text-slate-400 font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <SearchIcon className="w-3 h-3" /> SON Engine Results
+
+          const primarySource = sources[0];
+          const extraCount = sources.length - 1;
+
+          if (expanded) {
+              return (
+                  <div className="mt-3 animate-fade-in bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200/50">
+                          <div className="text-[10px] text-slate-400 font-mono uppercase tracking-wider flex items-center gap-1">
+                              <SearchIcon className="w-3 h-3" /> SON Engine Results
+                          </div>
+                          <button onClick={() => setExpanded(false)} className="text-xs text-slate-500 hover:text-slate-800"><CloseIcon className="w-3 h-3"/></button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                          {sources.map((s, i) => (
+                              <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-1.5 rounded text-xs text-slate-700 transition-colors max-w-[200px] truncate shadow-sm">
+                                  <GlobeIcon className="w-3 h-3 text-cyan-600 flex-shrink-0" />
+                                  <span className="truncate font-medium">{s.title || new URL(s.uri).hostname}</span>
+                              </a>
+                          ))}
+                      </div>
                   </div>
-                  {sources.map((s, i) => (
-                      <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2 py-1 rounded text-xs text-slate-700 transition-colors max-w-[200px] truncate">
-                          <GlobeIcon className="w-3 h-3 text-cyan-600 flex-shrink-0" />
-                          <span className="truncate font-medium">{s.title || new URL(s.uri).hostname}</span>
-                      </a>
-                  ))}
+              );
+          }
+
+          return (
+              <div className="mt-3 flex items-center gap-2 group cursor-pointer" onClick={() => setExpanded(true)}>
+                  <div className="relative">
+                       {/* Stack effect layers */}
+                       {extraCount > 0 && <div className="absolute top-1 left-1 w-full h-full bg-slate-200 border border-slate-300 rounded-md -z-10 scale-[0.95] origin-top-left"></div>}
+                       {extraCount > 1 && <div className="absolute top-2 left-2 w-full h-full bg-slate-100 border border-slate-200 rounded-md -z-20 scale-[0.9] origin-top-left"></div>}
+                       
+                       <div className="bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-cyan-300 transition-colors rounded-md px-2 py-1.5 flex items-center gap-2 shadow-sm z-10 relative">
+                           <GlobeIcon className="w-3 h-3 text-cyan-600" />
+                           <span className="text-xs font-medium text-slate-700 max-w-[150px] truncate">{primarySource.title || new URL(primarySource.uri).hostname}</span>
+                           {extraCount > 0 && (
+                               <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px] font-bold text-slate-600">+{extraCount}</span>
+                           )}
+                       </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono uppercase opacity-0 group-hover:opacity-100 transition-opacity">Expand Sources</span>
               </div>
           );
       };
@@ -378,7 +412,7 @@
           )
       }
 
-      const RunPreview = ({ code, language, onClose }) => {
+      const RunPreview = ({ code, language, onClose, onToast }) => {
           const iframeRef = useRef(null);
           
           useEffect(() => {
@@ -409,11 +443,27 @@
               }
           }, [code, language]);
 
+          const handleShare = () => {
+              try {
+                  const compressed = LZString.compressToEncodedURIComponent(code);
+                  const url = `${window.location.origin}${window.location.pathname}?share=${compressed}&lang=${language}`;
+                  navigator.clipboard.writeText(url);
+                  onToast("Link copied! Share it with friends.");
+              } catch (e) {
+                  onToast("Failed to generate link.");
+              }
+          };
+
           return (
               <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-0 lg:p-8 animate-fade-in">
                   <div className="bg-white rounded-none lg:rounded-2xl w-full h-full max-w-7xl flex flex-col shadow-2xl overflow-hidden relative border border-slate-800">
                       <div className="h-14 bg-slate-900 flex items-center justify-between px-4 lg:px-6 shadow-md z-10">
-                          <span className="text-white font-bold text-sm lg:text-base flex items-center gap-2"><PlayIcon className="w-4 h-4 text-green-400"/> Live Preview</span>
+                          <div className="flex items-center gap-3">
+                              <span className="text-white font-bold text-sm lg:text-base flex items-center gap-2"><PlayIcon className="w-4 h-4 text-green-400"/> Live Preview</span>
+                              <button onClick={handleShare} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-full flex items-center gap-1 transition-colors border border-slate-600">
+                                  <ShareIcon className="w-3 h-3"/> Share App
+                              </button>
+                          </div>
                           <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><CloseIcon className="w-6 h-6"/></button>
                       </div>
                       <iframe ref={iframeRef} className="flex-1 w-full h-full bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin" title="Preview"></iframe>
@@ -515,6 +565,25 @@
              return _k1 + _k2;
           }, []);
 
+          // Check for shared code in URL on load
+          useEffect(() => {
+              const params = new URLSearchParams(window.location.search);
+              const shareData = params.get('share');
+              const lang = params.get('lang') || 'html';
+              if (shareData) {
+                  try {
+                      const decompressed = LZString.decompressFromEncodedURIComponent(shareData);
+                      if (decompressed) {
+                          setPreviewData({ code: decompressed, language: lang });
+                          // Clear URL to avoid state issues
+                          window.history.replaceState({}, document.title, window.location.pathname);
+                      }
+                  } catch (e) {
+                      console.error("Failed to decompress shared code", e);
+                  }
+              }
+          }, []);
+
           useEffect(() => {
               const unsubscribe = onAuthStateChanged(auth, (u) => {
                   setUser(u);
@@ -545,6 +614,13 @@
                  chatRef.current.scrollTop = chatRef.current.scrollHeight;
              }
           }, [sessions, activeId, isStreaming]);
+
+          useEffect(() => {
+              if (toast) {
+                  const t = setTimeout(() => setToast(null), 3000);
+                  return () => clearTimeout(t);
+              }
+          }, [toast]);
 
           const createSession = () => {
               const id = Date.now().toString();
@@ -764,7 +840,8 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
           };
 
           if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"/></div>;
-
+          
+          // Special case for sharing: Allow viewing preview without login if share params exist (optional, current impl requires login for simplicity, but we can bypass AuthScreen if desired. Here we keep Auth required for consistency)
           if (!user) return <AuthScreen onLogin={() => {}} />;
 
           const activeSession = sessions.find(s => s.id === activeId) || { id: 'temp', title: 'New Chat', messages: [] };
@@ -892,6 +969,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                           code={previewData.code} 
                           language={previewData.language} 
                           onClose={() => setPreviewData(null)} 
+                          onToast={(msg) => setToast(msg)}
                       />
                   )}
                   {expandedCode && (

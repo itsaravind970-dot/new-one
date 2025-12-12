@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
-    "react": "^19.2.3"
+    "react": "^19.2.3",
+    "lz-string": "1.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
