@@ -214,6 +214,9 @@
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
       const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
       const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
+      const PlayIcon = (p) => <Icon d="M5 3l14 9-14 9V3z" {...p} />;
+      const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.24a2 2 0 0 0-.6-.16l-3.56-3.56a2 2 0 0 0-1.42-.58H10a2 2 0 0 0-2 2zM16 4v4h4M4 8v12a2 2 0 0 0 2 2h8" {...p} />;
+      const CheckIcon = (p) => <Icon d="M20 6L9 17l-5-5" {...p} />;
       
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
@@ -243,7 +246,6 @@
       const EngineHUD = ({ status, mode = 'text', isHealing = false }) => {
           if (!status) return null;
           const displayStatus = isHealing ? "Self-Healing Protocol" : status;
-          
           return (
              <div className={`bg-black/90 backdrop-blur-md border ${isHealing ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'border-black shadow-2xl'} rounded-lg px-3 py-2 md:px-4 md:py-3 lg:px-5 lg:py-3 flex items-center gap-3 animate-fade-in-up transition-colors duration-500`}>
                 <div className="flex items-center gap-2">
@@ -252,6 +254,72 @@
                 </div>
                 {isHealing && <span className="text-[10px] md:text-xs lg:text-sm text-slate-400 font-mono">OPTIMIZING...</span>}
              </div>
+          );
+      };
+
+      const CodeBlock = ({ language, code, onRun }) => {
+        const [copied, setCopied] = useState(false);
+        const runnable = ['html', 'javascript', 'js', 'css', 'website'].includes(language.toLowerCase());
+
+        const handleCopy = () => {
+          navigator.clipboard.writeText(code);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        };
+
+        return (
+          <div className="my-4 rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-slate-900 w-full max-w-full">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+              <span className="text-xs font-mono font-bold text-slate-300 uppercase">{language || 'code'}</span>
+              <div className="flex items-center gap-2">
+                {runnable && (
+                  <button onClick={() => onRun(code, language)} className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-colors">
+                    <PlayIcon className="w-3 h-3" /> Run
+                  </button>
+                )}
+                <button onClick={handleCopy} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                  {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-400" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div className="p-4 overflow-x-auto custom-scroll">
+              <pre className="font-mono text-sm leading-relaxed text-slate-300 whitespace-pre">
+                <code>{code}</code>
+              </pre>
+            </div>
+          </div>
+        );
+      };
+
+      const RunPreview = ({ code, language, onClose }) => {
+          const iframeRef = useRef(null);
+          
+          useEffect(() => {
+              if (iframeRef.current) {
+                  const doc = iframeRef.current.contentDocument;
+                  doc.open();
+                  let content = code;
+                  if (language === 'javascript' || language === 'js') {
+                      // Fix: Split the script tag string to prevent browser parsing errors
+                      content = `<html><body><script>try{${code}}catch(e){document.body.innerHTML='<pre style="color:red">'+e+'</pre>'}` + `<` + `/script></body></html>`;
+                  } else if (language === 'css') {
+                      content = `<html><head><style>${code}</style></head><body><h1>CSS Preview</h1><div class="demo">Demo Element</div></body></html>`;
+                  }
+                  doc.write(content);
+                  doc.close();
+              }
+          }, [code, language]);
+
+          return (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 lg:p-12 animate-fade-in">
+                  <div className="bg-white rounded-2xl w-full h-full max-w-6xl flex flex-col shadow-2xl overflow-hidden relative border border-slate-800">
+                      <div className="h-12 bg-slate-900 flex items-center justify-between px-4">
+                          <span className="text-white font-bold text-sm flex items-center gap-2"><PlayIcon className="w-4 h-4 text-green-400"/> Live Preview</span>
+                          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"><CloseIcon className="w-5 h-5"/></button>
+                      </div>
+                      <iframe ref={iframeRef} className="flex-1 w-full h-full bg-white" sandbox="allow-scripts allow-modals" title="Preview"></iframe>
+                  </div>
+              </div>
           );
       };
 
@@ -335,6 +403,7 @@
           const [engineMode, setEngineMode] = useState('text');
           const [isHealing, setIsHealing] = useState(false);
           const [toast, setToast] = useState(null);
+          const [previewData, setPreviewData] = useState(null); // { code, language }
 
           const chatRef = useRef(null);
           const inputRef = useRef(null);
@@ -399,7 +468,7 @@
 CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
 1. EMOTIONAL MIRRORING: Read between the lines. If the user is sad, be deeply empathetic and gentle. If they are excited, match their energy. If they are serious, be professional.
 2. CONTEXTUAL UNDERSTANDING: Look at the entire conversation history to understand the full context. Don't just respond to the last text; respond to the *situation*.
-3. HUMAN-LIKE INTERACTION: Speak naturally. Use nuance. Be a friend when needed, and an expert when asked.
+3. CODE EXPERT: When asked for code, provide clean, modern, and working code blocks. If the user asks for a website or visual component, use HTML/CSS/JS so it can be run immediately.
 4. IDENTITY: You are not just a bot; you are Bapkam. You care about the user's experience.`;
 
                      const proInstruction = `You are Bapkam PRO.
@@ -546,6 +615,20 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
               }
           };
 
+          const renderMessageContent = (content) => {
+              // Split by code blocks
+              const parts = content.split(/(```[\w-]*\n[\s\S]*?```)/g);
+              return parts.map((part, index) => {
+                  if (part.startsWith('```')) {
+                      const match = part.match(/```([\w-]*)\n([\s\S]*?)```/);
+                      if (match) {
+                          return <CodeBlock key={index} language={match[1] || 'text'} code={match[2]} onRun={(c, l) => setPreviewData({code: c, language: l})} />;
+                      }
+                  }
+                  return <span key={index} className="prose-content whitespace-pre-wrap">{part}</span>;
+              });
+          };
+
           if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"/></div>;
 
           if (!user) return <AuthScreen onLogin={() => {}} />;
@@ -607,7 +690,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                                   <h2 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">Hi, {user.displayName ? user.displayName.split(' ')[0] : 'Friend'}</h2>
                                   <p className="text-sm lg:text-lg text-slate-500 mb-8">How can I help you today?</p>
                                   <div className="flex flex-wrap justify-center gap-3 mt-4">
-                                      <button onClick={() => handleSend("Analyze a complex topic")} className="px-4 py-2 lg:px-6 lg:py-3 bg-slate-50 rounded-full text-xs lg:text-base font-medium border border-slate-200 hover:bg-slate-100 transition-colors">Complex Analysis</button>
+                                      <button onClick={() => handleSend("Create a simple calculator")} className="px-4 py-2 lg:px-6 lg:py-3 bg-slate-50 rounded-full text-xs lg:text-base font-medium border border-slate-200 hover:bg-slate-100 transition-colors">Build Calculator</button>
                                       <button onClick={() => handleSend("Write a creative story")} className="px-4 py-2 lg:px-6 lg:py-3 bg-slate-50 rounded-full text-xs lg:text-base font-medium border border-slate-200 hover:bg-slate-100 transition-colors">Creative Writing</button>
                                       <button onClick={() => handleSend("Help me plan a trip")} className="px-4 py-2 lg:px-6 lg:py-3 bg-slate-50 rounded-full text-xs lg:text-base font-medium border border-slate-200 hover:bg-slate-100 transition-colors">Plan a Trip</button>
                                   </div>
@@ -616,14 +699,14 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                               <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-6 lg:space-y-8">
                                   {activeSession.messages.map((m, i) => (
                                       <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                          <div className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] rounded-2xl px-4 py-3 lg:px-6 lg:py-5 text-sm md:text-base lg:text-lg xl:text-xl leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}`}>
+                                          <div className={`max-w-[100%] sm:max-w-[85%] lg:max-w-[80%] rounded-2xl px-4 py-3 lg:px-6 lg:py-5 text-sm md:text-base lg:text-lg xl:text-xl leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none w-full'}`}>
                                               {m.attachments?.map((a, j) => (
                                                   <div key={j} className="mb-3 rounded-lg overflow-hidden border border-slate-200"><img src={a.uri} className="max-w-full h-auto"/></div>
                                           ))}
                                           {m.isThinking ? (
                                               <div className="flex items-center gap-2 text-slate-400 py-2"><div className="w-2 h-2 lg:w-3 lg:h-3 bg-slate-400 rounded-full animate-bounce"/><div className="w-2 h-2 lg:w-3 lg:h-3 bg-slate-400 rounded-full animate-bounce delay-75"/><div className="w-2 h-2 lg:w-3 lg:h-3 bg-slate-400 rounded-full animate-bounce delay-150"/></div>
                                           ) : (
-                                              <div className="prose-content whitespace-pre-wrap">{m.content}</div>
+                                              <div>{renderMessageContent(m.content)}</div>
                                           )}
                                       </div>
                                   </div>
@@ -666,6 +749,14 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                           </div>
                       </div>
                   </div>
+
+                  {previewData && (
+                      <RunPreview 
+                          code={previewData.code} 
+                          language={previewData.language} 
+                          onClose={() => setPreviewData(null)} 
+                      />
+                  )}
               </main>
 
               <input type="file" ref={fileRef} className="hidden" accept="image/*,video/*" onChange={(e) => {
