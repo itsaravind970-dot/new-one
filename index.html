@@ -11,6 +11,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
+    <!-- PrismJS for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -138,6 +149,9 @@
         .prose-content h3 { font-size: 1.1em; font-weight: 700; margin-top: 1rem; color: #111827; }
         .prose-content p { margin-bottom: 0.75rem; line-height: 1.6; }
         .prose-content p:last-child { margin-bottom: 0; }
+        
+        /* Prism Overrides */
+        code[class*="language-"], pre[class*="language-"] { font-size: 14px; }
     </style>
 
 <script type="importmap">
@@ -217,6 +231,8 @@
       const PlayIcon = (p) => <Icon d="M5 3l14 9-14 9V3z" {...p} />;
       const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.24a2 2 0 0 0-.6-.16l-3.56-3.56a2 2 0 0 0-1.42-.58H10a2 2 0 0 0-2 2zM16 4v4h4M4 8v12a2 2 0 0 0 2 2h8" {...p} />;
       const CheckIcon = (p) => <Icon d="M20 6L9 17l-5-5" {...p} />;
+      const FullscreenIcon = (p) => <Icon d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" {...p} />;
+      const ExpandIcon = (p) => <Icon d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" {...p} />;
       
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
@@ -257,9 +273,17 @@
           );
       };
 
-      const CodeBlock = ({ language, code, onRun }) => {
+      const CodeBlock = ({ language, code, onRun, onExpand }) => {
         const [copied, setCopied] = useState(false);
+        const codeRef = useRef(null);
+        // Detect if code is web-runnable (HTML/JS/CSS)
         const runnable = ['html', 'javascript', 'js', 'css', 'website'].includes(language.toLowerCase());
+
+        useEffect(() => {
+            if (codeRef.current && window.Prism) {
+                window.Prism.highlightElement(codeRef.current);
+            }
+        }, [code, language]);
 
         const handleCopy = () => {
           navigator.clipboard.writeText(code);
@@ -268,28 +292,56 @@
         };
 
         return (
-          <div className="my-4 rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-slate-900 w-full max-w-full">
-            <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+          <div className="my-4 rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-[#2d2d2d] w-full max-w-full">
+            <div className="flex items-center justify-between px-4 py-2 bg-[#1f1f1f] border-b border-slate-700">
               <span className="text-xs font-mono font-bold text-slate-300 uppercase">{language || 'code'}</span>
               <div className="flex items-center gap-2">
                 {runnable && (
-                  <button onClick={() => onRun(code, language)} className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-colors">
-                    <PlayIcon className="w-3 h-3" /> Run
+                  <button onClick={() => onRun(code, language)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-colors shadow-lg shadow-green-900/20">
+                    <PlayIcon className="w-3.5 h-3.5" /> Run Live
                   </button>
                 )}
-                <button onClick={handleCopy} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => onExpand(code, language)} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Fullscreen">
+                  <ExpandIcon className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={handleCopy} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Copy">
                   {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-400" /> : <CopyIcon className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
-            <div className="p-4 overflow-x-auto custom-scroll">
-              <pre className="font-mono text-sm leading-relaxed text-slate-300 whitespace-pre">
-                <code>{code}</code>
+            <div className="p-0 overflow-x-auto custom-scroll relative group">
+              <pre className={`language-${language} !m-0 !p-4 !bg-[#2d2d2d] !text-sm !font-mono`} style={{margin: 0, textShadow: 'none'}}>
+                <code ref={codeRef} className={`language-${language}`}>{code}</code>
               </pre>
             </div>
           </div>
         );
       };
+
+      const CodeViewModal = ({ code, language, onClose }) => {
+          const codeRef = useRef(null);
+          useEffect(() => {
+              if (codeRef.current && window.Prism) {
+                  window.Prism.highlightElement(codeRef.current);
+              }
+          }, [code, language]);
+
+          return (
+              <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 lg:p-8 animate-fade-in">
+                  <div className="bg-[#2d2d2d] rounded-xl w-full h-full max-w-7xl flex flex-col shadow-2xl overflow-hidden border border-slate-700">
+                       <div className="h-14 bg-[#1f1f1f] flex items-center justify-between px-6 border-b border-slate-700">
+                          <span className="text-slate-200 font-mono font-bold text-sm uppercase">{language}</span>
+                          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white"><CloseIcon className="w-6 h-6"/></button>
+                      </div>
+                      <div className="flex-1 overflow-auto custom-scroll p-6">
+                           <pre className={`language-${language} !bg-transparent !p-0 !m-0`}>
+                                <code ref={codeRef} className={`language-${language} !text-base`}>{code}</code>
+                           </pre>
+                      </div>
+                  </div>
+              </div>
+          )
+      }
 
       const RunPreview = ({ code, language, onClose }) => {
           const iframeRef = useRef(null);
@@ -299,11 +351,23 @@
                   const doc = iframeRef.current.contentDocument;
                   doc.open();
                   let content = code;
+                  // Auto-wrap partial JS for safety and visibility
                   if (language === 'javascript' || language === 'js') {
-                      // Fix: Split the script tag string to prevent browser parsing errors
-                      content = `<html><body><script>try{${code}}catch(e){document.body.innerHTML='<pre style="color:red">'+e+'</pre>'}` + `<` + `/script></body></html>`;
+                      content = `<html><body style="margin:0; font-family: sans-serif; padding: 20px;"><script>
+                      try{
+                          // Capture log output
+                          const log = console.log;
+                          console.log = (...args) => {
+                             document.body.innerHTML += '<div style="background:#f0f0f0; padding:4px; margin-bottom:4px; border-radius:4px; font-family:monospace;">> ' + args.join(' ') + '</div>';
+                             log(...args);
+                          }
+                          ${code}
+                      }catch(e){
+                          document.body.innerHTML += '<pre style="color:red; background:#ffebeb; padding:10px; border-radius:4px;">Error: '+e+'</pre>'
+                      }
+                      ` + `<` + `/script></body></html>`;
                   } else if (language === 'css') {
-                      content = `<html><head><style>${code}</style></head><body><h1>CSS Preview</h1><div class="demo">Demo Element</div></body></html>`;
+                      content = `<html><head><style>${code}</style></head><body><div class="demo-box"><h1>CSS Preview</h1><p>This is how your CSS styles default elements.</p><button>Button</button></div></body></html>`;
                   }
                   doc.write(content);
                   doc.close();
@@ -311,13 +375,13 @@
           }, [code, language]);
 
           return (
-              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 lg:p-12 animate-fade-in">
-                  <div className="bg-white rounded-2xl w-full h-full max-w-6xl flex flex-col shadow-2xl overflow-hidden relative border border-slate-800">
-                      <div className="h-12 bg-slate-900 flex items-center justify-between px-4">
-                          <span className="text-white font-bold text-sm flex items-center gap-2"><PlayIcon className="w-4 h-4 text-green-400"/> Live Preview</span>
-                          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"><CloseIcon className="w-5 h-5"/></button>
+              <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-0 lg:p-8 animate-fade-in">
+                  <div className="bg-white rounded-none lg:rounded-2xl w-full h-full max-w-7xl flex flex-col shadow-2xl overflow-hidden relative border border-slate-800">
+                      <div className="h-14 bg-slate-900 flex items-center justify-between px-4 lg:px-6 shadow-md z-10">
+                          <span className="text-white font-bold text-sm lg:text-base flex items-center gap-2"><PlayIcon className="w-4 h-4 text-green-400"/> Live Preview</span>
+                          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><CloseIcon className="w-6 h-6"/></button>
                       </div>
-                      <iframe ref={iframeRef} className="flex-1 w-full h-full bg-white" sandbox="allow-scripts allow-modals" title="Preview"></iframe>
+                      <iframe ref={iframeRef} className="flex-1 w-full h-full bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin" title="Preview"></iframe>
                   </div>
               </div>
           );
@@ -404,6 +468,7 @@
           const [isHealing, setIsHealing] = useState(false);
           const [toast, setToast] = useState(null);
           const [previewData, setPreviewData] = useState(null); // { code, language }
+          const [expandedCode, setExpandedCode] = useState(null); // { code, language }
 
           const chatRef = useRef(null);
           const inputRef = useRef(null);
@@ -466,14 +531,18 @@
 
                      const normalInstruction = `You are Bapkam, a highly intelligent and emotionally aware AI companion created by Arvind and Afridi.
 CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
-1. EMOTIONAL MIRRORING: Read between the lines. If the user is sad, be deeply empathetic and gentle. If they are excited, match their energy. If they are serious, be professional.
-2. CONTEXTUAL UNDERSTANDING: Look at the entire conversation history to understand the full context. Don't just respond to the last text; respond to the *situation*.
-3. CODE EXPERT: When asked for code, provide clean, modern, and working code blocks. If the user asks for a website or visual component, use HTML/CSS/JS so it can be run immediately.
-4. IDENTITY: You are not just a bot; you are Bapkam. You care about the user's experience.`;
+1. EMOTIONAL MIRRORING: Read between the lines. If the user is sad, be deeply empathetic and gentle. If they are excited, match their energy.
+2. CONTEXTUAL UNDERSTANDING: Look at the entire conversation history.
+3. CODE EXPERT: When asked for code (especially web apps, games, calculators, or visual components), YOU MUST PROVIDE A SINGLE, SELF-CONTAINED HTML FILE.
+   - Include CSS inside <style> tags.
+   - Include JS inside <script> tags.
+   - Do NOT split the code into multiple blocks for web apps. Combine them into one perfect index.html block so the user can run it immediately.
+   - For backend code (Python, C++, Java), provide clear, correct code.
+4. IDENTITY: You are Bapkam. You care about the user.`;
 
                      const proInstruction = `You are Bapkam PRO.
-1. ADVANCED ANALYSIS: Analyze the user's intent, tone, and underlying situation with high precision.
-2. ADAPTIVE RESPONSE: Dynamically shift your tone. For technical queries, be rigorous and concise. For personal/philosophical queries, be profound and engaging.
+1. ADVANCED ANALYSIS: Analyze the user's intent with high precision.
+2. SINGLE-FILE WEB APPS: If the user asks for a website, game, or tool, generate a single, high-quality HTML file with embedded CSS and JS. It must be production-ready and beautiful.
 3. OUTPUT: Use beautiful Markdown. Be the smartest version of yourself.`;
 
                      const ai = new GoogleGenAI({ apiKey: key });
@@ -622,7 +691,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                   if (part.startsWith('```')) {
                       const match = part.match(/```([\w-]*)\n([\s\S]*?)```/);
                       if (match) {
-                          return <CodeBlock key={index} language={match[1] || 'text'} code={match[2]} onRun={(c, l) => setPreviewData({code: c, language: l})} />;
+                          return <CodeBlock key={index} language={match[1] || 'text'} code={match[2]} onRun={(c, l) => setPreviewData({code: c, language: l})} onExpand={(c, l) => setExpandedCode({code: c, language: l})} />;
                       }
                   }
                   return <span key={index} className="prose-content whitespace-pre-wrap">{part}</span>;
@@ -699,7 +768,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                               <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-6 lg:space-y-8">
                                   {activeSession.messages.map((m, i) => (
                                       <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                          <div className={`max-w-[100%] sm:max-w-[85%] lg:max-w-[80%] rounded-2xl px-4 py-3 lg:px-6 lg:py-5 text-sm md:text-base lg:text-lg xl:text-xl leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none w-full'}`}>
+                                          <div className={`max-w-[100%] sm:max-w-[90%] lg:max-w-[80%] rounded-2xl px-4 py-3 lg:px-6 lg:py-5 text-sm md:text-base lg:text-lg xl:text-xl leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none w-full'}`}>
                                               {m.attachments?.map((a, j) => (
                                                   <div key={j} className="mb-3 rounded-lg overflow-hidden border border-slate-200"><img src={a.uri} className="max-w-full h-auto"/></div>
                                           ))}
@@ -756,6 +825,13 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                           language={previewData.language} 
                           onClose={() => setPreviewData(null)} 
                       />
+                  )}
+                  {expandedCode && (
+                       <CodeViewModal
+                          code={expandedCode.code}
+                          language={expandedCode.language}
+                          onClose={() => setExpandedCode(null)}
+                       />
                   )}
               </main>
 
