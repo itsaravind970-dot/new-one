@@ -233,6 +233,8 @@
       const CheckIcon = (p) => <Icon d="M20 6L9 17l-5-5" {...p} />;
       const FullscreenIcon = (p) => <Icon d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" {...p} />;
       const ExpandIcon = (p) => <Icon d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" {...p} />;
+      const SearchIcon = (p) => <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" {...p} />;
+      const GlobeIcon = (p) => <Icon d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm0-16a8 8 0 1 0 8 8 8 8 0 0 0-8-8z" {...p} />;
       
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
@@ -261,15 +263,48 @@
 
       const EngineHUD = ({ status, mode = 'text', isHealing = false }) => {
           if (!status) return null;
+          
+          let statusColor = "bg-green-500";
+          let textColor = "text-green-400";
+          let borderColor = "border-black";
+          
+          if (isHealing) {
+              statusColor = "bg-yellow-400";
+              textColor = "text-yellow-400";
+              borderColor = "border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
+          } else if (status.includes("SON")) {
+              statusColor = "bg-cyan-400";
+              textColor = "text-cyan-400";
+              borderColor = "border-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.3)]";
+          }
+
           const displayStatus = isHealing ? "Self-Healing Protocol" : status;
+          
           return (
-             <div className={`bg-black/90 backdrop-blur-md border ${isHealing ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'border-black shadow-2xl'} rounded-lg px-3 py-2 md:px-4 md:py-3 lg:px-5 lg:py-3 flex items-center gap-3 animate-fade-in-up transition-colors duration-500`}>
+             <div className={`bg-black/90 backdrop-blur-md border ${borderColor} rounded-lg px-3 py-2 md:px-4 md:py-3 lg:px-5 lg:py-3 flex items-center gap-3 animate-fade-in-up transition-all duration-500`}>
                 <div className="flex items-center gap-2">
-                     <div className={`w-2 h-2 lg:w-3 lg:h-3 rounded-full ${isHealing ? 'bg-yellow-400 animate-ping' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'}`}></div>
-                     <span className={`text-[10px] md:text-xs lg:text-sm font-mono font-bold whitespace-nowrap uppercase tracking-wider ${isHealing ? 'text-yellow-400' : 'text-green-400'}`}>{displayStatus}</span>
+                     <div className={`w-2 h-2 lg:w-3 lg:h-3 rounded-full ${isHealing ? 'animate-ping' : ''} ${status.includes("SON") ? 'animate-pulse' : ''} ${statusColor} shadow-[0_0_8px_currentColor]`}></div>
+                     <span className={`text-[10px] md:text-xs lg:text-sm font-mono font-bold whitespace-nowrap uppercase tracking-wider ${textColor}`}>{displayStatus}</span>
                 </div>
                 {isHealing && <span className="text-[10px] md:text-xs lg:text-sm text-slate-400 font-mono">OPTIMIZING...</span>}
              </div>
+          );
+      };
+
+      const SourceBar = ({ sources }) => {
+          if (!sources || sources.length === 0) return null;
+          return (
+              <div className="mt-3 flex flex-wrap gap-2 animate-fade-in">
+                  <div className="w-full text-[10px] text-slate-400 font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <SearchIcon className="w-3 h-3" /> SON Engine Results
+                  </div>
+                  {sources.map((s, i) => (
+                      <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2 py-1 rounded text-xs text-slate-700 transition-colors max-w-[200px] truncate">
+                          <GlobeIcon className="w-3 h-3 text-cyan-600 flex-shrink-0" />
+                          <span className="truncate font-medium">{s.title || new URL(s.uri).hostname}</span>
+                      </a>
+                  ))}
+              </div>
           );
       };
 
@@ -533,17 +568,20 @@
 CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
 1. EMOTIONAL MIRRORING: Read between the lines. If the user is sad, be deeply empathetic and gentle. If they are excited, match their energy.
 2. CONTEXTUAL UNDERSTANDING: Look at the entire conversation history.
-3. CODE EXPERT: When asked for code (especially web apps, games, calculators, or visual components), YOU MUST PROVIDE A SINGLE, SELF-CONTAINED HTML FILE.
-   - Include CSS inside <style> tags.
-   - Include JS inside <script> tags.
-   - Do NOT split the code into multiple blocks for web apps. Combine them into one perfect index.html block so the user can run it immediately.
-   - For backend code (Python, C++, Java), provide clear, correct code.
-4. IDENTITY: You are Bapkam. You care about the user.`;
+3. SEARCH ENGINE SON: You have an internal engine named "SON" that searches the internet. When asked about current events, people, history, or factual topics, YOU MUST USE THE SEARCH TOOL.
+4. CODE EXPERT: When asked for code (web apps, games, calculators), provide a SINGLE, SELF-CONTAINED HTML FILE (CSS in <style>, JS in <script>).
+5. IDENTITY: You are Bapkam.`;
 
                      const proInstruction = `You are Bapkam PRO.
 1. ADVANCED ANALYSIS: Analyze the user's intent with high precision.
-2. SINGLE-FILE WEB APPS: If the user asks for a website, game, or tool, generate a single, high-quality HTML file with embedded CSS and JS. It must be production-ready and beautiful.
-3. OUTPUT: Use beautiful Markdown. Be the smartest version of yourself.`;
+2. SINGLE-FILE WEB APPS: Provide production-ready HTML files.
+3. OUTPUT: Use beautiful Markdown.`;
+
+                     // SON ENGINE LOGIC: Enable Google Search tool for flash models
+                     const tools = [];
+                     if (model.includes('flash') || model.includes('gemini-3-pro-preview')) {
+                         tools.push({ googleSearch: {} });
+                     }
 
                      const ai = new GoogleGenAI({ apiKey: key });
                      const result = await ai.models.generateContentStream({
@@ -551,6 +589,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                         contents: contents,
                         config: {
                           systemInstruction: i === 0 ? (isPro ? proInstruction : normalInstruction) : "You are a helpful and empathetic assistant.",
+                          tools: tools.length > 0 ? tools : undefined
                         }
                      });
                      
@@ -583,7 +622,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
               }
 
               const userMsg = { role: 'user', content: txt, attachments: att ? [att] : [] };
-              const modelPlaceholder = { role: 'model', content: '', isThinking: true };
+              const modelPlaceholder = { role: 'model', content: '', isThinking: true, sources: [] };
 
               setSessions(prev => {
                   const existingSession = prev.find(s => s.id === currentId);
@@ -602,7 +641,7 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                   }
               });
 
-              setEngineStatus("Deep Logic");
+              setEngineStatus("SON: SEARCHING...");
 
               try {
                   const currentSession = sessions.find(s => s.id === currentId);
@@ -654,13 +693,39 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                   const resultStream = await attemptGeneration(key, contents, isProMode);
 
                   let fullText = '';
+                  let collectedSources = [];
+                  let hasReceivedGrounding = false;
+
                   for await (const chunk of resultStream) {
                       const t = chunk.text;
+                      
+                      // SON ENGINE: Extract Grounding Metadata
+                      if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+                           chunk.candidates[0].groundingMetadata.groundingChunks.forEach(gc => {
+                               if (gc.web?.uri && gc.web?.title) {
+                                   if(!collectedSources.find(s => s.uri === gc.web.uri)) {
+                                       collectedSources.push({ uri: gc.web.uri, title: gc.web.title });
+                                       hasReceivedGrounding = true;
+                                   }
+                               }
+                           });
+                      }
+
                       if (t) {
                           fullText += t;
+                          
+                          // Dynamic Status Update based on response
+                          if (hasReceivedGrounding) setEngineStatus("SON: COMPILING");
+                          else if (fullText.length > 50) setEngineStatus("DEEP LOGIC");
+
                           setSessions(prev => prev.map(s => s.id === currentId ? {
                               ...s, 
-                              messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false }]
+                              messages: [...s.messages.slice(0, -1), { 
+                                  role: 'model', 
+                                  content: fullText, 
+                                  isThinking: false,
+                                  sources: collectedSources
+                              }]
                           } : s));
                       }
                   }
@@ -775,7 +840,10 @@ CORE OBJECTIVE: Adapt completely to the user's situation and emotional state.
                                           {m.isThinking ? (
                                               <div className="flex items-center gap-2 text-slate-400 py-2"><div className="w-2 h-2 lg:w-3 lg:h-3 bg-slate-400 rounded-full animate-bounce"/><div className="w-2 h-2 lg:w-3 lg:h-3 bg-slate-400 rounded-full animate-bounce delay-75"/><div className="w-2 h-2 lg:w-3 lg:h-3 bg-slate-400 rounded-full animate-bounce delay-150"/></div>
                                           ) : (
-                                              <div>{renderMessageContent(m.content)}</div>
+                                              <div>
+                                                {renderMessageContent(m.content)}
+                                                <SourceBar sources={m.sources} />
+                                              </div>
                                           )}
                                       </div>
                                   </div>
