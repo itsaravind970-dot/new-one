@@ -19,6 +19,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 
+    <!-- HTML2PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -169,10 +172,12 @@
       import LZString from "lz-string";
       import { 
         getAuth, 
-        createUserWithEmailAndPassword, 
-        signInWithEmailAndPassword, 
+        signInWithPopup,
+        GoogleAuthProvider,
         onAuthStateChanged, 
         signOut,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
         updateProfile
       } from "firebase/auth";
 
@@ -188,6 +193,7 @@
 
       const firebaseApp = initializeApp(firebaseConfig);
       const auth = getAuth(firebaseApp);
+      const googleProvider = new GoogleAuthProvider();
 
       // --- ERROR BOUNDARY ---
       class ErrorBoundary extends React.Component {
@@ -219,19 +225,21 @@
       const CloseIcon = (p) => <Icon d="M18 6 6 18M6 6l12 12" {...p} />;
       const ZapIcon = (p) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...p} />;
       const LogOutIcon = (p) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-12-5 7M21 12H9" {...p} />;
-      const PaperclipIcon = (p) => <Icon d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" {...p} />;
       const PlayIcon = (p) => <Icon d="M5 3l14 9-14 9V3z" {...p} />;
-      const CopyIcon = (p) => <Icon d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.24a2 2 0 0 0-.6-.16l-3.56-3.56a2 2 0 0 0-1.42-.58H10a2 2 0 0 0-2 2zM16 4v4h4M4 8v12a2 2 0 0 0 2 2h8" {...p} />;
-      const CheckIcon = (p) => <Icon d="M20 6L9 17l-5-5" {...p} />;
-      const ExpandIcon = (p) => <Icon d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" {...p} />;
-      const SearchIcon = (p) => <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" {...p} />;
-      const GlobeIcon = (p) => <Icon d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm0-16a8 8 0 1 0 8 8 8 8 0 0 0-8-8z" {...p} />;
       const ShareIcon = (p) => <Icon d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" {...p} />;
-      const FolderIcon = (p) => <Icon d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" {...p} />;
       const BookIcon = (p) => <Icon d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" {...p}><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></Icon>;
       const CodeIcon = (p) => <Icon d="M16 18l6-6-6-6M8 6l-6 6 6 6" {...p} />;
       const DownloadIcon = (p) => <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" {...p} />;
-      
+      const GoogleIcon = ({className}) => (
+        <svg viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+      );
+      const ExternalLinkIcon = (p) => <Icon d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" {...p} />;
+
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
         <div className={`${className} relative flex items-center justify-center`}>
@@ -273,45 +281,21 @@
       };
 
       const EBookViewer = ({ book, onClose, isStandalone }) => {
-          const downloadBook = () => {
-              const htmlContent = `
-                  <!DOCTYPE html>
-                  <html>
-                  <head>
-                      <title>${book.title}</title>
-                      <style>
-                          body { font-family: 'Times New Roman', serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 40px; background: #fff; color: #000; }
-                          h1 { text-align: center; font-size: 3em; margin-bottom: 10px; }
-                          h2 { text-align: center; font-size: 1.5em; color: #555; margin-bottom: 50px; font-weight: normal; }
-                          .page { margin-bottom: 60px; page-break-after: always; }
-                          .page-number { text-align: center; font-size: 0.9em; color: #888; margin-top: 20px; }
-                          p { margin-bottom: 1em; text-align: justify; }
-                      </style>
-                  </head>
-                  <body>
-                      <div class="page">
-                          <br/><br/><br/>
-                          <h1>${book.title}</h1>
-                          <h2>by ${book.author}</h2>
-                      </div>
-                      ${book.pages.map((p, i) => `
-                          <div class="page">
-                              ${p.text.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('')}
-                              <div class="page-number">- ${i + 1} -</div>
-                          </div>
-                      `).join('')}
-                  </body>
-                  </html>
-              `;
-              const blob = new Blob([htmlContent], { type: 'text/html' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${book.title.replace(/\s+/g, '_')}.html`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
+          const downloadPDF = () => {
+             const element = document.getElementById('ebook-content');
+             const opt = {
+               margin: 10,
+               filename: `${book.title.replace(/\s+/g, '_')}.pdf`,
+               image: { type: 'jpeg', quality: 0.98 },
+               html2canvas: { scale: 2 },
+               jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+             };
+             // Use html2pdf from global scope
+             if (window.html2pdf) {
+                window.html2pdf().from(element).set(opt).save();
+             } else {
+                alert("PDF generator is initializing, please try again in a moment.");
+             }
           };
 
           return (
@@ -319,12 +303,12 @@
                   <div className={`sticky top-0 z-20 bg-[#f3f0e8]/90 backdrop-blur border-b border-[#e5e0d3] px-4 h-14 flex items-center justify-between`}>
                       <span className="font-serif font-bold text-lg text-slate-800 truncate max-w-[200px]">{book.title}</span>
                       <div className="flex items-center gap-2">
-                           <button onClick={downloadBook} className="px-3 py-1.5 bg-slate-800 text-white rounded text-sm font-medium flex items-center gap-2 hover:bg-slate-700"><DownloadIcon className="w-4 h-4"/> Download</button>
+                           <button onClick={downloadPDF} className="px-3 py-1.5 bg-slate-800 text-white rounded text-sm font-medium flex items-center gap-2 hover:bg-slate-700"><DownloadIcon className="w-4 h-4"/> PDF</button>
                            {onClose && <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full"><CloseIcon className="w-5 h-5"/></button>}
                       </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
-                      <div className="max-w-2xl mx-auto space-y-8">
+                      <div id="ebook-content" className="max-w-2xl mx-auto space-y-8">
                           <div className="book-page bg-white p-8 md:p-12 lg:p-16 min-h-[60vh] flex flex-col justify-center text-center">
                               <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-4">{book.title}</h1>
                               <p className="font-serif text-xl text-slate-600 italic">by {book.author}</p>
@@ -363,10 +347,18 @@
                   const compressed = LZString.compressToEncodedURIComponent(code);
                   const url = `${window.location.origin}${window.location.pathname}?share=${compressed}&type=webapp&mode=standalone`;
                   navigator.clipboard.writeText(url);
-                  onToast("Link copied! Share it with friends.");
+                  onToast("Link copied!");
               } catch (e) {
                   onToast("Failed to generate link.");
               }
+          };
+
+          const openStandalone = () => {
+             try {
+                const compressed = LZString.compressToEncodedURIComponent(code);
+                const url = `${window.location.origin}${window.location.pathname}?share=${compressed}&type=webapp&mode=standalone`;
+                window.open(url, '_blank');
+             } catch(e) {}
           };
 
           return (
@@ -375,8 +367,11 @@
                     <div className="h-14 bg-slate-900 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
                         <div className="flex items-center gap-3">
                             <span className="text-white font-bold text-sm flex items-center gap-2"><PlayIcon className="w-4 h-4 text-green-400"/> Live Preview</span>
+                            <button onClick={openStandalone} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-full flex items-center gap-1 transition-colors border border-slate-600">
+                                <ExternalLinkIcon className="w-3 h-3"/> Open New Tab
+                            </button>
                             <button onClick={handleShare} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-full flex items-center gap-1 transition-colors border border-slate-600">
-                                <ShareIcon className="w-3 h-3"/> Share App
+                                <ShareIcon className="w-3 h-3"/> Share Link
                             </button>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><CloseIcon className="w-6 h-6"/></button>
@@ -395,6 +390,23 @@
         const [error, setError] = useState('');
         const [loading, setLoading] = useState(false);
 
+        const handleGoogleLogin = async () => {
+            setLoading(true); setError('');
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (e) {
+                console.warn("Auth Error:", e);
+                if (e.code === 'auth/unauthorized-domain' || e.message.includes('domain')) {
+                    setError(`Domain not authorized. Go to Firebase Console > Authentication > Settings > Authorized Domains and add: ${window.location.hostname}`);
+                } else if (e.code === 'auth/operation-not-allowed') {
+                    setError("Google Login is not enabled in Firebase Console.");
+                } else {
+                    setError(e.message);
+                }
+                setLoading(false);
+            }
+        };
+
         const handleSubmit = async (e) => {
             e.preventDefault();
             setLoading(true); setError('');
@@ -407,7 +419,6 @@
                 }
             } catch (e) {
                 setError(e.message);
-            } finally {
                 setLoading(false);
             }
         };
@@ -416,17 +427,29 @@
              <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
                 <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-xl w-full max-w-sm lg:max-w-md border border-slate-100 animate-fade-in-up z-10">
                     <div className="mx-auto w-16 h-16 bg-white border border-slate-100 rounded-2xl shadow-lg flex items-center justify-center mb-6"><BapkamLogo className="w-10 h-10"/></div>
-                    <h1 className="text-2xl font-bold text-center text-slate-900 mb-1">{view === 'signup' ? 'Create Account' : 'Welcome Back'}</h1>
-                    <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-                        {view === 'signup' && <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" required />}
-                        <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" required />
-                        <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" required />
-                        {error && <p className="text-xs text-red-500 text-center">{error}</p>}
-                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all flex justify-center">{loading ? '...' : (view==='signup'?'Sign Up':'Log In')}</button>
+                    <h1 className="text-2xl font-bold text-center text-slate-900 mb-6">{view === 'signup' ? 'Create Account' : 'Welcome Back'}</h1>
+                    
+                    <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all mb-6 relative group shadow-sm hover:shadow-md">
+                        <GoogleIcon className="w-5 h-5"/>
+                        <span>Continue with Google</span>
+                        {loading && <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl"><div className="w-4 h-4 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin"/></div>}
+                    </button>
+
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                        <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">Or continue with email</span></div>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {view === 'signup' && <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />}
+                        <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />
+                        <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />
+                        {error && <div className="p-3 bg-red-50 border border-red-100 rounded-lg"><p className="text-xs text-red-600 text-center font-medium">{error}</p></div>}
+                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all flex justify-center shadow-lg shadow-slate-900/20">{loading ? '...' : (view==='signup'?'Sign Up':'Log In')}</button>
                     </form>
                     <div className="text-xs text-center mt-6 text-slate-500 space-y-2">
-                        {view === 'login' && <p>New here? <button onClick={()=>setView('signup')} className="font-bold text-blue-600">Sign Up</button></p>}
-                        {view === 'signup' && <p>Have an account? <button onClick={()=>setView('login')} className="font-bold text-blue-600">Log In</button></p>}
+                        {view === 'login' && <p>New here? <button onClick={()=>setView('signup')} className="font-bold text-blue-600 hover:underline">Sign Up</button></p>}
+                        {view === 'signup' && <p>Have an account? <button onClick={()=>setView('login')} className="font-bold text-blue-600 hover:underline">Log In</button></p>}
                     </div>
                 </div>
             </div>
@@ -635,26 +658,35 @@
 
           useEffect(() => {
               if (standaloneData) return;
+              
               const unsubscribe = onAuthStateChanged(auth, (u) => {
-                  setUser(u);
-                  setIsLoaded(true);
                   if (u) {
-                      const sKey = `bapkam_sessions_${u.uid}`;
-                      const pKey = `bapkam_projects_${u.uid}`;
-                      
-                      const storedS = localStorage.getItem(sKey);
-                      const storedP = localStorage.getItem(pKey);
-                      
-                      const parsedS = storedS ? JSON.parse(storedS) : [];
-                      setSessions(parsedS);
-                      if (parsedS.length > 0) setActiveId(parsedS[0].id);
-
-                      const parsedP = storedP ? JSON.parse(storedP) : [];
-                      setProjects(parsedP);
+                      setUser(u);
+                  } else {
+                      setUser(null);
                   }
+                  setIsLoaded(true);
               });
               return () => unsubscribe();
           }, [standaloneData]);
+
+          useEffect(() => {
+              if (user && isLoaded && !standaloneData) {
+                  // If it's a real user or guest, load data
+                  const sKey = `bapkam_sessions_${user.uid}`;
+                  const pKey = `bapkam_projects_${user.uid}`;
+                  
+                  const storedS = localStorage.getItem(sKey);
+                  const storedP = localStorage.getItem(pKey);
+                  
+                  const parsedS = storedS ? JSON.parse(storedS) : [];
+                  setSessions(parsedS);
+                  if (parsedS.length > 0 && !activeId) setActiveId(parsedS[0].id);
+
+                  const parsedP = storedP ? JSON.parse(storedP) : [];
+                  setProjects(parsedP);
+              }
+          }, [user, isLoaded, standaloneData]);
 
           useEffect(() => {
               if (user && isLoaded && !standaloneData) {
@@ -673,6 +705,13 @@
                   return () => clearTimeout(t);
               }
           }, [toast]);
+
+          const handleSignOut = () => {
+              signOut(auth);
+              setUser(null);
+              setSessions([]);
+              setProjects([]);
+          };
 
           const createSession = () => {
               const id = Date.now().toString();
@@ -809,7 +848,7 @@
                       </div>
                       
                       <div className="p-4 border-t border-slate-200">
-                          <button onClick={() => signOut(auth)} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-red-600 w-full p-2 hover:bg-slate-100 rounded-lg transition-colors"><LogOutIcon className="w-4 h-4"/> Sign Out</button>
+                          <button onClick={handleSignOut} className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-red-600 w-full p-2 hover:bg-slate-100 rounded-lg transition-colors"><LogOutIcon className="w-4 h-4"/> Sign Out</button>
                       </div>
                   </aside>
 
