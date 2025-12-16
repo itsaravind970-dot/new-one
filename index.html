@@ -144,6 +144,11 @@
         .book-page {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             background-image: linear-gradient(to right, #fdfbf7, #fff);
+            page-break-after: always;
+        }
+        
+        .fade-in-quick {
+            animation: fadeIn 0.5s ease-out forwards;
         }
     </style>
 
@@ -172,14 +177,40 @@
       import LZString from "lz-string";
       import { 
         getAuth, 
-        signInWithPopup,
-        GoogleAuthProvider,
         onAuthStateChanged, 
         signOut,
         createUserWithEmailAndPassword,
         signInWithEmailAndPassword,
         updateProfile
       } from "firebase/auth";
+
+      // --- UTILS ---
+      async function copyToClipboard(text) {
+          try {
+              if (navigator.clipboard && window.isSecureContext) {
+                  await navigator.clipboard.writeText(text);
+              } else {
+                  throw new Error("Clipboard API unavailable");
+              }
+          } catch (err) {
+              const textArea = document.createElement("textarea");
+              textArea.value = text;
+              textArea.style.position = "fixed";
+              textArea.style.left = "-9999px";
+              textArea.style.top = "0";
+              document.body.appendChild(textArea);
+              textArea.focus();
+              textArea.select();
+              try {
+                  document.execCommand('copy');
+              } catch (e) {
+                  console.error('Fallback copy failed', e);
+                  throw e;
+              } finally {
+                  document.body.removeChild(textArea);
+              }
+          }
+      }
 
       // --- FIREBASE INIT ---
       const firebaseConfig = {
@@ -193,7 +224,7 @@
 
       const firebaseApp = initializeApp(firebaseConfig);
       const auth = getAuth(firebaseApp);
-      const googleProvider = new GoogleAuthProvider();
+      auth.languageCode = 'en';
 
       // --- ERROR BOUNDARY ---
       class ErrorBoundary extends React.Component {
@@ -230,31 +261,25 @@
       const BookIcon = (p) => <Icon d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" {...p}><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></Icon>;
       const CodeIcon = (p) => <Icon d="M16 18l6-6-6-6M8 6l-6 6 6 6" {...p} />;
       const DownloadIcon = (p) => <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" {...p} />;
-      const GoogleIcon = ({className}) => (
-        <svg viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-      );
       const ExternalLinkIcon = (p) => <Icon d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" {...p} />;
+      const MailIcon = (p) => <Icon d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" {...p}><polyline points="22,6 12,13 2,6" /></Icon>;
+      const ArrowRightIcon = (p) => <Icon d="M5 12h14M12 5l7 7-7 7" {...p} />;
 
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
         <div className={`${className} relative flex items-center justify-center`}>
             {isHealing && <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-60 animate-pulse"></div>}
-            {isPro && !isHealing && (
+            {(isPro || !isHealing) && (
                 <>
                     <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-40 animate-pulse"></div>
                     <div className="absolute -inset-2 bg-blue-500 rounded-full blur-2xl opacity-20 animate-ping-slow"></div>
                 </>
             )}
-            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 ${isPro && !isHealing ? 'animate-spin-slower drop-shadow-cyan' : ''} ${isHealing ? 'animate-spin-fast' : ''}`} xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 animate-spin-slow drop-shadow-cyan`} xmlns="http://www.w3.org/2000/svg">
                 <g transform="translate(50,50)">
                     {[...Array(12)].map((_, i) => (
                         <path key={i} d="M0 -30 L5 -45 L10 -35 L5 -25 Z" 
-                              fill={isHealing ? `hsl(45, 90%, 50%)` : (isPro ? `hsl(${190 + i * 10}, 90%, 60%)` : `hsl(220, 20%, ${20 + i * 5}%)`)} 
+                              fill={isHealing ? `hsl(45, 90%, 50%)` : `hsl(${190 + i * 10}, 90%, 60%)`} 
                               transform={`rotate(${i * 30}) translate(0, -10)`} 
                               opacity="0.95" />
                     ))}
@@ -281,20 +306,33 @@
       };
 
       const EBookViewer = ({ book, onClose, isStandalone }) => {
-          const downloadPDF = () => {
-             const element = document.getElementById('ebook-content');
-             const opt = {
-               margin: 10,
-               filename: `${book.title.replace(/\s+/g, '_')}.pdf`,
-               image: { type: 'jpeg', quality: 0.98 },
-               html2canvas: { scale: 2 },
-               jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-             };
-             // Use html2pdf from global scope
-             if (window.html2pdf) {
-                window.html2pdf().from(element).set(opt).save();
-             } else {
-                alert("PDF generator is initializing, please try again in a moment.");
+          const contentRef = useRef(null);
+          const [isGenerating, setIsGenerating] = useState(false);
+
+          const downloadPDF = async () => {
+             if (!contentRef.current) return;
+             if (!window.html2pdf) {
+                 alert("PDF generator is still loading, please wait 2 seconds and try again.");
+                 return;
+             }
+             setIsGenerating(true);
+             
+             try {
+                 const opt = {
+                   margin: [10, 10, 10, 10], // top, left, bottom, right
+                   filename: `${book.title.replace(/\s+/g, '_')}.pdf`,
+                   image: { type: 'jpeg', quality: 0.98 },
+                   html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                   jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                   pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                 };
+                 
+                 await window.html2pdf().set(opt).from(contentRef.current).save();
+             } catch(e) {
+                 console.error("PDF Gen Error", e);
+                 alert("Failed to generate PDF. The content might be too large.");
+             } finally {
+                 setIsGenerating(false);
              }
           };
 
@@ -303,21 +341,25 @@
                   <div className={`sticky top-0 z-20 bg-[#f3f0e8]/90 backdrop-blur border-b border-[#e5e0d3] px-4 h-14 flex items-center justify-between`}>
                       <span className="font-serif font-bold text-lg text-slate-800 truncate max-w-[200px]">{book.title}</span>
                       <div className="flex items-center gap-2">
-                           <button onClick={downloadPDF} className="px-3 py-1.5 bg-slate-800 text-white rounded text-sm font-medium flex items-center gap-2 hover:bg-slate-700"><DownloadIcon className="w-4 h-4"/> PDF</button>
+                           <button onClick={downloadPDF} disabled={isGenerating} className="px-3 py-1.5 bg-slate-800 text-white rounded text-sm font-medium flex items-center gap-2 hover:bg-slate-700 disabled:opacity-50 transition-all">
+                             {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <DownloadIcon className="w-4 h-4"/>}
+                             {isGenerating ? 'Saving...' : 'PDF'}
+                           </button>
                            {onClose && <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full"><CloseIcon className="w-5 h-5"/></button>}
                       </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
-                      <div id="ebook-content" className="max-w-2xl mx-auto space-y-8">
-                          <div className="book-page bg-white p-8 md:p-12 lg:p-16 min-h-[60vh] flex flex-col justify-center text-center">
-                              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-4">{book.title}</h1>
+                      <div ref={contentRef} id="ebook-content" className="max-w-2xl mx-auto space-y-8 bg-[#f3f0e8] p-4">
+                          <div className="book-page bg-white p-8 md:p-12 lg:p-16 min-h-[80vh] flex flex-col justify-center text-center">
+                              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">{book.title}</h1>
+                              <div className="w-20 h-1 bg-slate-900 mx-auto mb-6"></div>
                               <p className="font-serif text-xl text-slate-600 italic">by {book.author}</p>
-                              {book.description && <p className="mt-8 text-sm text-slate-400 font-sans max-w-sm mx-auto">{book.description}</p>}
+                              {book.description && <p className="mt-12 text-sm text-slate-400 font-sans max-w-sm mx-auto leading-relaxed">{book.description}</p>}
                           </div>
                           {book.pages.map((page, idx) => (
-                              <div key={idx} className="book-page bg-white p-8 md:p-12 lg:p-16 text-lg md:text-xl font-serif text-slate-800 leading-relaxed">
-                                   {page.text.split('\n').map((para, i) => para.trim() && <p key={i} className="mb-4">{para}</p>)}
-                                   <div className="mt-8 text-center text-xs text-slate-400 font-sans">- {idx + 1} -</div>
+                              <div key={idx} className="book-page bg-white p-8 md:p-12 lg:p-16 text-lg md:text-xl font-serif text-slate-800 leading-relaxed break-inside-avoid">
+                                   {page.text.split('\n').map((para, i) => para.trim() && <p key={i} className="mb-6 indent-8">{para}</p>)}
+                                   <div className="mt-8 pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-sans">- {idx + 1} -</div>
                               </div>
                           ))}
                       </div>
@@ -342,14 +384,14 @@
               }
           }, [code, language]);
 
-          const handleShare = () => {
+          const handleShare = async () => {
               try {
                   const compressed = LZString.compressToEncodedURIComponent(code);
                   const url = `${window.location.origin}${window.location.pathname}?share=${compressed}&type=webapp&mode=standalone`;
-                  navigator.clipboard.writeText(url);
+                  await copyToClipboard(url);
                   onToast("Link copied!");
               } catch (e) {
-                  onToast("Failed to generate link.");
+                  onToast("Failed to copy link.");
               }
           };
 
@@ -383,31 +425,15 @@
       };
 
       const AuthScreen = ({ onLogin }) => {
-        const [view, setView] = useState('login');
+        const [view, setView] = useState('login'); // 'login' or 'signup'
         const [email, setEmail] = useState('');
         const [password, setPassword] = useState('');
         const [name, setName] = useState('');
+        
         const [error, setError] = useState('');
         const [loading, setLoading] = useState(false);
 
-        const handleGoogleLogin = async () => {
-            setLoading(true); setError('');
-            try {
-                await signInWithPopup(auth, googleProvider);
-            } catch (e) {
-                console.warn("Auth Error:", e);
-                if (e.code === 'auth/unauthorized-domain' || e.message.includes('domain')) {
-                    setError(`Domain not authorized. Go to Firebase Console > Authentication > Settings > Authorized Domains and add: ${window.location.hostname}`);
-                } else if (e.code === 'auth/operation-not-allowed') {
-                    setError("Google Login is not enabled in Firebase Console.");
-                } else {
-                    setError(e.message);
-                }
-                setLoading(false);
-            }
-        };
-
-        const handleSubmit = async (e) => {
+        const handleEmailSubmit = async (e) => {
             e.preventDefault();
             setLoading(true); setError('');
             try {
@@ -418,7 +444,9 @@
                     await signInWithEmailAndPassword(auth, email, password);
                 }
             } catch (e) {
-                setError(e.message);
+                if(e.code === 'auth/email-already-in-use') setError("Email already used.");
+                else if(e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found') setError("Invalid email or password.");
+                else setError(e.message);
                 setLoading(false);
             }
         };
@@ -426,183 +454,30 @@
         return (
              <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
                 <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-xl w-full max-w-sm lg:max-w-md border border-slate-100 animate-fade-in-up z-10">
-                    <div className="mx-auto w-16 h-16 bg-white border border-slate-100 rounded-2xl shadow-lg flex items-center justify-center mb-6"><BapkamLogo className="w-10 h-10"/></div>
-                    <h1 className="text-2xl font-bold text-center text-slate-900 mb-6">{view === 'signup' ? 'Create Account' : 'Welcome Back'}</h1>
+                    <div className="mx-auto w-24 h-24 flex items-center justify-center mb-6"><BapkamLogo className="w-20 h-20" isPro={true} /></div>
                     
-                    <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all mb-6 relative group shadow-sm hover:shadow-md">
-                        <GoogleIcon className="w-5 h-5"/>
-                        <span>Continue with Google</span>
-                        {loading && <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl"><div className="w-4 h-4 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin"/></div>}
-                    </button>
+                    <h1 className="text-2xl font-bold text-center text-slate-900 mb-6">
+                        {view === 'signup' ? 'Create Account' : 'Welcome Back'}
+                    </h1>
 
-                    <div className="relative mb-6">
-                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                        <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">Or continue with email</span></div>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleEmailSubmit} className="space-y-4">
                         {view === 'signup' && <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />}
                         <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />
                         <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />
-                        {error && <div className="p-3 bg-red-50 border border-red-100 rounded-lg"><p className="text-xs text-red-600 text-center font-medium">{error}</p></div>}
-                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all flex justify-center shadow-lg shadow-slate-900/20">{loading ? '...' : (view==='signup'?'Sign Up':'Log In')}</button>
+                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all flex justify-center shadow-lg shadow-slate-900/20 items-center gap-2">
+                            <MailIcon className="w-4 h-4" />
+                            {loading ? 'Processing...' : (view==='signup'?'Sign Up':'Log In')}
+                        </button>
                     </form>
                     <div className="text-xs text-center mt-6 text-slate-500 space-y-2">
                         {view === 'login' && <p>New here? <button onClick={()=>setView('signup')} className="font-bold text-blue-600 hover:underline">Sign Up</button></p>}
                         {view === 'signup' && <p>Have an account? <button onClick={()=>setView('login')} className="font-bold text-blue-600 hover:underline">Log In</button></p>}
                     </div>
+
+                    {error && <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg select-all"><p className="text-xs text-red-600 text-center font-medium break-all">{error}</p></div>}
                 </div>
             </div>
         );
-      };
-
-      const ProjectCreator = ({ onClose, onCreated, apiKey }) => {
-          const [type, setType] = useState('webapp');
-          const [loading, setLoading] = useState(false);
-          const [formData, setFormData] = useState({ name: '', description: '', author: '', genre: 'Storybook' });
-
-          const handleGenerate = async () => {
-              if (!formData.name || !formData.description) return;
-              setLoading(true);
-              const ai = new GoogleGenAI({ apiKey });
-              
-              try {
-                  if (type === 'webapp') {
-                      const prompt = `Create a single-file HTML web application.
-                      Project Name: ${formData.name}
-                      Description: ${formData.description}
-                      Requirements:
-                      1. Must be a SINGLE HTML file containing all CSS (in <style>) and JS (in <script>).
-                      2. Modern, responsive design.
-                      3. Fully functional.
-                      4. Output ONLY the raw HTML code, do NOT use markdown code fences.`;
-                      
-                      const result = await ai.models.generateContent({
-                          model: 'gemini-2.5-flash',
-                          contents: prompt
-                      });
-                      
-                      let code = result.text;
-                      if (!code) throw new Error("No code generated");
-                      
-                      code = code.trim();
-                      if (code.startsWith('```')) {
-                         code = code.replace(/^```(html)?\n/, '').replace(/```$/, '');
-                      }
-                      
-                      onCreated({ id: Date.now().toString(), type: 'webapp', title: formData.name, code: code, date: new Date().toISOString() });
-                  
-                  } else {
-                      const prompt = `Write a short ebook.
-                      Title: ${formData.name}
-                      Author: ${formData.author}
-                      Genre: ${formData.genre}
-                      Description: ${formData.description}
-                      
-                      Return JSON format conforming to this schema:
-                      {
-                        "title": "string",
-                        "author": "string",
-                        "description": "string",
-                        "pages": [
-                            { "text": "string (content of the page)" }
-                        ]
-                      }`;
-                      
-                      const result = await ai.models.generateContent({
-                          model: 'gemini-2.5-flash',
-                          contents: prompt,
-                          config: { 
-                              responseMimeType: "application/json",
-                              responseSchema: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    title: { type: Type.STRING },
-                                    author: { type: Type.STRING },
-                                    description: { type: Type.STRING },
-                                    pages: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING }
-                                            }
-                                        }
-                                    }
-                                }
-                              }
-                           }
-                      });
-                      
-                      let text = result.text;
-                      if (!text) throw new Error("No content generated");
-                      const bookData = JSON.parse(text);
-                      onCreated({ id: Date.now().toString(), type: 'ebook', title: bookData.title, content: bookData, date: new Date().toISOString() });
-                  }
-              } catch (e) {
-                  console.error(e);
-                  alert("Generation failed: " + e.message);
-              } finally {
-                  setLoading(false);
-              }
-          };
-
-          return (
-              <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-slate-50">
-                  <div className="max-w-2xl mx-auto">
-                      <div className="flex items-center justify-between mb-8">
-                          <h2 className="text-2xl font-bold text-slate-900">New Project</h2>
-                          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full"><CloseIcon className="w-6 h-6"/></button>
-                      </div>
-                      
-                      <div className="flex gap-4 mb-8">
-                          <button onClick={() => setType('webapp')} className={`flex-1 py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type==='webapp' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                              <CodeIcon className="w-8 h-8"/>
-                              <span className="font-bold">Web Application</span>
-                          </button>
-                          <button onClick={() => setType('ebook')} className={`flex-1 py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type==='ebook' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                              <BookIcon className="w-8 h-8"/>
-                              <span className="font-bold">E-Book</span>
-                          </button>
-                      </div>
-
-                      <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                          <div>
-                              <label className="block text-sm font-bold text-slate-700 mb-1">{type === 'webapp' ? 'App Name' : 'Book Title'}</label>
-                              <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 transition-colors" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} placeholder={type==='webapp'?'e.g., Space Invaders':'e.g., The Lost Star'} />
-                          </div>
-                          
-                          {type === 'ebook' && (
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                      <label className="block text-sm font-bold text-slate-700 mb-1">Author</label>
-                                      <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.author} onChange={e=>setFormData({...formData, author: e.target.value})} />
-                                  </div>
-                                  <div>
-                                      <label className="block text-sm font-bold text-slate-700 mb-1">Genre</label>
-                                      <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.genre} onChange={e=>setFormData({...formData, genre: e.target.value})}>
-                                          <option>Storybook</option>
-                                          <option>Comic Script</option>
-                                          <option>Novel</option>
-                                          <option>Technical Guide</option>
-                                      </select>
-                                  </div>
-                              </div>
-                          )}
-
-                          <div>
-                              <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
-                              <textarea className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 h-32 resize-none" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} placeholder={type==='webapp'?'Describe the features, design, and functionality...':'Describe the plot, characters, and setting...'}></textarea>
-                          </div>
-
-                          <button onClick={handleGenerate} disabled={loading || !formData.name} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
-                              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <ZapIcon className="w-5 h-5 text-yellow-400"/>}
-                              <span>{loading ? 'Generating...' : (type==='webapp' ? 'Generate App' : 'Write Book')}</span>
-                          </button>
-                      </div>
-                  </div>
-              </div>
-          );
       };
 
       // --- MAIN APP ---
@@ -611,9 +486,9 @@
           const [user, setUser] = useState(null);
           const [sessions, setSessions] = useState([]);
           const [projects, setProjects] = useState([]);
-          const [activeId, setActiveId] = useState(null); // Session ID
-          const [currentView, setCurrentView] = useState('chat'); // 'chat', 'create-project', 'project-view'
-          const [viewingProject, setViewingProject] = useState(null); // Project object
+          const [activeId, setActiveId] = useState(null); 
+          const [currentView, setCurrentView] = useState('chat'); 
+          const [viewingProject, setViewingProject] = useState(null); 
           
           const [input, setInput] = useState('');
           const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -636,8 +511,8 @@
           useEffect(() => {
               const params = new URLSearchParams(window.location.search);
               const shareData = params.get('share');
-              const type = params.get('type'); // 'webapp' or 'ebook'
-              const mode = params.get('mode'); // 'standalone'
+              const type = params.get('type');
+              const mode = params.get('mode');
               
               if (shareData && mode === 'standalone') {
                   try {
@@ -658,13 +533,9 @@
 
           useEffect(() => {
               if (standaloneData) return;
-              
               const unsubscribe = onAuthStateChanged(auth, (u) => {
-                  if (u) {
-                      setUser(u);
-                  } else {
-                      setUser(null);
-                  }
+                  if (u) setUser(u);
+                  else setUser(null);
                   setIsLoaded(true);
               });
               return () => unsubscribe();
@@ -672,18 +543,12 @@
 
           useEffect(() => {
               if (user && isLoaded && !standaloneData) {
-                  // If it's a real user or guest, load data
                   const sKey = `bapkam_sessions_${user.uid}`;
                   const pKey = `bapkam_projects_${user.uid}`;
-                  
-                  const storedS = localStorage.getItem(sKey);
-                  const storedP = localStorage.getItem(pKey);
-                  
-                  const parsedS = storedS ? JSON.parse(storedS) : [];
+                  const parsedS = JSON.parse(localStorage.getItem(sKey) || '[]');
                   setSessions(parsedS);
                   if (parsedS.length > 0 && !activeId) setActiveId(parsedS[0].id);
-
-                  const parsedP = storedP ? JSON.parse(storedP) : [];
+                  const parsedP = JSON.parse(localStorage.getItem(pKey) || '[]');
                   setProjects(parsedP);
               }
           }, [user, isLoaded, standaloneData]);
@@ -721,29 +586,22 @@
               setCurrentView('chat');
               if (window.innerWidth < 1024) setIsSidebarOpen(false);
           };
-
-          const handleProjectCreated = (newProject) => {
-              setProjects(prev => [newProject, ...prev]);
-              setViewingProject(newProject);
-              setCurrentView('project-view');
-          };
           
-          const handleShareProject = (project) => {
+          const handleShareProject = async (project) => {
               try {
                   let payload = '';
                   if (project.type === 'webapp') payload = project.code;
                   else if (project.type === 'ebook') payload = JSON.stringify(project.content);
-                  
                   const compressed = LZString.compressToEncodedURIComponent(payload);
                   const url = `${window.location.origin}${window.location.pathname}?share=${compressed}&type=${project.type}&mode=standalone`;
-                  navigator.clipboard.writeText(url);
+                  await copyToClipboard(url);
                   setToast("Project link copied!");
               } catch (e) {
                   setToast("Project too large to share via link.");
               }
           };
 
-          const attemptGeneration = async (key, contents, isPro) => {
+          const attemptGeneration = async (key, contents, isPro, useTools = false) => {
              const modelsToTry = isPro 
                 ? ['gemini-3-pro-preview', 'gemini-2.5-flash', 'gemini-1.5-pro'] 
                 : ['gemini-2.5-flash', 'gemini-1.5-flash'];
@@ -753,16 +611,65 @@
                  try {
                      const normalInstruction = `You are Bapkam. 1. EMPATHETIC. 2. CONTEXTUAL. 3. SEARCH ENGINE SON (Use googleSearch for facts). 4. CODE EXPERT.`;
                      const proInstruction = `You are Bapkam PRO. Deep analysis. Perfect Markdown.`;
+                     const creatorInstruction = "You are an expert app developer and author. First, explain your plan and concepts in detail to the user. Then, generate the full content using the provided tool at the end.";
+
+                     let tools = [];
                      
-                     const tools = [];
-                     if (model.includes('flash') || model.includes('gemini-3-pro-preview')) tools.push({ googleSearch: {} });
+                     if (useTools) {
+                        tools = [
+                          {
+                            functionDeclarations: [
+                              {
+                                name: "generate_webapp",
+                                description: "Generates a fully functional single-file HTML web application.",
+                                parameters: {
+                                  type: Type.OBJECT,
+                                  properties: {
+                                    title: { type: Type.STRING },
+                                    code: { type: Type.STRING }
+                                  },
+                                  required: ["title", "code"]
+                                }
+                              },
+                              {
+                                name: "generate_ebook",
+                                description: "Generates a comprehensive ebook.",
+                                parameters: {
+                                  type: Type.OBJECT,
+                                  properties: {
+                                    title: { type: Type.STRING },
+                                    author: { type: Type.STRING },
+                                    description: { type: Type.STRING },
+                                    pages: {
+                                      type: Type.ARRAY,
+                                      items: {
+                                        type: Type.OBJECT,
+                                        properties: { text: { type: Type.STRING } }
+                                      }
+                                    }
+                                  },
+                                  required: ["title", "author", "pages"]
+                                }
+                              }
+                            ]
+                          }
+                        ];
+                     } else if (model.includes('flash') || model.includes('gemini-3-pro-preview')) {
+                         tools.push({ googleSearch: {} });
+                     }
 
                      const ai = new GoogleGenAI({ apiKey: key });
-                     return await ai.models.generateContentStream({
+                     // Always use stream to capture the thinking/explanation part
+                     const stream = await ai.models.generateContentStream({
                         model: model,
                         contents: contents,
-                        config: { systemInstruction: isPro ? proInstruction : normalInstruction, tools: tools.length > 0 ? tools : undefined }
+                        config: { 
+                            systemInstruction: useTools ? creatorInstruction : (isPro ? proInstruction : normalInstruction), 
+                            tools: tools.length > 0 ? tools : undefined 
+                        }
                      });
+                     return stream;
+
                  } catch (e) {
                      if (i === modelsToTry.length - 1) throw e;
                      await new Promise(r => setTimeout(r, 800));
@@ -788,17 +695,54 @@
               });
               setEngineStatus("SON: SEARCHING...");
 
+              const lowerTxt = txt.toLowerCase();
+              const isCreationRequest = /create|make|generate|write/.test(lowerTxt) && 
+                                      (/website|web\s?app|app|page|site/.test(lowerTxt) || /book|novel|story|ebook/.test(lowerTxt));
+
               try {
                   const sess = sessions.find(s => s.id === currentId);
-                  // History construction omitted for brevity, essentially same as before
-                  const contents = [{ role: 'user', parts: [{ text: txt }] }]; // Simplified for this XML block to focus on new features
-                  const stream = await attemptGeneration(key, contents, isProMode);
+                  let historyParts = sess ? sess.messages.filter(m => !m.isThinking && !m.isError).map(m => ({
+                      role: m.role, parts: [{ text: m.content }]
+                  })) : [];
+                  const contents = [...historyParts, { role: 'user', parts: [{ text: txt }] }];
+
+                  if (isCreationRequest) setEngineStatus("PLANNING & GENERATING...");
+
+                  const stream = await attemptGeneration(key, contents, isProMode, isCreationRequest);
                   
                   let fullText = '';
+                  let projectPayload = null;
+
                   for await (const chunk of stream) {
                       fullText += chunk.text || '';
                       setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false }] } : s));
                   }
+                  
+                  // Check for function calls in the final response
+                  const finalResp = await stream.response;
+                  const fc = finalResp.functionCalls?.[0];
+                  
+                  if (fc) {
+                       let newProject = null;
+                       if (fc.name === 'generate_webapp') {
+                           const args = fc.args;
+                           let code = args.code;
+                           if (code.startsWith('```')) code = code.replace(/^```(html)?\n/, '').replace(/```$/, '');
+                           newProject = { id: Date.now().toString(), type: 'webapp', title: args.title, code: code, date: new Date().toISOString() };
+                       } else if (fc.name === 'generate_ebook') {
+                           const args = fc.args;
+                           newProject = { id: Date.now().toString(), type: 'ebook', title: args.title, content: args, date: new Date().toISOString() };
+                       }
+
+                       if (newProject) {
+                           setProjects(prev => [newProject, ...prev]);
+                           projectPayload = newProject;
+                           
+                           // Update the message to include the project payload
+                           setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false, project: projectPayload }] } : s));
+                       }
+                  }
+
               } catch (e) {
                   setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "Error: " + e.message, isError: true }] } : s));
               } finally {
@@ -812,6 +756,9 @@
           
           if (!user) return <AuthScreen onLogin={() => {}} />;
 
+          const activeSession = sessions.find(s=>s.id===activeId);
+          const hasMessages = activeSession && activeSession.messages.length > 0;
+
           return (
               <div className="flex h-full w-full bg-white text-slate-900 font-sans relative overflow-hidden">
                   <div className={`fixed inset-0 bg-black/40 z-30 backdrop-blur-sm lg:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
@@ -821,9 +768,24 @@
                           <div className="flex items-center gap-2 font-bold text-lg"><BapkamLogo className="w-8 h-8"/> bapkam</div>
                           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2"><CloseIcon className="w-5 h-5"/></button>
                       </div>
+                      
+                      <div className="px-4">
+                        <div className="flex items-center justify-between px-4 py-3 bg-slate-100 rounded-xl mb-4 border border-slate-200">
+                            <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                <ZapIcon className={`w-4 h-4 ${isProMode ? 'text-yellow-500 fill-current' : 'text-slate-400'}`} />
+                                Pro Mode
+                            </span>
+                            <button 
+                                onClick={() => setIsProMode(!isProMode)} 
+                                className={`w-10 h-6 rounded-full transition-colors relative ${isProMode ? 'bg-slate-900' : 'bg-slate-300'}`}
+                            >
+                                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isProMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                      </div>
+
                       <div className="px-4 pb-2 space-y-2">
                           <button onClick={createSession} className="w-full py-2.5 bg-white border border-slate-200 rounded-lg shadow-sm font-semibold text-sm hover:border-slate-300 flex items-center justify-center gap-2 transition-all"><PlusIcon className="w-4 h-4"/> New Chat</button>
-                          <button onClick={() => { setCurrentView('create-project'); setIsSidebarOpen(false); }} className="w-full py-2.5 bg-slate-900 text-white border border-transparent rounded-lg shadow-sm font-semibold text-sm hover:bg-black flex items-center justify-center gap-2 transition-all"><ZapIcon className="w-4 h-4 text-yellow-400"/> New Project</button>
                       </div>
                       
                       <div className="flex-1 overflow-y-auto px-2 custom-scroll mt-4">
@@ -853,8 +815,6 @@
                   </aside>
 
                   <main className="flex-1 flex flex-col h-full relative min-w-0 bg-white">
-                      {currentView === 'create-project' && <ProjectCreator apiKey={getApiKey()} onClose={()=>setCurrentView('chat')} onCreated={handleProjectCreated} />}
-                      
                       {currentView === 'project-view' && viewingProject && (
                            viewingProject.type === 'webapp' ? (
                                <div className="flex flex-col h-full">
@@ -864,7 +824,7 @@
                                             <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">App</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button onClick={() => handleShareProject(viewingProject)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold flex items-center gap-1 transition-colors"><ShareIcon className="w-3 h-3"/> Share</button>
+                                            <button onClick={() => handleShareProject(viewingProject)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold flex items-center gap-1 transition-colors"><ShareIcon className="w-3 h-3"/> Share Link</button>
                                             <button onClick={() => setCurrentView('chat')} className="p-2 hover:bg-slate-100 rounded-full"><CloseIcon className="w-5 h-5"/></button>
                                         </div>
                                     </div>
@@ -880,7 +840,7 @@
                                             <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Book</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button onClick={() => handleShareProject(viewingProject)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold flex items-center gap-1 transition-colors"><ShareIcon className="w-3 h-3"/> Share</button>
+                                            <button onClick={() => handleShareProject(viewingProject)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold flex items-center gap-1 transition-colors"><ShareIcon className="w-3 h-3"/> Share Link</button>
                                             <button onClick={() => setCurrentView('chat')} className="p-2 hover:bg-slate-100 rounded-full"><CloseIcon className="w-5 h-5"/></button>
                                         </div>
                                    </div>
@@ -899,19 +859,53 @@
                                     <span className="font-bold lg:hidden">bapkam</span>
                                 </div>
                             </header>
+                            
                             <div className="flex-1 overflow-y-auto custom-scroll p-4 lg:p-6 pb-24" ref={chatRef}>
-                                {sessions.find(s=>s.id===activeId)?.messages.map((m, i) => (
-                                    <div key={i} className={`flex mb-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-sm lg:text-base shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}`}>
-                                            <div className="whitespace-pre-wrap">{m.content}</div>
-                                        </div>
+                                {!hasMessages ? (
+                                    <div className="h-full flex flex-col items-center justify-center -mt-10 animate-fade-in-up">
+                                         <BapkamLogo className="w-24 h-24 mb-4" isPro={true} />
+                                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">BAPKAM</h1>
+                                         <p className="text-slate-500 font-medium tracking-wide">let's solve everything</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    activeSession.messages.map((m, i) => (
+                                        <div key={i} className={`flex mb-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`flex flex-col gap-2 max-w-[85%]`}>
+                                                <div className={`rounded-2xl px-5 py-3 text-sm lg:text-base shadow-sm ${m.role === 'user' ? 'bg-slate-100 text-slate-900 rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}`}>
+                                                    <div className="whitespace-pre-wrap">{m.content}</div>
+                                                </div>
+                                                {m.project && (
+                                                    <div onClick={() => {setViewingProject(m.project); setCurrentView('project-view');}} className="cursor-pointer bg-slate-50 border border-slate-200 p-4 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-4 group">
+                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${m.project.type==='webapp' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                            {m.project.type==='webapp' ? <CodeIcon className="w-6 h-6"/> : <BookIcon className="w-6 h-6"/>}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-bold text-slate-900 truncate">{m.project.title}</div>
+                                                            <div className="text-xs text-slate-500">{m.project.type==='webapp' ? 'Web Application' : 'E-Book'}</div>
+                                                        </div>
+                                                        <div className="bg-white p-2 rounded-full border border-slate-200 group-hover:border-slate-300">
+                                                            <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-slate-900"/>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                                {isStreaming && (
+                                     <div className="flex mb-4 justify-start">
+                                        <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-5 py-3 shadow-sm flex items-center gap-3">
+                                             <div className="w-4 h-4 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+                                             <span className="text-sm text-slate-500 font-medium tracking-wide text-xs">{engineStatus || "Thinking..."}</span>
+                                        </div>
+                                     </div>
+                                )}
                             </div>
+
                             <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t border-slate-100 z-30">
-                                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-3xl p-2">
-                                    <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => {if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); handleSend();}}} placeholder="Message..." className="flex-1 bg-transparent outline-none p-2 resize-none max-h-32 text-slate-800" rows={1}/>
-                                    <button onClick={() => handleSend()} className={`p-3 rounded-full transition-all ${input.trim() ? 'bg-black text-white' : 'bg-slate-200 text-slate-400'}`}><SendIcon className="w-5 h-5"/></button>
+                                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-3xl p-2 focus-within:ring-2 focus-within:ring-slate-200 transition-all shadow-sm">
+                                    <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => {if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); handleSend();}}} placeholder={isProMode ? "Ask Bapkam Pro to create a website or write a novel..." : "Message Bapkam..."} className="flex-1 bg-transparent outline-none p-3 resize-none max-h-32 text-slate-800 placeholder-slate-400" rows={1}/>
+                                    <button onClick={() => handleSend()} className={`p-3 rounded-full transition-all ${input.trim() ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-100 text-slate-300'}`}><SendIcon className="w-5 h-5"/></button>
                                 </div>
                             </div>
                           </>
