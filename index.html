@@ -42,7 +42,7 @@
                 'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
                 'fade-in': 'fadeIn 0.3s ease-out forwards',
                 'spin-slow': 'spin 3s linear infinite',
-                'spin-slower': 'spin 12s linear infinite',
+                'spin-slower': 'spin 8s linear infinite',
                 'spin-fast': 'spin 0.5s linear infinite', 
                 'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
             },
@@ -57,7 +57,7 @@
                 }
             },
             dropShadow: {
-                'cyan': '0 0 8px rgba(34, 211, 238, 0.5)',
+                'glow': '0 0 10px rgba(139, 92, 246, 0.5)',
             }
           }
         }
@@ -149,6 +149,11 @@
         
         .fade-in-quick {
             animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
         }
     </style>
 
@@ -266,23 +271,22 @@
       const ArrowRightIcon = (p) => <Icon d="M5 12h14M12 5l7 7-7 7" {...p} />;
 
       // --- COMPONENTS ---
-      const BapkamLogo = ({ className = "w-10 h-10", isPro = false, isHealing = false }) => (
+      const BapkamLogo = ({ className = "w-10 h-10" }) => (
         <div className={`${className} relative flex items-center justify-center`}>
-            {isHealing && <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-60 animate-pulse"></div>}
-            {(isPro || !isHealing) && (
-                <>
-                    <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-40 animate-pulse"></div>
-                    <div className="absolute -inset-2 bg-blue-500 rounded-full blur-2xl opacity-20 animate-ping-slow"></div>
-                </>
-            )}
-            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 transition-all duration-700 animate-spin-slow drop-shadow-cyan`} xmlns="http://www.w3.org/2000/svg">
+            {/* New "Cosmic" Color Scheme: Violet, Fuchsia, Cyan */}
+            <div className="absolute inset-0 bg-violet-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+            <div className="absolute -inset-2 bg-fuchsia-500 rounded-full blur-2xl opacity-10 animate-ping-slow"></div>
+            
+            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 animate-spin-slower drop-shadow-glow`} xmlns="http://www.w3.org/2000/svg">
                 <g transform="translate(50,50)">
-                    {[...Array(12)].map((_, i) => (
-                        <path key={i} d="M0 -30 L5 -45 L10 -35 L5 -25 Z" 
-                              fill={isHealing ? `hsl(45, 90%, 50%)` : `hsl(${190 + i * 10}, 90%, 60%)`} 
-                              transform={`rotate(${i * 30}) translate(0, -10)`} 
-                              opacity="0.95" />
+                    {[...Array(8)].map((_, i) => (
+                        <path key={i} d="M0 -35 L8 -50 L16 -35 L8 -20 Z" 
+                              fill={`hsl(${260 + i * 20}, 90%, 65%)`} 
+                              transform={`rotate(${i * 45}) translate(0, -5)`} 
+                              opacity="0.9" />
                     ))}
+                    <circle cx="0" cy="0" r="12" fill="white" opacity="0.9" />
+                    <circle cx="0" cy="0" r="6" fill="#8b5cf6" />
                 </g>
             </svg>
         </div>
@@ -452,26 +456,28 @@
         };
 
         return (
-             <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
-                <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-xl w-full max-w-sm lg:max-w-md border border-slate-100 animate-fade-in-up z-10">
-                    <div className="mx-auto w-24 h-24 flex items-center justify-center mb-6"><BapkamLogo className="w-20 h-20" isPro={true} /></div>
+             <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
+                <div className="bg-white p-8 lg:p-12 rounded-3xl shadow-xl w-full max-w-sm lg:max-w-md border border-slate-100 animate-fade-in-up z-10 relative">
+                    <div className="mx-auto w-24 h-24 flex items-center justify-center mb-6"><BapkamLogo className="w-24 h-24" /></div>
                     
-                    <h1 className="text-2xl font-bold text-center text-slate-900 mb-6">
-                        {view === 'signup' ? 'Create Account' : 'Welcome Back'}
+                    <h1 className="text-3xl font-bold text-center text-slate-900 mb-2">
+                        {view === 'signup' ? 'Join Bapkam' : 'Welcome Back'}
                     </h1>
+                    <p className="text-center text-slate-500 mb-8 text-sm">Sign in to start creating</p>
 
                     <form onSubmit={handleEmailSubmit} className="space-y-4">
-                        {view === 'signup' && <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />}
-                        <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />
-                        <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required />
-                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all flex justify-center shadow-lg shadow-slate-900/20 items-center gap-2">
-                            <MailIcon className="w-4 h-4" />
-                            {loading ? 'Processing...' : (view==='signup'?'Sign Up':'Log In')}
+                        {view === 'signup' && <input type="text" placeholder="Full Name" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-violet-500 transition-shadow" required />}
+                        <input type="email" placeholder="Email Address" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-violet-500 transition-shadow" required />
+                        <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-violet-500 transition-shadow" required />
+                        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition-all flex justify-center shadow-lg shadow-slate-900/20 items-center gap-2 transform hover:-translate-y-0.5">
+                            {loading ? 'Processing...' : (view==='signup'?'Create Account':'Sign In')}
                         </button>
                     </form>
-                    <div className="text-xs text-center mt-6 text-slate-500 space-y-2">
-                        {view === 'login' && <p>New here? <button onClick={()=>setView('signup')} className="font-bold text-blue-600 hover:underline">Sign Up</button></p>}
-                        {view === 'signup' && <p>Have an account? <button onClick={()=>setView('login')} className="font-bold text-blue-600 hover:underline">Log In</button></p>}
+                    
+                    <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                        <button onClick={()=>setView(view === 'login' ? 'signup' : 'login')} className="text-sm font-medium text-violet-600 hover:text-violet-800 transition-colors">
+                            {view === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                        </button>
                     </div>
 
                     {error && <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg select-all"><p className="text-xs text-red-600 text-center font-medium break-all">{error}</p></div>}
@@ -611,7 +617,10 @@
                  try {
                      const normalInstruction = `You are Bapkam. 1. EMPATHETIC. 2. CONTEXTUAL. 3. SEARCH ENGINE SON (Use googleSearch for facts). 4. CODE EXPERT.`;
                      const proInstruction = `You are Bapkam PRO. Deep analysis. Perfect Markdown.`;
-                     const creatorInstruction = "You are an expert app developer and author. First, explain your plan and concepts in detail to the user. Then, generate the full content using the provided tool at the end.";
+                     const creatorInstruction = `You are an expert app developer and author. 
+                     Step 1: Explain your plan, concepts, and features in detail to the user.
+                     Step 2: Generate the FULL content using the provided tool at the end of your response. 
+                     If you are writing code, write it inside the tool call, NOT in the chat text.`;
 
                      let tools = [];
                      
@@ -737,10 +746,21 @@
                        if (newProject) {
                            setProjects(prev => [newProject, ...prev]);
                            projectPayload = newProject;
-                           
-                           // Update the message to include the project payload
-                           setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false, project: projectPayload }] } : s));
                        }
+                  } 
+                  // Fallback: If no function call, check if the model wrote code in the text!
+                  else if (isCreationRequest) {
+                      const webAppMatch = fullText.match(/```html([\s\S]*?)```/);
+                      if (webAppMatch) {
+                          const code = webAppMatch[1].trim();
+                          const titleMatch = fullText.match(/Title:\s*(.*)/i) || { 1: "Generated App" };
+                          projectPayload = { id: Date.now().toString(), type: 'webapp', title: titleMatch[1].trim(), code: code, date: new Date().toISOString() };
+                          setProjects(prev => [projectPayload, ...prev]);
+                      }
+                  }
+
+                  if (projectPayload) {
+                      setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false, project: projectPayload }] } : s));
                   }
 
               } catch (e) {
@@ -863,7 +883,7 @@
                             <div className="flex-1 overflow-y-auto custom-scroll p-4 lg:p-6 pb-24" ref={chatRef}>
                                 {!hasMessages ? (
                                     <div className="h-full flex flex-col items-center justify-center -mt-10 animate-fade-in-up">
-                                         <BapkamLogo className="w-24 h-24 mb-4" isPro={true} />
+                                         <BapkamLogo className="w-24 h-24 mb-6" />
                                          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">BAPKAM</h1>
                                          <p className="text-slate-500 font-medium tracking-wide">let's solve everything</p>
                                     </div>
@@ -876,15 +896,15 @@
                                                 </div>
                                                 {m.project && (
                                                     <div onClick={() => {setViewingProject(m.project); setCurrentView('project-view');}} className="cursor-pointer bg-slate-50 border border-slate-200 p-4 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-4 group">
-                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${m.project.type==='webapp' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-sm ${m.project.type==='webapp' ? 'bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600' : 'bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600'}`}>
                                                             {m.project.type==='webapp' ? <CodeIcon className="w-6 h-6"/> : <BookIcon className="w-6 h-6"/>}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="font-bold text-slate-900 truncate">{m.project.title}</div>
-                                                            <div className="text-xs text-slate-500">{m.project.type==='webapp' ? 'Web Application' : 'E-Book'}</div>
+                                                            <div className="font-bold text-slate-900 truncate text-lg">{m.project.title}</div>
+                                                            <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">{m.project.type==='webapp' ? 'Web Application' : 'E-Book'}</div>
                                                         </div>
-                                                        <div className="bg-white p-2 rounded-full border border-slate-200 group-hover:border-slate-300">
-                                                            <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-slate-900"/>
+                                                        <div className="bg-white p-2.5 rounded-full border border-slate-200 group-hover:border-slate-300 shadow-sm">
+                                                            <ArrowRightIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-900"/>
                                                         </div>
                                                     </div>
                                                 )}
@@ -903,7 +923,7 @@
                             </div>
 
                             <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t border-slate-100 z-30">
-                                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-3xl p-2 focus-within:ring-2 focus-within:ring-slate-200 transition-all shadow-sm">
+                                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-3xl p-2 focus-within:ring-2 focus-within:ring-violet-200 transition-all shadow-sm">
                                     <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => {if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); handleSend();}}} placeholder={isProMode ? "Ask Bapkam Pro to create a website or write a novel..." : "Message Bapkam..."} className="flex-1 bg-transparent outline-none p-3 resize-none max-h-32 text-slate-800 placeholder-slate-400" rows={1}/>
                                     <button onClick={() => handleSend()} className={`p-3 rounded-full transition-all ${input.trim() ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-100 text-slate-300'}`}><SendIcon className="w-5 h-5"/></button>
                                 </div>
