@@ -45,6 +45,8 @@
                 'spin-slower': 'spin 8s linear infinite',
                 'spin-fast': 'spin 0.5s linear infinite', 
                 'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                'wave-flow': 'waveFlow 4s infinite linear',
+                'wave-flow-fast': 'waveFlow 3s infinite linear reverse',
             },
             keyframes: {
                 fadeInUp: {
@@ -54,6 +56,11 @@
                 fadeIn: {
                     '0%': { opacity: '0' },
                     '100%': { opacity: '1' },
+                },
+                waveFlow: {
+                    '0%': { transform: 'translateX(0) translateY(0) rotate(0)' },
+                    '50%': { transform: 'translateX(-25%) translateY(5%) rotate(5deg)' },
+                    '100%': { transform: 'translateX(-50%) translateY(0) rotate(0)' },
                 }
             },
             dropShadow: {
@@ -69,6 +76,7 @@
         window.process = window.process || {};
         window.process.env = window.process.env || {};
         
+        // Obfuscated API Key Construction
         const _k1 = "AIzaSyC12LW4wzw";
         const _k2 = "TPPtS6BekGUzv75QeO3H3u-A";
         window.process.env.API_KEY = _k1 + _k2;
@@ -273,21 +281,31 @@
       // --- COMPONENTS ---
       const BapkamLogo = ({ className = "w-10 h-10" }) => (
         <div className={`${className} relative flex items-center justify-center`}>
-            {/* New "Cosmic" Color Scheme: Violet, Fuchsia, Cyan */}
-            <div className="absolute inset-0 bg-violet-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
-            <div className="absolute -inset-2 bg-fuchsia-500 rounded-full blur-2xl opacity-10 animate-ping-slow"></div>
+            {/* Ambient Premium Glow */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-amber-300 via-fuchsia-400 to-cyan-400 rounded-full blur-xl opacity-40 animate-pulse-slow"></div>
             
-            <svg viewBox="0 0 100 100" className={`w-full h-full relative z-10 animate-spin-slower drop-shadow-glow`} xmlns="http://www.w3.org/2000/svg">
-                <g transform="translate(50,50)">
-                    {[...Array(8)].map((_, i) => (
-                        <path key={i} d="M0 -35 L8 -50 L16 -35 L8 -20 Z" 
-                              fill={`hsl(${260 + i * 20}, 90%, 65%)`} 
-                              transform={`rotate(${i * 45}) translate(0, -5)`} 
-                              opacity="0.9" />
-                    ))}
-                    <circle cx="0" cy="0" r="12" fill="white" opacity="0.9" />
-                    <circle cx="0" cy="0" r="6" fill="#8b5cf6" />
+            {/* Main SVG Geometry */}
+            <svg viewBox="0 0 100 100" className="w-full h-full relative z-10 drop-shadow-lg" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="premiumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#F59E0B" /> {/* Amber */}
+                        <stop offset="50%" stopColor="#D946EF" /> {/* Fuchsia */}
+                        <stop offset="100%" stopColor="#06B6D4" /> {/* Cyan */}
+                    </linearGradient>
+                </defs>
+                
+                {/* Outer Ring */}
+                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#premiumGrad)" strokeWidth="1.5" strokeOpacity="0.3" className="animate-spin-slower" />
+                
+                {/* Inner Geometry: Rotating Flower/Orb */}
+                <g className="animate-spin-slow origin-center">
+                     {[0, 60, 120, 180, 240, 300].map(deg => (
+                         <path key={deg} d="M50 50 Q 80 20 50 10 Q 20 20 50 50" fill="url(#premiumGrad)" opacity="0.6" transform={`rotate(${deg} 50 50)`} />
+                     ))}
                 </g>
+                
+                {/* Core */}
+                <circle cx="50" cy="50" r="6" fill="white" className="drop-shadow-md" />
             </svg>
         </div>
       );
@@ -323,7 +341,7 @@
              
              try {
                  const opt = {
-                   margin: [10, 10, 10, 10], // top, left, bottom, right
+                   margin: [10, 10, 10, 10],
                    filename: `${book.title.replace(/\s+/g, '_')}.pdf`,
                    image: { type: 'jpeg', quality: 0.98 },
                    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
@@ -668,16 +686,30 @@
                      }
 
                      const ai = new GoogleGenAI({ apiKey: key });
-                     // Always use stream to capture the thinking/explanation part
-                     const stream = await ai.models.generateContentStream({
-                        model: model,
-                        contents: contents,
-                        config: { 
-                            systemInstruction: useTools ? creatorInstruction : (isPro ? proInstruction : normalInstruction), 
-                            tools: tools.length > 0 ? tools : undefined 
-                        }
-                     });
-                     return stream;
+                     
+                     if (useTools) {
+                        // CRITICAL FIX: Use non-streaming generateContent for tools to prevent "undefined" functionCalls error
+                        const result = await ai.models.generateContent({
+                            model: model,
+                            contents: contents,
+                            config: { 
+                                systemInstruction: creatorInstruction, 
+                                tools: tools 
+                            }
+                        });
+                        return { isStream: false, response: result };
+                     } else {
+                        // Use streaming for normal text chat
+                        const stream = await ai.models.generateContentStream({
+                            model: model,
+                            contents: contents,
+                            config: { 
+                                systemInstruction: isPro ? proInstruction : normalInstruction, 
+                                tools: tools.length > 0 ? tools : undefined 
+                            }
+                        });
+                        return { isStream: true, stream: stream };
+                     }
 
                  } catch (e) {
                      if (i === modelsToTry.length - 1) throw e;
@@ -717,54 +749,71 @@
 
                   if (isCreationRequest) setEngineStatus("PLANNING & GENERATING...");
 
-                  const stream = await attemptGeneration(key, contents, isProMode, isCreationRequest);
+                  // Call the enhanced generation function
+                  const result = await attemptGeneration(key, contents, isProMode, isCreationRequest);
                   
                   let fullText = '';
                   let projectPayload = null;
 
-                  for await (const chunk of stream) {
-                      fullText += chunk.text || '';
-                      setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false }] } : s));
-                  }
-                  
-                  // Check for function calls in the final response
-                  const finalResp = await stream.response;
-                  const fc = finalResp.functionCalls?.[0];
-                  
-                  if (fc) {
-                       let newProject = null;
-                       if (fc.name === 'generate_webapp') {
-                           const args = fc.args;
-                           let code = args.code;
-                           if (code.startsWith('```')) code = code.replace(/^```(html)?\n/, '').replace(/```$/, '');
-                           newProject = { id: Date.now().toString(), type: 'webapp', title: args.title, code: code, date: new Date().toISOString() };
-                       } else if (fc.name === 'generate_ebook') {
-                           const args = fc.args;
-                           newProject = { id: Date.now().toString(), type: 'ebook', title: args.title, content: args, date: new Date().toISOString() };
-                       }
+                  if (result.isStream) {
+                      // Handle Streaming (Text Chat)
+                      for await (const chunk of result.stream) {
+                          fullText += chunk.text || '';
+                          setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false }] } : s));
+                      }
+                  } else {
+                      // Handle Non-Streaming (Tools/Creation)
+                      const resp = result.response;
+                      fullText = resp.text || ''; // Get text explanation if available
+                      
+                      const fc = resp.functionCalls?.[0];
+                      
+                      if (fc) {
+                           if (fc.name === 'generate_webapp') {
+                               const args = fc.args;
+                               let code = args.code;
+                               if (code.startsWith('```')) code = code.replace(/^```(html)?\n/, '').replace(/```$/, '');
+                               projectPayload = { id: Date.now().toString(), type: 'webapp', title: args.title, code: code, date: new Date().toISOString() };
+                           } else if (fc.name === 'generate_ebook') {
+                               const args = fc.args;
+                               projectPayload = { id: Date.now().toString(), type: 'ebook', title: args.title, content: args, date: new Date().toISOString() };
+                           }
 
-                       if (newProject) {
-                           setProjects(prev => [newProject, ...prev]);
-                           projectPayload = newProject;
-                       }
-                  } 
-                  // Fallback: If no function call, check if the model wrote code in the text!
-                  else if (isCreationRequest) {
-                      const webAppMatch = fullText.match(/```html([\s\S]*?)```/);
-                      if (webAppMatch) {
-                          const code = webAppMatch[1].trim();
-                          const titleMatch = fullText.match(/Title:\s*(.*)/i) || { 1: "Generated App" };
-                          projectPayload = { id: Date.now().toString(), type: 'webapp', title: titleMatch[1].trim(), code: code, date: new Date().toISOString() };
-                          setProjects(prev => [projectPayload, ...prev]);
+                           if (projectPayload) {
+                               setProjects(prev => [projectPayload, ...prev]);
+                           }
+                      } 
+                      // Fallback: If no function call, check if the model wrote code in the text!
+                      else if (isCreationRequest) {
+                          const webAppMatch = fullText.match(/```html([\s\S]*?)```/);
+                          if (webAppMatch) {
+                              const code = webAppMatch[1].trim();
+                              const titleMatch = fullText.match(/Title:\s*(.*)/i) || { 1: "Generated App" };
+                              projectPayload = { id: Date.now().toString(), type: 'webapp', title: titleMatch[1].trim(), code: code, date: new Date().toISOString() };
+                              setProjects(prev => [projectPayload, ...prev]);
+                          }
                       }
                   }
 
-                  if (projectPayload) {
-                      setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: fullText, isThinking: false, project: projectPayload }] } : s));
-                  }
+                  // Final update to message
+                  setSessions(prev => prev.map(s => s.id === currentId ? { 
+                      ...s, 
+                      messages: [...s.messages.slice(0, -1), { 
+                          role: 'model', 
+                          content: fullText || (projectPayload ? "Here is your project:" : "I couldn't generate a text response, but I might have created a project."), 
+                          isThinking: false, 
+                          project: projectPayload 
+                      }] 
+                  } : s));
 
               } catch (e) {
-                  setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: "Error: " + e.message, isError: true }] } : s));
+                  // Global error handler
+                  console.error("Gen Error", e);
+                  let errorMsg = "I encountered an issue. Please try again.";
+                  if (e.message.includes('429')) errorMsg = "Too many requests. Please wait a moment.";
+                  if (e.message.includes('500') || e.message.includes('503')) errorMsg = "Service temporarily unavailable. Retrying might work.";
+                  
+                  setSessions(prev => prev.map(s => s.id === currentId ? { ...s, messages: [...s.messages.slice(0, -1), { role: 'model', content: errorMsg, isError: true }] } : s));
               } finally {
                   setIsStreaming(false); setEngineStatus('');
               }
@@ -914,9 +963,13 @@
                                 )}
                                 {isStreaming && (
                                      <div className="flex mb-4 justify-start">
-                                        <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-5 py-3 shadow-sm flex items-center gap-3">
-                                             <div className="w-4 h-4 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-                                             <span className="text-sm text-slate-500 font-medium tracking-wide text-xs">{engineStatus || "Thinking..."}</span>
+                                        <div className="bg-white/80 backdrop-blur border border-slate-200/50 rounded-2xl rounded-tl-none px-5 py-4 shadow-sm flex items-center gap-3">
+                                             {/* Water Wave Loader */}
+                                             <div className="relative w-8 h-8 rounded-full overflow-hidden bg-blue-50 border border-blue-100 shadow-inner">
+                                                <div className="absolute bottom-0 left-0 right-0 h-[150%] w-[200%] animate-wave-flow bg-gradient-to-t from-cyan-400 to-blue-500 opacity-60"></div>
+                                                <div className="absolute bottom-0 left-0 right-0 h-[150%] w-[200%] animate-wave-flow-fast bg-gradient-to-t from-blue-500 to-indigo-500 opacity-60" style={{left: '-50%'}}></div>
+                                             </div>
+                                             <span className="text-sm text-slate-600 font-medium tracking-wide text-xs animate-pulse">{engineStatus || "Bapkam is flowing..."}</span>
                                         </div>
                                      </div>
                                 )}
