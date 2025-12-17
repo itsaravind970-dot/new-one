@@ -45,8 +45,8 @@
                 'spin-slower': 'spin 8s linear infinite',
                 'spin-fast': 'spin 0.5s linear infinite', 
                 'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
-                'wave-flow': 'waveFlow 4s infinite linear',
-                'wave-flow-fast': 'waveFlow 3s infinite linear reverse',
+                'wave-flow': 'waveFlow 6s infinite cubic-bezier(0.4, 0, 0.2, 1)',
+                'wave-flow-fast': 'waveFlow 4s infinite cubic-bezier(0.4, 0, 0.2, 1) reverse',
             },
             keyframes: {
                 fadeInUp: {
@@ -59,7 +59,7 @@
                 },
                 waveFlow: {
                     '0%': { transform: 'translateX(0) translateY(0) rotate(0)' },
-                    '50%': { transform: 'translateX(-25%) translateY(5%) rotate(5deg)' },
+                    '50%': { transform: 'translateX(-25%) translateY(8%) rotate(3deg)' },
                     '100%': { transform: 'translateX(-50%) translateY(0) rotate(0)' },
                 }
             },
@@ -76,10 +76,8 @@
         window.process = window.process || {};
         window.process.env = window.process.env || {};
         
-        // Obfuscated API Key Construction
-        const _k1 = "AIzaSyC12LW4wzw";
-        const _k2 = "TPPtS6BekGUzv75QeO3H3u-A";
-        window.process.env.API_KEY = _k1 + _k2;
+        // Correct User API Key
+        window.process.env.API_KEY = "AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg";
         
         if (typeof window.API_KEY !== 'undefined') {
             window.process.env.API_KEY = window.API_KEY;
@@ -526,9 +524,7 @@
           const chatRef = useRef(null);
 
           const getApiKey = useCallback(() => {
-             const _k1 = "AIzaSyC12LW4wzw";
-             const _k2 = "TPPtS6BekGUzv75QeO3H3u-A";
-             return _k1 + _k2;
+             return "AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg";
           }, []);
 
           // Init: Check URL for shared project
@@ -742,9 +738,15 @@
 
               try {
                   const sess = sessions.find(s => s.id === currentId);
-                  let historyParts = sess ? sess.messages.filter(m => !m.isThinking && !m.isError).map(m => ({
-                      role: m.role, parts: [{ text: m.content }]
+                  
+                  // CRITICAL FIX: Ensure no empty parts are sent to history which crashes API
+                  let historyParts = sess ? sess.messages
+                      .filter(m => !m.isThinking && !m.isError && m.content) // Added m.content check
+                      .map(m => ({
+                          role: m.role, 
+                          parts: [{ text: m.content }]
                   })) : [];
+                  
                   const contents = [...historyParts, { role: 'user', parts: [{ text: txt }] }];
 
                   if (isCreationRequest) setEngineStatus("PLANNING & GENERATING...");
