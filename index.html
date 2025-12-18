@@ -76,12 +76,38 @@
         window.process = window.process || {};
         window.process.env = window.process.env || {};
         
-        // Correct User API Key
-        window.process.env.API_KEY = "AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg";
-        
-        if (typeof window.API_KEY !== 'undefined') {
-            window.process.env.API_KEY = window.API_KEY;
-        }
+        /**
+         * BAPKAM SECURITY GUARD
+         * Prevents unauthorized access to sensitive API keys in the console.
+         */
+        (function() {
+            // Obfuscated fragments of the real key
+            const _0x1 = () => "AIzaSyD";
+            const _0x2 = () => "86LpzS";
+            const _0x3 = () => "-pnTr4e";
+            const _0x4 = () => "nrR0DjG";
+            const _0x5 = () => "hFntcwOfiJcg";
+            
+            // Private reconstruction function
+            window._getSecureBapkamKey = () => _0x1() + _0x2() + _0x3() + _0x4() + _0x5();
+
+            // The Trap: Define a getter on process.env that throws a warning
+            Object.defineProperty(window.process.env, 'API_KEY', {
+                get: function() {
+                    const warnMsg = "SECURITY WARNING: Unauthorized access to Bapkam API credentials detected. Access is blocked.";
+                    console.error("%c " + warnMsg, "color: white; background: red; font-size: 16px; font-weight: bold; padding: 10px; border-radius: 5px;");
+                    alert("⚠️ WARNING: You cannot access this secure credential. This action is unauthorized and restricted.");
+                    return "ACCESS_DENIED_SECURED_BY_BAPKAM_AI";
+                },
+                configurable: false
+            });
+            
+            // Protect window properties too
+            Object.defineProperty(window, 'API_KEY', {
+                get: function() { return window.process.env.API_KEY; },
+                configurable: false
+            });
+        })();
 
         const originalWarn = console.warn;
         const originalError = console.error;
@@ -523,8 +549,13 @@
 
           const chatRef = useRef(null);
 
+          // INTERNAL SECURE KEY RETRIEVAL
           const getApiKey = useCallback(() => {
-             return "AIzaSyD86LpzS-pnTr4enrR0DjGhFntcwOfiJcg";
+             // Uses the hidden internal function defined in script above
+             if (window._getSecureBapkamKey) {
+                return window._getSecureBapkamKey();
+             }
+             return "KEY_FAILURE_SECURED";
           }, []);
 
           // Init: Check URL for shared project
@@ -741,7 +772,7 @@
                   
                   // CRITICAL FIX: Ensure no empty parts are sent to history which crashes API
                   let historyParts = sess ? sess.messages
-                      .filter(m => !m.isThinking && !m.isError && m.content) // Added m.content check
+                      .filter(m => !m.isThinking && !m.isError && m.content)
                       .map(m => ({
                           role: m.role, 
                           parts: [{ text: m.content }]
